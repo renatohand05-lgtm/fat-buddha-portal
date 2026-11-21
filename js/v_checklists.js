@@ -6,7 +6,44 @@ const CK_QUAL = [
   {s:'Limpeza, manutenção e estrutura', i:['Cozinha e salão limpos','Cronograma de limpeza preenchido','Equipamentos funcionando','Coifa, ralos e lixeiras em ordem','Controle de pragas em dia','Banheiros limpos e abastecidos']},
   {s:'Escalas, pessoas e liderança', i:['Escala cumprida nos horários de pico','Faltas cobertas sem desfalcar a operação','Líder de turno presente','Reunião pré-turno realizada','Treinamentos registrados']},
   {s:'Cumprimento dos padrões operacionais', i:['Cardápio atualizado nas plataformas','Atendimento do salão no padrão (Brooklyn)','Uniformes e identidade visual no padrão','Planos de ação da visita anterior concluídos','Checklists de abertura e fechamento preenchidos']},
+  {s:'Equipamentos, temperaturas e estoques', i:[
+    {n:'Câmara de resfriados', tipo:'temp', min:1, max:4, foto:true},
+    {n:'Geladeiras e freezers de resfriados', tipo:'temp', min:1, max:4, foto:true},
+    {n:'Câmara de congelados', tipo:'temp', min:-21, max:-14, foto:true},
+    {n:'Freezers de congelados', tipo:'temp', min:-21, max:-14, foto:true},
+    {n:'Chapa funcionando, limpa e aquecendo no padrão', foto:true},
+    {n:'Fritadeira funcionando, óleo filtrado e dentro do prazo de troca', foto:true},
+    {n:'Foto visual do estoque seco organizado (PVPS, etiquetas, nada no chão)', foto:true},
+    {n:'Foto visual das câmaras e freezers organizados', foto:true}]},
 ];
+/* item do checklist: texto (itens originais) ou objeto (temperatura / foto obrigatória) */
+const itTxt = it => typeof it==='string'?it:(it.tipo==='temp'?`${it.n} — entre ${fmtT(it.min)} e ${fmtT(it.max)}`:it.n);
+const itObj = it => typeof it==='string'?{n:it}:it;
+const fmtT = v => (v<0?'−':'')+nf1.format(Math.abs(v)).replace(',0','')+' °C';
+const IC_CAM='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+/* fotos: compressão no navegador e envio ao armazenamento privado */
+async function comprimir(file){
+  try{const bm=await createImageBitmap(file);const k=Math.min(1,1600/Math.max(bm.width,bm.height));const c=document.createElement('canvas');c.width=Math.round(bm.width*k);c.height=Math.round(bm.height*k);c.getContext('2d').drawImage(bm,0,0,c.width,c.height);
+    return await new Promise(r=>c.toBlob(b=>r(b||file),'image/jpeg',.8))}catch(e){return file}
+}
+async function enviarFoto(loja,file){
+  const blob=await comprimir(file); if(blob.size>5*1024*1024){toast('Foto acima de 5 MB.');return null}
+  const path=`${loja}/${ymOf($('#qData').value||isoHoje())}/${Date.now()}-${Math.random().toString(36).slice(2,8)}.jpg`;
+  const {error}=await sb.storage.from('checklist-fotos').upload(path,blob,{contentType:'image/jpeg',upsert:false});
+  if(error){toast(/row-level|security|403/i.test(error.message)?'Sem permissão para enviar fotos desta loja.':'Falha ao enviar foto: '+error.message);return null}
+  return path;
+}
+const URLS={};
+async function urlFoto(p){if(URLS[p]&&URLS[p].t>Date.now())return URLS[p].u;const {data}=await sb.storage.from('checklist-fotos').createSignedUrl(p,3600);if(!data)return '';URLS[p]={u:data.signedUrl,t:Date.now()+3e6};return data.signedUrl}
+async function pintarFotos(root){
+  for(const im of root.querySelectorAll('img[data-src]')){const u=await urlFoto(im.dataset.src);if(u){im.src=u;im.removeAttribute('data-src')}}
+}
+function galeria(titulo,paths){
+  modal(`<h3>${esc(titulo)} <small><button class="btn sm" id="mX">Fechar</button></small></h3><div class="galeria">${paths.map(p=>`<a data-full="${esc(p)}"><img data-src="${esc(p)}" alt=""></a>`).join('')||'<div class="empty">Sem fotos.</div>'}</div>`,async el=>{
+    el.querySelector('#mX').onclick=fecharModal; await pintarFotos(el);
+    el.querySelectorAll('[data-full]').forEach(a=>a.onclick=async()=>window.open(await urlFoto(a.dataset.full),'_blank'));
+  });
+}
 const CK_DEL_METAS = [
   {k:'preparo', n:'Tempo médio de preparo', u:'min'},
   {k:'cancel', n:'Cancelamentos', u:'%'},
@@ -28,10 +65,16 @@ let Q = {};
 function qKey(si,ii){return si+'-'+ii}
 function buildQual(){
   $('#qSecs').innerHTML = CK_QUAL.map((sec,si)=>`<div class="sec" data-s="${si}"><div class="sec-h"><b>${si+1}. ${sec.s}</b><span class="sc" id="qsc${si}"></span></div><div class="sec-b">${
-    sec.i.map((it,ii)=>`<div class="item" id="qi${qKey(si,ii)}"><span>${it}</span><div class="seg" data-k="${qKey(si,ii)}"><button data-v="sim">Sim</button><button data-v="nao">Não</button><button data-v="na">N/A</button></div><input class="inp obs" placeholder="Evidência / observação" data-o="${qKey(si,ii)}"></div>`).join('')}</div></div>`).join('');
+    sec.i.map((it,ii)=>{const o=itObj(it),k=qKey(si,ii);return `<div class="item ${o.foto?'fobr':''}" id="qi${k}"><span>${esc(itTxt(it))}${o.foto?' <span class="tag" style="font-size:10.5px">foto obrigatória</span>':''}</span><div class="qctl">${o.tipo==='temp'?`<div class="inwrap" style="width:108px"><input class="inp tmp" type="number" step="0.1" data-t="${k}" placeholder="medido"><em>°C</em></div>`:''}<label class="btn sm fbtn" title="Adicionar foto">${IC_CAM}<input type="file" accept="image/*" capture="environment" multiple hidden data-fu="${k}"></label><div class="seg" data-k="${k}"><button data-v="sim">Sim</button><button data-v="nao">Não</button><button data-v="na">N/A</button></div></div><input class="inp obs" placeholder="Evidência / observação" data-o="${k}"><div class="fotos" data-fk="${k}"></div></div>`}).join('')}</div></div>`).join('');
   $('#qSecs').querySelectorAll('.sec-h').forEach(h=>h.onclick=()=>h.parentElement.classList.toggle('closed'));
   $('#qSecs').querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{const k=b.parentElement.dataset.k;Q[k]=Q[k]||{};Q[k].v=Q[k].v===b.dataset.v?null:b.dataset.v;paintQual()});
   $('#qSecs').querySelectorAll('.obs').forEach(i=>{i.value=(Q[i.dataset.o]||{}).o||'';i.oninput=()=>{const k=i.dataset.o;Q[k]=Q[k]||{};Q[k].o=i.value}});
+  $('#qSecs').querySelectorAll('.tmp').forEach(i=>{const k=i.dataset.t;i.value=(Q[k]||{}).t??'';i.oninput=()=>{Q[k]=Q[k]||{};const [si,ii]=k.split('-').map(Number),o=itObj(CK_QUAL[si].i[ii]);
+    if(i.value===''){delete Q[k].t;if(Q[k].v!=='na')Q[k].v=null}else{const t=+i.value;Q[k].t=t;Q[k].v=t>=o.min&&t<=o.max?'sim':'nao'}paintQual()}});
+  $('#qSecs').querySelectorAll('[data-fu]').forEach(inp=>inp.onchange=async()=>{const k=inp.dataset.fu, loja=$('#qLoja').value;if(!loja){toast('Selecione a loja antes das fotos.');return}
+    const fs=[...inp.files];inp.value='';if(!fs.length)return;busy(true);
+    for(const f of fs){const p=await enviarFoto(loja,f);if(p){Q[k]=Q[k]||{};(Q[k].f=Q[k].f||[]).push(p)}}
+    busy(false);paintQual();toast(fs.length>1?'Fotos adicionadas.':'Foto adicionada.')});
   $('#qOpenAll').onclick=()=>{const secs=$$('#qSecs .sec');const anyOpen=secs.some(s=>!s.classList.contains('closed'));secs.forEach(s=>s.classList.toggle('closed',anyOpen))};
   paintQual();
 }
@@ -47,22 +90,33 @@ function ring(p,label){
 }
 const ST_MAP = {'Aberta':'Pendente','Em andamento':'Em andamento','Concluída':'Concluído'};
 function paintQual(){
-  $$('#qSecs .seg').forEach(sg=>{const v=(Q[sg.dataset.k]||{}).v;sg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));sg.parentElement.classList.toggle('no',v==='nao')});
+  $$('#qSecs .seg').forEach(sg=>{const k=sg.dataset.k,q=Q[k]||{},v=q.v;sg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));const item=$('#qi'+k);item.classList.toggle('no',v==='nao');
+    const [si,ii]=k.split('-').map(Number),o=itObj(CK_QUAL[si].i[ii]),fs=q.f||[];
+    item.classList.toggle('pend',!!o.foto&&(v==='sim'||v==='nao')&&!fs.length);
+    const box=item.querySelector('.fotos');
+    box.innerHTML=fs.map((p,i)=>`<span class="ft"><img data-src="${esc(p)}" alt=""><button title="Remover" data-fr="${k}|${i}">×</button></span>`).join('')+(o.tipo==='temp'&&q.t!=null?`<span class="sem s-${v==='sim'?'ok':'bad'}" style="min-width:0">${fmtT(q.t)} ${v==='sim'?'dentro da faixa':'fora da faixa'}</span>`:'')+(o.foto&&(v==='sim'||v==='nao')&&!fs.length?'<span class="small" style="color:var(--bad)">foto pendente</span>':'');
+    box.querySelectorAll('[data-fr]').forEach(b=>b.onclick=()=>{const [kk,i]=b.dataset.fr.split('|');const p=Q[kk].f.splice(+i,1)[0];sb.storage.from('checklist-fotos').remove([p]).then(()=>{});paintQual()});
+    box.querySelectorAll('.ft img').forEach(im=>im.onclick=()=>galeria(itTxt(CK_QUAL[si].i[ii]),fs));
+  });
+  pintarFotos($('#qSecs'));
   const sc=qScores();
   $('#qRing').innerHTML=ring(sc.score,'nota da visita');
   $('#qBars').innerHTML=sc.per.map((p,i)=>{const pct=p.s+p.n?p.s/(p.s+p.n)*100:null;return `<div class="r"><span>${CK_QUAL[i].s.split(',')[0]}</span><div class="tr"><i style="width:${pct||0}%;background:${scCol(pct)}"></i></div><span style="text-align:right">${pct==null?'—':nf0.format(pct)+'%'}</span></div>`}).join('');
   sc.per.forEach((p,i)=>$('#qsc'+i).innerHTML=`<span>${p.s+p.n+p.na}/${p.tot} avaliados</span>${p.n?`<span class="sem s-bad" style="min-width:0">${p.n} não</span>`:''}`);
-  const nos=[];CK_QUAL.forEach((sec,si)=>sec.i.forEach((it,ii)=>{const k=qKey(si,ii);if((Q[k]||{}).v==='nao')nos.push({k,it,sec:sec.s})}));
-  $('#qPlano').innerHTML = nos.length? `<div class="tbl-wrap"><table><tr><th>Desvio</th><th>Ação</th><th>Responsável</th><th>Prazo</th><th>Prioridade</th><th>Status</th></tr>${nos.map(n=>{const a=(Q[n.k]||{}).a||{};return `<tr><td style="white-space:normal;min-width:200px"><b>${n.it}</b><div class="small muted">${n.sec}</div></td><td style="min-width:220px"><input class="inp" data-a="${n.k}" data-f="acao" value="${esc(a.acao)}" placeholder="O que será feito"></td><td style="min-width:150px"><input class="inp" data-a="${n.k}" data-f="resp" value="${esc(a.resp)}" placeholder="Quem"></td><td><input class="inp" type="date" data-a="${n.k}" data-f="prazo" value="${esc(a.prazo)}"></td><td><select class="inp" data-a="${n.k}" data-f="pri">${['Alta','Média','Baixa'].map(o=>`<option ${(a.pri||'Média')===o?'selected':''}>${o}</option>`).join('')}</select></td><td><select class="inp" data-a="${n.k}" data-f="st">${['Aberta','Em andamento','Concluída'].map(o=>`<option ${a.st===o?'selected':''}>${o}</option>`).join('')}</select></td></tr>`}).join('')}</table></div><p class="small muted" style="margin-top:8px">Ao salvar a visita, cada desvio vira uma ação no módulo Planos de ação, ligada a esta visita.</p>`
+  const nos=[];CK_QUAL.forEach((sec,si)=>sec.i.forEach((it,ii)=>{const k=qKey(si,ii),q=Q[k]||{};if(q.v==='nao')nos.push({k,it:itTxt(it)+(q.t!=null?` — medido ${fmtT(q.t)}`:''),sec:sec.s})}));
+  $('#qPlano').innerHTML = nos.length? `<div class="tbl-wrap"><table><tr><th>Desvio</th><th>Ação</th><th>Responsável</th><th>Prazo</th><th>Prioridade</th><th>Status</th></tr>${nos.map(n=>{const a=(Q[n.k]||{}).a||{};return `<tr><td style="white-space:normal;min-width:200px"><b>${n.it}</b><div class="small muted">${n.sec}</div></td><td style="min-width:220px"><input class="inp" data-a="${n.k}" data-f="acao" value="${esc(a.acao)}" placeholder="O que será feito"></td><td style="min-width:150px"><input class="inp" data-a="${n.k}" data-f="resp" value="${esc(a.resp)}" placeholder="Quem"></td><td><input class="inp" type="date" data-a="${n.k}" data-f="prazo" value="${esc(a.prazo)}"></td><td><select class="inp" data-a="${n.k}" data-f="pri">${['Alta','Média','Baixa'].map(o=>`<option ${(a.pri||(itObj(CK_QUAL[+n.k.split('-')[0]].i[+n.k.split('-')[1]]).tipo==='temp'?'Alta':'Média'))===o?'selected':''}>${o}</option>`).join('')}</select></td><td><select class="inp" data-a="${n.k}" data-f="st">${['Aberta','Em andamento','Concluída'].map(o=>`<option ${a.st===o?'selected':''}>${o}</option>`).join('')}</select></td></tr>`}).join('')}</table></div><p class="small muted" style="margin-top:8px">Ao salvar a visita, cada desvio vira uma ação no módulo Planos de ação, ligada a esta visita.</p>`
     : '<div class="empty">Nenhum desvio marcado. Os itens com "Não" aparecem aqui para virar plano de ação.</div>';
   $('#qPlano').querySelectorAll('[data-a]').forEach(el=>el.oninput=el.onchange=()=>{const k=el.dataset.a;Q[k]=Q[k]||{};Q[k].a=Q[k].a||{};Q[k].a[el.dataset.f]=el.value});
 }
 async function saveQual(){
   const sc=qScores(); if(sc.S+sc.N===0){toast('Avalie pelo menos um item antes de salvar.');return}
   const loja=$('#qLoja').value, data=$('#qData').value; if(!loja||!data){toast('Informe loja e data da visita.');return}
+  const pend=[];CK_QUAL.forEach((sec,si)=>sec.i.forEach((it,ii)=>{const o=itObj(it),q=Q[qKey(si,ii)]||{};if(o.foto&&q.v!=='na'&&!(q.f||[]).length)pend.push({k:qKey(si,ii),n:o.n,sem:!q.v})}));
+  if(pend.length){const sec=$('#qi'+pend[0].k).closest('.sec');sec.classList.remove('closed');$('#qi'+pend[0].k).scrollIntoView({behavior:'smooth',block:'center'});
+    toast(`Faltam ${pend.length} item(ns) com foto obrigatória: ${pend.slice(0,3).map(p=>p.n).join('; ')}${pend.length>3?'…':''}. Responda, fotografe ou marque N/A.`);return}
   const vis={loja_id:loja,data,avaliador:$('#qAval').value||null,gerente:$('#qGer').value||null,score:Math.round(sc.score*10)/10,sim:sc.S,nao:sc.N,secoes:sc.per.map(p=>p.s+p.n?p.s/(p.s+p.n)*100:null),respostas:JSON.parse(JSON.stringify(Q))};
   const r=await dbw(sb.from('visitas_qualidade').insert(vis).select('id').single()); if(!r)return;
-  const acoes=[];CK_QUAL.forEach((sec,si)=>sec.i.forEach((it,ii)=>{const q=Q[qKey(si,ii)]||{};if(q.v==='nao'){const a=q.a||{};acoes.push({loja_id:loja,origem:'visita',origem_id:r.id,problema:it,secao:sec.s,acao:a.acao||null,responsavel:a.resp||null,prazo:a.prazo||null,prioridade:a.pri||'Média',status:ST_MAP[a.st]||'Pendente',obs:q.o||null})}}));
+  const acoes=[];CK_QUAL.forEach((sec,si)=>sec.i.forEach((it,ii)=>{const q=Q[qKey(si,ii)]||{};if(q.v==='nao'){const a=q.a||{};acoes.push({loja_id:loja,origem:'visita',origem_id:r.id,problema:itTxt(it)+(q.t!=null?` — medido ${fmtT(q.t)}`:''),secao:sec.s,acao:a.acao||null,responsavel:a.resp||null,prazo:a.prazo||null,prioridade:a.pri||(itObj(it).tipo==='temp'?'Alta':'Média'),status:ST_MAP[a.st]||'Pendente',obs:[q.o,(q.f||[]).length?`${q.f.length} foto(s) na visita`:''].filter(Boolean).join(' · ')||null})}}));
   if(acoes.length&&!await dbw(sb.from('planos_acao').insert(acoes))){toast('Visita salva, mas o plano de ação não foi gerado.')}
   else toast(`Visita salva${acoes.length?` e ${acoes.length} ação(ões) criada(s) em Planos de ação`:''}.`);
   Q={}; buildQual(); await load(['visitas_qualidade','planos_acao']); renderQualHist();
@@ -70,9 +124,10 @@ async function saveQual(){
 function renderQualHist(){
   const h=(S.db.visitas_qualidade||[]).slice().sort((a,b)=>b.data.localeCompare(a.data)||b.id-a.id);
   const pa=S.db.planos_acao||[], mq=metaQual(null);
-  $('#qHist').innerHTML = h.length? `<div class="tbl-wrap" style="max-height:480px;overflow:auto"><table><tr><th>Data</th><th>Loja</th><th>Avaliador</th><th>Gerente</th><th class="num">Nota</th><th class="num">Desvios</th><th class="num">Ações abertas</th><th></th></tr>${h.map(v=>`<tr><td>${fmtD(v.data)}</td><td><b>${esc(lojaNome(v.loja_id))}</b></td><td>${esc(v.avaliador)||'—'}</td><td>${esc(v.gerente)||'—'}</td><td class="num"><span class="sem s-${v.score>=mq?'ok':v.score>=mq-15?'warn':'bad'}">${nf0.format(v.score)}%</span></td><td class="num">${v.nao}</td><td class="num">${pa.filter(a=>a.origem==='visita'&&a.origem_id===v.id&&!['Concluído','Cancelado'].includes(a.status)).length}</td><td class="num"><button class="btn sm" data-ld="${v.id}">Abrir</button> ${P.excluir(v.loja_id)?`<button class="btn sm" data-del="${v.id}">Excluir</button>`:''}</td></tr>`).join('')}</table></div>`
+  $('#qHist').innerHTML = h.length? `<div class="tbl-wrap" style="max-height:480px;overflow:auto"><table><tr><th>Data</th><th>Loja</th><th>Avaliador</th><th>Gerente</th><th class="num">Nota</th><th class="num">Desvios</th><th class="num">Ações abertas</th><th class="num">Fotos</th><th></th></tr>${h.map(v=>{const fs=Object.values(v.respostas||{}).flatMap(q=>q&&q.f||[]);return `<tr><td>${fmtD(v.data)}</td><td><b>${esc(lojaNome(v.loja_id))}</b></td><td>${esc(v.avaliador)||'—'}</td><td>${esc(v.gerente)||'—'}</td><td class="num"><span class="sem s-${v.score>=mq?'ok':v.score>=mq-15?'warn':'bad'}">${nf0.format(v.score)}%</span></td><td class="num">${v.nao}</td><td class="num">${pa.filter(a=>a.origem==='visita'&&a.origem_id===v.id&&!['Concluído','Cancelado'].includes(a.status)).length}</td><td class="num">${fs.length?`<button class="btn sm" data-fg="${v.id}">${fs.length} ${IC_CAM}</button>`:'—'}</td><td class="num"><button class="btn sm" data-ld="${v.id}">Abrir</button> ${P.excluir(v.loja_id)?`<button class="btn sm" data-del="${v.id}">Excluir</button>`:''}</td></tr>`}).join('')}</table></div>`
     : '<div class="empty">Nenhuma visita salva ainda.</div>';
   $('#qHist').querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(!confirm('Excluir esta visita do histórico? As ações geradas por ela continuam em Planos de ação.'))return;if(await dbw(sb.from('visitas_qualidade').delete().eq('id',b.dataset.del),'Visita excluída.')){await load(['visitas_qualidade']);renderQualHist()}});
+  $('#qHist').querySelectorAll('[data-fg]').forEach(b=>b.onclick=()=>{const v=h.find(x=>x.id==b.dataset.fg);galeria(`Fotos · ${lojaNome(v.loja_id)} · ${fmtD(v.data)}`,Object.values(v.respostas||{}).flatMap(q=>q&&q.f||[]))});
   $('#qHist').querySelectorAll('[data-ld]').forEach(b=>b.onclick=()=>{const v=h.find(x=>x.id==b.dataset.ld);Q=JSON.parse(JSON.stringify(v.respostas||{}));if([...$('#qLoja').options].some(o=>o.value===v.loja_id))$('#qLoja').value=v.loja_id;$('#qData').value=v.data;$('#qAval').value=v.avaliador||'';$('#qGer').value=v.gerente||'';buildQual();window.scrollTo({top:0,behavior:'smooth'});toast('Visita carregada. Ao salvar, ela entra como um novo registro.')});
 }
 
