@@ -96,6 +96,7 @@ function vendasPeriodo(ids,ini,fim){
 function renderVendas(){
   const sel=$('#vLoja').value||'rede', ids = sel==='rede'?OPER.map(l=>l.id):[sel];
   let ini=$('#vIni').value||iniMes(S.mes), fim=$('#vFim').value||fimMes(S.mes); if(fim<ini)[ini,fim]=[fim,ini];
+  garantirHora(ini,fim).then(novo=>{if(novo&&S.tab==='vendas')renderVendas()});
   const A=vendasPeriodo(ids,ini,fim), N=A.datas.length;
   const sal=sum(A.dias,d=>d[0]), del=sum(A.dias,d=>d[1]), ps=sum(A.dias,d=>d[2]), pd=sum(A.dias,d=>d[3]), fat=sal+del;
   const tot=A.dias.map(d=>d[0]+d[1]); const best=tot.indexOf(Math.max(...tot));
@@ -180,7 +181,7 @@ function initVendas(){
     if(!confirm(`Importar ${uniqRows.length} lançamento(s)${err.length?` (${err.length} linha(s) ignoradas por erro ou loja sem permissão: ${err.slice(0,8).join(', ')}${err.length>8?'…':''})`:''}? Lançamentos já existentes para a mesma loja e ${tipo==='d'?'data':'data e hora'} serão atualizados, sem duplicar.`))return;
     const tb=tipo==='d'?'vendas_diarias':'vendas_hora', oc=tipo==='d'?'loja_id,data':'loja_id,data,hora';
     for(let i=0;i<uniqRows.length;i+=500){if(!await dbw(sb.from(tb).upsert(uniqRows.slice(i,i+500),{onConflict:oc})))return}
-    toast(`${uniqRows.length} lançamento(s) importado(s).`); await load([tb]); renderVendas();
+    toast(`${uniqRows.length} lançamento(s) importado(s).`); if(tb==='vendas_hora'){HORA_MESES.clear();S.db.vendas_hora=[]}else await load([tb]); renderVendas();
   };
   $('#vdCsvIn').onchange=e=>{if(e.target.files[0])importar(e.target.files[0],'d');e.target.value=''};
   $('#vhCsvIn').onchange=e=>{if(e.target.files[0])importar(e.target.files[0],'h');e.target.value=''};

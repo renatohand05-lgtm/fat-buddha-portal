@@ -98,7 +98,7 @@ const tipPct = {callbacks:{label:c=>' '+c.dataset.label+': '+nf1.format(c.parsed
 const S = { user:null, perfil:null, minhas:[], mes:ymOf(isoHoje()), db:{}, tab:'geral' };
 const TABLES = {
   lojas:{order:'ordem'}, config:{}, metas:{order:'vigente_desde'}, metas_vendas:{}, dre_premissas_loja:{},
-  vendas_diarias:{order:'data'}, vendas_hora:{order:'data'}, indicadores_mensais:{}, cmv_contagens:{order:'semana'}, cmv_itens:{order:'semana'},
+  vendas_diarias:{order:'data'}, vendas_hora:{order:'data',lazy:true}, indicadores_mensais:{}, cmv_contagens:{order:'semana'}, cmv_itens:{order:'semana'},
   estoque_cc:{order:'item'}, rupturas:{order:'data'}, dre_lancamentos:{}, orc_cenarios:{order:'created_at'}, expansao:{order:'ordem'},
   colaboradores:{order:'nome'}, quadro_previsto:{}, lideranca:{}, rh_movimentos:{order:'mes'}, ocorrencias:{order:'data'},
   avaliacoes_gerentes:{order:'periodo'}, visitas_qualidade:{order:'data'}, delivery_checklists:{order:'data'}, planos_acao:{order:'created_at'},
@@ -117,7 +117,8 @@ async function fetchAll(t){
 }
 async function load(ts){
   busy(true);
-  const list=ts||Object.keys(TABLES);
+  const list=ts?ts.filter(t=>!(TABLES[t]||{}).lazy):Object.keys(TABLES).filter(t=>!TABLES[t].lazy);
+  if(ts&&ts.includes('vendas_hora')){HORA_MESES.clear();S.db.vendas_hora=[]}
   const res=await Promise.all(list.map(fetchAll));
   list.forEach((t,i)=>S.db[t]=res[i]);
   indexar(); busy(false);
@@ -172,6 +173,15 @@ function indexar(){
   CACHE={};
 }
 let CACHE={};
+/* vendas por hora: buscadas por mês, sob demanda */
+const HORA_MESES=new Set();
+async function garantirHora(ini,fim){
+  const ms=[];for(let m=ymOf(ini);m<=ymOf(fim);m=addMes(m,1))if(!HORA_MESES.has(m))ms.push(m);
+  if(!ms.length)return false;
+  busy(true);
+  for(const m of ms){let from=0;for(;;){const {data,error}=await sb.from('vendas_hora').select('*').gte('data',iniMes(m)).lte('data',fimMes(m)).order('data').range(from,from+999);if(error)break;S.db.vendas_hora=(S.db.vendas_hora||[]).concat(data);if(data.length<1000)break;from+=1000}HORA_MESES.add(m)}
+  busy(false);return true;
+}
 
 /* ---------------- metas ---------------- */
 const METAS_DEF = [
