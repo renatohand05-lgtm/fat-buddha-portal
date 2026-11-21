@@ -355,3 +355,16 @@ function relatorio(titulo,blocos,opts={}){
 /* ---------------- modal simples ---------------- */
 function modal(html,onOpen){const m=$('#modal');$('#modalBody').innerHTML=html;m.classList.remove('hidden');m.onclick=e=>{if(e.target===m)fecharModal()};if(onOpen)onOpen($('#modalBody'))}
 function fecharModal(){$('#modal').classList.add('hidden')}
+/* pergunta em janela no visual do portal (substitui prompt do navegador) */
+function pedir(titulo,rotulo,{valor='',tipo='text',placeholder='',ok='Salvar',ajuda=''}={}){
+  return new Promise(res=>{
+    modal(`<h3>${esc(titulo)}</h3><label class="f">${esc(rotulo)}<input class="inp" id="pdIn" type="${tipo}" value="${esc(valor)}" placeholder="${esc(placeholder)}"></label>${ajuda?`<p class="small muted" style="margin-top:8px">${esc(ajuda)}</p>`:''}
+      <div class="actions mt"><button class="btn" id="pdNo">Cancelar</button><button class="btn pri" id="pdOk">${esc(ok)}</button></div>`,el=>{
+      const i=el.querySelector('#pdIn'); setTimeout(()=>i.focus(),50);
+      const fim=v=>{fecharModal();res(v)};
+      el.querySelector('#pdOk').onclick=()=>fim(i.value); el.querySelector('#pdNo').onclick=()=>fim(null);
+      i.onkeydown=e=>{if(e.key==='Enter')fim(i.value);if(e.key==='Escape')fim(null)};
+    });
+    $('#modal').onclick=e=>{if(e.target===$('#modal')){fecharModal();res(null)}};
+  });
+}

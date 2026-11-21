@@ -8,7 +8,25 @@ function alertasRede(mes=S.mes){
   OPER.forEach(l=>{const s=lojaStats(l.id,mes);METAS(l.id,mes).forEach(m=>{const v=s.vals[m.k];const st=status(m,v);if(st==='warn'||st==='bad')al.push({s:st,l:l.nome,id:l.id,m,v})})});
   return al.sort((a,b)=>(a.s==='bad'?0:1)-(b.s==='bad'?0:1));
 }
+function renderOnboard(){
+  const el=$('#onboard'); let off=false; try{off=localStorage.getItem('fb_onboard_off')==='1'}catch(e){}
+  if(!P.gestor||off){el.classList.add('hidden');return}
+  const st=[
+    {t:'Metas de vendas',d:`Cadastrar a meta de ${mesTxt(S.mes)} de cada loja`,ok:OPER.length&&OPER.every(l=>IDX.mv.has(l.id+'|'+S.mes)),go:()=>{cfSub='mv';go('config')}},
+    {t:'Vendas',d:'Importar o histórico (CSV) ou lançar o dia',ok:(S.db.vendas_diarias||[]).length>0,go:()=>{go('vendas');setTimeout(()=>$('#vForm').scrollIntoView({behavior:'smooth'}),300)}},
+    {t:'Colaboradores',d:'Cadastrar a equipe de cada loja',ok:(S.db.colaboradores||[]).length>0,go:()=>{rhSub='quadro';go('rh')}},
+    {t:'Estoque da cozinha central',d:'Cadastrar os itens, mínimos e consumo',ok:(S.db.estoque_cc||[]).length>0,go:()=>{ccSub='est';go('cc')}},
+    {t:'Equipe com acesso',d:'Criar usuários por perfil e loja',ok:false,go:()=>{cfSub='users';go('config')},adm:true}
+  ].filter(s=>!s.adm||P.admin);
+  const feitos=st.filter(s=>s.ok).length;
+  if(feitos===st.length-(P.admin?1:0)&&feitos>=4){el.classList.add('hidden');return}
+  el.classList.remove('hidden');
+  el.innerHTML=`<h3>Primeiros passos <small>${feitos} de ${st.length} concluídos · <button class="btn sm" id="obX">Ocultar</button></small></h3><div class="steps">${st.map((s,i)=>`<button class="step ${s.ok?'done':''}" data-ob="${i}"><span class="n">${s.ok?'✓':i+1}</span><b>${s.t}</b><span>${s.d}</span></button>`).join('')}</div>`;
+  el.querySelectorAll('[data-ob]').forEach(b=>b.onclick=()=>st[+b.dataset.ob].go());
+  $('#obX').onclick=()=>{try{localStorage.setItem('fb_onboard_off','1')}catch(e){}el.classList.add('hidden')};
+}
 function renderGeral(){
+  renderOnboard();
   const all = OPER.map(l=>lojaStats(l.id));
   const fat=sum(all,s=>s.fat), meta=sum(all,s=>s.meta||0), ped=sum(all,s=>s.ped), del=sum(all,s=>s.del);
   const piso=pisoLoja(), comVenda=all.filter(s=>s.temVenda);

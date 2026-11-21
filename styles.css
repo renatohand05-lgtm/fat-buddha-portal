@@ -233,3 +233,14 @@ td .inp{padding:6px 8px}
 @media (max-width:1000px){.rep-list{grid-template-columns:1fr 1fr}}
 @media (max-width:560px){.rep-list{grid-template-columns:1fr}}
 @media (max-width:900px){.nav .grp{display:none}.user{display:none}.side .brand{flex:0 0 auto}}
+
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.step{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--line);transition:.2s}
+.step:hover{background:var(--glass2)}
+.step .n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--glass2);color:var(--beige)}
+.step.done .n{background:rgba(63,197,142,.25);color:#8ff0c6}
+.step b{font-size:13px}.step span{font-size:11.5px;color:var(--muted)}
+.step.done b{color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(255,255,255,.25)}
+@media (max-width:1000px){.steps{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.steps{grid-template-columns:1fr}}
+@media (min-width:901px) and (max-height:960px){.side{gap:10px;padding:16px 14px}.nav{gap:2px}.nav button{padding:8px 12px}.nav .grp{padding:8px 12px 2px}.side .foot{display:none}.brand{padding-bottom:10px}}

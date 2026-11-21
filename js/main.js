@@ -75,7 +75,7 @@ $('#fPrimeiro').onsubmit=async e=>{e.preventDefault();msg('');
   if(data.session) entrar(); else {msg('Conta criada. Confirme o e-mail recebido e depois entre com e-mail e senha.',true);$('#fPrimeiro').classList.add('hidden');$('#fLogin').classList.remove('hidden');$('#lgEmail').value=$('#pmEmail').value}};
 $('#lgSair2').onclick=async()=>{await sb.auth.signOut();location.reload()};
 sb.auth.onAuthStateChange(async(ev)=>{
-  if(ev==='PASSWORD_RECOVERY'){const s=prompt('Digite a nova senha (mínimo 8 caracteres):');if(s&&s.length>=8){const {error}=await sb.auth.updateUser({password:s});toast(error?error.message:'Senha alterada.')}}
+  if(ev==='PASSWORD_RECOVERY'){const s=await pedir('Criar nova senha','Nova senha',{tipo:'password',ajuda:'Mínimo de 8 caracteres.'});if(s&&s.length>=8){const {error}=await sb.auth.updateUser({password:s});toast(error?error.message:'Senha alterada.')}else if(s!=null)toast('A senha precisa ter pelo menos 8 caracteres.')}
   if(ev==='SIGNED_OUT'){$('#app').classList.add('hidden');mostrarLogin()}
 });
 $$('#nav button').forEach(b=>b.onclick=()=>go(b.dataset.tab));
