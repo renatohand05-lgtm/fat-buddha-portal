@@ -1,0 +1,2 @@
+-- alertas (tabelas, regras gerar_alertas(), gatilhos), agendamentos pg_cron e cron_tokens
+-- aplicado em 21/11/2026 pelas migrações "alertas", "alertas_ajustes" e "alertas_agendamento_email"

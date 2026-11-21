@@ -1,11 +1,11 @@
 /* ================= navegação, login e inicialização ================= */
-const TITLES={geral:['Visão geral','Resultado da rede, ranking das lojas e alertas'],vendas:['Vendas','Venda diária, hora a hora e por canal'],metas:['Metas e indicadores','Metas do plano de gestão e semáforo por loja'],qualidade:['Checklist de visita de qualidade','Visita operacional com nota, desvios e plano de ação'],delivery:['Checklist de indicadores de delivery','Acompanhamento diário ou semanal por loja'],dre:['DRE por loja','Resultado operacional de cada loja no mês'],orc:['Orçamento de inaugurações','DRE orçado de uma nova loja, maturação, cenários e rede com 10 lojas'],rh:['Indicadores de RH','Quadro, turnover, absenteísmo, ocorrências, performance, nine box e sucessão'],cmv:['CMV por loja','Contagem semanal, CMV real x teórico e dispersão'],cc:['Cozinha central','Rupturas das lojas e estoque da cozinha central'],
+const TITLES={geral:['Visão geral','Resultado da rede, ranking das lojas e alertas'],loja:['Minha loja','Resultado do dia, do mês e pendências da loja'],vendas:['Vendas','Venda diária, hora a hora e por canal'],metas:['Metas e indicadores','Metas do plano de gestão e semáforo por loja'],qualidade:['Checklist de visita de qualidade','Visita operacional com nota, desvios e plano de ação'],delivery:['Checklist de indicadores de delivery','Acompanhamento diário ou semanal por loja'],dre:['DRE por loja','Resultado operacional de cada loja no mês'],orc:['Orçamento de inaugurações','DRE orçado de uma nova loja, maturação, cenários e rede com 10 lojas'],rh:['Indicadores de RH','Quadro, turnover, absenteísmo, ocorrências, performance, nine box e sucessão'],cmv:['CMV por loja','Contagem semanal, CMV real x teórico e dispersão'],cc:['Cozinha central','Rupturas das lojas e estoque da cozinha central'],
   planos:['Planos de ação','Desvios dos checklists e indicadores, com responsável, prazo e verificação'],relatorios:['Relatórios','Relatórios gerenciais em PDF e CSV'],config:['Configurações','Lojas, metas, premissas, quadro, usuários e histórico']};
-const RENDER={geral:renderGeral,vendas:renderVendas,metas:renderMetas,dre:renderDRE,orc:renderOrc,rh:renderRH,cmv:renderCMV,cc:renderCC,qualidade:()=>{buildQual();renderQualHist()},delivery:()=>{buildDel();renderDelHist()},planos:renderPlanos,relatorios:renderRelatorios,config:renderConfig};
+const RENDER={geral:renderGeral,loja:renderLoja,vendas:renderVendas,metas:renderMetas,dre:renderDRE,orc:renderOrc,rh:renderRH,cmv:renderCMV,cc:renderCC,qualidade:()=>{buildQual();renderQualHist()},delivery:()=>{buildDel();renderDelHist()},planos:renderPlanos,relatorios:renderRelatorios,config:renderConfig};
 function abasPermitidas(){
   const p=P.papel;
   if(p==='colaborador') return ['cc','delivery'];
-  const t=['geral','vendas','metas','cmv','cc','dre','rh','qualidade','delivery','planos','relatorios'];
+  const t=['geral','loja','vendas','metas','cmv','cc','dre','rh','qualidade','delivery','planos','relatorios'];
   if(P.veTudo) t.splice(6,0,'orc');
   if(P.gestor) t.push('config');
   return t;
@@ -54,9 +54,11 @@ async function entrar(){
   $('#userBox').innerHTML=`<div class="av">${esc(nome.trim()[0]||'?').toUpperCase()}</div><div><b>${esc(nome)}</b><span>${PAPEL_TXT[pf.papel]}</span></div><button id="btnSair" title="Sair">Sair</button>`;
   $('#btnSair').onclick=async()=>{await sb.auth.signOut();location.hash='';location.reload()};
   if(!(S.db.vendas_diarias||[]).some(r=>ymOf(r.data)===S.mes)){const ms=(S.db.vendas_diarias||[]).map(r=>ymOf(r.data)).filter(m=>m<=S.mes).sort();if(ms.length)S.mes=ms.at(-1)}
+  initPWA(); $('#bell').onclick=()=>abrirAlertas(); pintarSino(); if(alertasVisiveis().some(a=>!a.resolvido&&!lidos().has(a.id)))$('#bell').classList.add('tem');
   initMes(); initOrc(); initConfig(); aplicarLojas();
   aplicarDemo();
-  const start=(location.hash||'').slice(1); go(TITLES[start]?start:abasPermitidas()[0]);
+  const start=(location.hash||'').slice(1); go(TITLES[start]?start:(['gerente','regional'].includes(P.papel)?'loja':abasPermitidas()[0]));
+  setInterval(async()=>{await load(['alertas','alertas_lidos']);pintarSino()},5*60*1000);
 }
 async function mostrarLogin(modo){
   $('#app').classList.add('hidden'); $('#login').classList.remove('hidden');

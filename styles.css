@@ -256,3 +256,19 @@ td .inp{padding:6px 8px}
 .galeria{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .galeria img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:1px solid var(--line);cursor:zoom-in;background:rgba(255,255,255,.05)}
 @media (max-width:560px){.item{grid-template-columns:1fr}.qctl{justify-content:flex-start}}
+
+.bell{all:unset;cursor:pointer;position:relative;width:38px;height:38px;border-radius:999px;display:grid;place-items:center;background:var(--glass);border:1px solid var(--line);color:var(--beige)}
+.bell:hover{background:var(--glass2)}
+.bell svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bell span{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--red);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;box-shadow:0 4px 12px rgba(229,48,63,.5)}
+.bell.tem{animation:bel 1.6s ease 2}
+@keyframes bel{0%,100%{transform:rotate(0)}10%,30%{transform:rotate(-12deg)}20%,40%{transform:rotate(12deg)}50%{transform:rotate(0)}}
+.al-item{cursor:pointer}.al-item.lido{opacity:.55}
+.al-item .when{font-size:11px;color:var(--dim)}
+.pa-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:9px 0;border-top:1px solid rgba(255,236,220,.06)}
+.pa-row:first-child{border-top:0}
+.pa-row b{font-weight:600;font-size:13px}.pa-row span{font-size:12px;color:var(--muted)}
+.mini{display:flex;gap:16px;align-items:center}
+.mini .ring{width:110px;height:110px}
+@media (max-width:900px){.top-r{width:100%;justify-content:flex-end}}
+#mlSem{max-height:330px;overflow:auto;padding-right:4px}#tab-loja .g21 .chart{height:330px}

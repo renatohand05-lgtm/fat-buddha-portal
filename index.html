@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fat Buddha · Portal Operacional</title>
 <link rel="icon" href="logo.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#140f0e">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fat Buddha">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -36,6 +43,7 @@
     <div class="brand"><img src="logo.png" alt="Fat Buddha"><div><b>Fat Buddha</b><span>Portal Operacional</span></div></div>
     <nav class="nav" id="nav">
       <button data-tab="geral" class="on"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Visão geral</button>
+      <button data-tab="loja"><svg viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M5 12v8h14v-8"/><path d="M10 20v-5h4v5"/></svg>Minha loja</button>
       <button data-tab="vendas"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>Vendas</button>
       <button data-tab="metas"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>Metas e indicadores</button>
       <button data-tab="cmv"><svg viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>CMV por loja</button>
@@ -55,7 +63,7 @@
   </aside>
 
   <main>
-    <div class="top"><div><h1 id="pTitle">Visão geral</h1><p id="pSub"></p></div><div class="top-r"><select class="pill-month" id="pMonth" title="Mês de referência"></select></div></div>
+    <div class="top"><div><h1 id="pTitle">Visão geral</h1><p id="pSub"></p></div><div class="top-r"><button class="pill-month hidden" id="btnInstalar" title="Instalar o portal neste aparelho">Instalar app</button><button class="bell" id="bell" title="Alertas"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span id="bellN" class="hidden"></span></button><select class="pill-month" id="pMonth" title="Mês de referência"></select></div></div>
     <div class="banner hidden" id="banner"></div>
 
     <!-- ============ VISÃO GERAL ============ -->
@@ -81,6 +89,29 @@
       <div class="grid g2 mt">
         <div class="card"><h3>Evolução das vendas <small>últimos 6 meses</small></h3><div class="chart"><canvas id="cEvol"></canvas></div></div>
         <div class="card"><h3>Indicadores críticos <small>lojas fora da meta por indicador</small></h3><div class="chart"><canvas id="cCrit"></canvas></div></div>
+      </div>
+    </section>
+
+    <!-- ============ MINHA LOJA ============ -->
+    <section class="tab" id="tab-loja">
+      <div class="card" style="display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px;padding:14px 18px">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><select class="inp" id="mlLoja" style="max-width:240px"></select><span class="small muted" id="mlInfo"></span></div>
+        <label class="f" style="flex-direction:row;align-items:center;gap:8px">Dia de referência<input class="inp" type="date" id="mlDia" style="width:auto"></label>
+      </div>
+      <div class="grid g6" id="mlKpis"></div>
+      <div class="actions mt" style="justify-content:flex-start" id="mlAtalhos"></div>
+      <div class="grid g21 mt">
+        <div class="card"><h3>Venda do mês dia a dia <small>salão + delivery com a meta do dia</small></h3><div class="chart"><canvas id="cMl"></canvas></div></div>
+        <div class="card"><h3>Indicadores da loja <small id="mlSemSub"></small></h3><div class="metas-list" id="mlSem"></div></div>
+      </div>
+      <div class="grid g2 mt">
+        <div class="card"><h3>Pendências <small><button class="btn sm" id="mlVerPa">Ver todas</button></small></h3><div id="mlPa"></div></div>
+        <div class="card"><h3>Alertas da loja <small id="mlAlN"></small></h3><div class="alerts" id="mlAl"></div></div>
+      </div>
+      <div class="grid g3 mt">
+        <div class="card"><h3>Última visita de qualidade</h3><div id="mlVis"></div></div>
+        <div class="card"><h3>Rupturas <small>meta: até 5 por semana</small></h3><div id="mlRup"></div></div>
+        <div class="card"><h3>Equipe</h3><div id="mlEq"></div></div>
       </div>
     </section>
 
@@ -547,6 +578,7 @@
 <script src="js/v_checklists.js"></script>
 <script src="js/v_gestao.js"></script>
 <script src="js/v_integracao.js"></script>
+<script src="js/v_loja.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>
