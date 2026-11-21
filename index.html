@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fat Buddha · Portal Operacional</title>
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="loading" id="loading"></div>
+<div class="bg"><canvas class="bgc" id="bgc"></canvas><div class="floorwrap"><div class="floor"></div></div><div class="sweep"></div><canvas id="fx"></canvas></div>
+<!-- ============ LOGIN ============ -->
+<div class="login" id="login">
+  <div class="card">
+    <div class="lg"><img src="logo.png" alt="Fat Buddha"><b>Fat Buddha</b><span>Portal Operacional · acesso restrito</span></div>
+    <form id="fLogin">
+      <label class="f">E-mail<input class="inp" type="email" id="lgEmail" autocomplete="username" required></label>
+      <label class="f">Senha<input class="inp" type="password" id="lgSenha" autocomplete="current-password" required></label>
+      <button class="btn pri" type="submit" id="lgBtn">Entrar</button>
+      <button class="lnk" type="button" id="lgEsq">Esqueci minha senha</button>
+    </form>
+    <form id="fPrimeiro" class="hidden">
+      <p class="small muted" style="text-align:center">Primeiro acesso: crie a conta do administrador do portal.</p>
+      <label class="f">Nome<input class="inp" id="pmNome" required></label>
+      <label class="f">E-mail<input class="inp" type="email" id="pmEmail" required></label>
+      <label class="f">Senha (mínimo 8 caracteres)<input class="inp" type="password" id="pmSenha" minlength="8" required></label>
+      <button class="btn pri" type="submit">Criar administrador</button>
+    </form>
+    <div id="lgEspera" class="hidden" style="text-align:center"><p class="muted">Seu acesso ainda não foi liberado. Peça ao administrador para definir seu perfil e suas lojas.</p><button class="btn mt" id="lgSair2">Sair</button></div>
+    <p class="msg" id="lgMsg"></p>
+  </div>
+</div>
+<div class="app hidden" id="app">
+  <aside class="side">
+    <div class="brand"><img src="logo.png" alt="Fat Buddha"><div><b>Fat Buddha</b><span>Portal Operacional</span></div></div>
+    <nav class="nav" id="nav">
+      <button data-tab="geral" class="on"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Visão geral</button>
+      <button data-tab="vendas"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>Vendas</button>
+      <button data-tab="metas"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>Metas e indicadores</button>
+      <button data-tab="cmv"><svg viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>CMV por loja</button>
+      <button data-tab="cc"><svg viewBox="0 0 24 24"><path d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21v-7h6v7"/></svg>Cozinha central</button>
+      <button data-tab="dre"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>DRE por loja</button>
+      <button data-tab="orc"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8"/><path d="M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 18h.01M12 18h4"/></svg>Orçamento de inaugurações</button>
+      <button data-tab="rh"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18.5 14.8c1.7.8 2.7 2.5 3 5.2"/></svg>Indicadores de RH</button>
+      <button data-tab="qualidade"><svg viewBox="0 0 24 24"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M9 14l2 2 4-4"/></svg>Checklist de qualidade</button>
+      <button data-tab="delivery"><svg viewBox="0 0 24 24"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M9 17h6l-3-8H8"/><path d="M14 6h3l3 6"/></svg>Checklist de delivery</button>
+      <div class="grp">Gestão</div>
+      <button data-tab="planos"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>Planos de ação</button>
+      <button data-tab="relatorios"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M14 2v6h6"/><path d="M8 17v-3M12 17v-6M16 17v-4"/></svg>Relatórios</button>
+      <button data-tab="config"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Configurações</button>
+    </nav>
+    <div class="foot" id="foot"></div>
+    <div class="user" id="userBox"></div>
+  </aside>
+
+  <main>
+    <div class="top"><div><h1 id="pTitle">Visão geral</h1><p id="pSub"></p></div><div class="top-r"><select class="pill-month" id="pMonth" title="Mês de referência"></select></div></div>
+    <div class="banner hidden" id="banner"></div>
+
+    <!-- ============ VISÃO GERAL ============ -->
+    <section class="tab on" id="tab-geral">
+      <div class="grid g6" id="geralKpis"></div>
+      <div class="grid g21 mt">
+        <div class="card"><h3>Faturamento por loja <small id="fatLojaSub">linha: piso de R$ 500 mil/mês</small></h3><div class="chart"><canvas id="cFatLoja"></canvas></div></div>
+        <div class="card"><h3>Ranking TOP / FLOP <small>indicadores na meta</small></h3><div class="rank" id="rank"></div></div>
+      </div>
+      <div class="grid g2 mt">
+        <div class="card"><h3>Alertas de indicadores <small id="alCount"></small></h3><div class="alerts" id="alerts"></div></div>
+        <div class="card">
+          <h3>Crescimento e expansão</h3>
+          <div class="grid g2" style="gap:12px">
+            <div class="tl"><span class="muted small" id="redeHojeLbl">Rede hoje</span><div class="big" id="redeHoje" style="color:var(--beige)"></div><span class="muted small">por mês</span></div>
+            <div class="tl"><span class="muted small">Projeção com 10 lojas</span><div class="big" id="redeProj"></div><span class="muted small">por mês, no mínimo</span></div>
+          </div>
+          <p class="small muted" style="margin:12px 0" id="projTxt"></p>
+          <div class="timeline" id="timeline"></div>
+        </div>
+      </div>
+      <div class="grid g2 mt">
+        <div class="card"><h3>Evolução das vendas <small>últimos 6 meses</small></h3><div class="chart"><canvas id="cEvol"></canvas></div></div>
+        <div class="card"><h3>Indicadores críticos <small>lojas fora da meta por indicador</small></h3><div class="chart"><canvas id="cCrit"></canvas></div></div>
+      </div>
+    </section>
+
+    <!-- ============ VENDAS ============ -->
+    <section class="tab" id="tab-vendas">
+      <div class="card" style="display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px;padding:14px 18px">
+        <div><b>Filtrar loja</b> <span class="muted small" style="margin-left:6px">a visão "Rede" soma as lojas em operação</span></div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <label class="f" style="flex-direction:row;align-items:center;gap:6px">De<input class="inp" type="date" id="vIni" style="width:auto"></label>
+          <label class="f" style="flex-direction:row;align-items:center;gap:6px">Até<input class="inp" type="date" id="vFim" style="width:auto"></label>
+          <select class="inp" id="vLoja" style="max-width:260px"></select>
+        </div>
+      </div>
+      <div class="grid g6" id="vKpis"></div>
+      <div class="card mt"><h3>Venda diária <small>salão + delivery, com a meta do dia</small></h3><div class="chart lg"><canvas id="cDaily"></canvas></div></div>
+      <div class="grid g2 mt">
+        <div class="card"><h3>Venda hora a hora <small>média por dia</small></h3><div class="chart"><canvas id="cHora"></canvas></div></div>
+        <div class="card"><h3>Acumulado do mês x meta</h3><div class="chart"><canvas id="cAcum"></canvas></div></div>
+      </div>
+      <div class="grid g12 mt">
+        <div class="card"><h3>Venda por canal</h3><div class="chart sm"><canvas id="cCanal"></canvas></div><div id="canalInfo" class="metas-list" style="margin-top:12px"></div></div>
+        <div class="card"><h3>Canais por loja</h3><div class="tbl-wrap"><table id="tCanal"></table></div></div>
+      </div>
+      <div class="card mt only-edit" id="vForm"><h3>Lançar vendas do dia <small>um lançamento por loja e dia · se já existir, é atualizado</small></h3>
+        <div class="form-row" style="grid-template-columns:1fr 1.2fr 1fr 1fr 1fr 1fr auto;align-items:end">
+          <label class="f">Data<input class="inp" type="date" id="vdData"></label>
+          <label class="f">Loja<select class="inp" id="vdLoja"></select></label>
+          <label class="f">Venda salão<div class="inwrap"><input class="inp" type="number" step="0.01" id="vdSal" value="0"><em>R$</em></div></label>
+          <label class="f">Venda delivery<div class="inwrap"><input class="inp" type="number" step="0.01" id="vdDel" value="0"><em>R$</em></div></label>
+          <label class="f">Pedidos salão<input class="inp" type="number" id="vdPs" value="0"></label>
+          <label class="f">Pedidos delivery<input class="inp" type="number" id="vdPd" value="0"></label>
+          <button class="btn pri" id="vdSave">Salvar</button>
+        </div>
+        <div class="actions mt" style="justify-content:flex-start">
+          <label class="btn sm" style="cursor:pointer">Importar vendas diárias (CSV)<input type="file" accept=".csv,text/csv" id="vdCsvIn" hidden></label>
+          <label class="btn sm" style="cursor:pointer">Importar vendas por hora (CSV)<input type="file" accept=".csv,text/csv" id="vhCsvIn" hidden></label>
+          <button class="btn sm" id="vdModelo">Baixar modelos de CSV</button>
+          <span class="small muted">Colunas diárias: data;loja;salao;delivery;pedidos_salao;pedidos_delivery · por hora: data;loja;hora;salao;delivery. A loja pode ser o código ou o nome.</span>
+        </div>
+      </div>
+      <div class="card mt"><h3>Lançamentos de vendas do período <small><button class="btn sm" id="vdCsv">Exportar CSV</button></small></h3><div class="tbl-wrap" style="max-height:440px;overflow:auto"><table id="tVendasReg"></table></div></div>
+    </section>
+
+    <!-- ============ METAS ============ -->
+    <section class="tab" id="tab-metas">
+      <div class="grid g4" id="metasCats"></div>
+      <div class="card mt"><h3>Semáforo por loja <small>verde: na meta · amarelo: até 10% fora · vermelho: fora da meta</small></h3><div class="tbl-wrap"><table id="tSem"></table></div></div>
+      <div class="grid g3 mt" id="rotina"></div>
+      <div class="card mt"><h3>Compromissos até o dia 90</h3><div class="grid g3" style="gap:10px" id="comp90"></div></div>
+      <div class="card mt only-edit" id="indForm"><h3>Indicadores do mês por loja <small>preencha o que não vem de outro módulo · o checklist de delivery tem prioridade quando existir</small></h3>
+        <div class="form-row" style="grid-template-columns:1.3fr repeat(6,1fr) auto;align-items:end">
+          <label class="f">Loja<select class="inp" id="imLoja"></select></label>
+          <label class="f">Tempo de preparo<div class="inwrap"><input class="inp" type="number" step="0.1" id="imPreparo"><em>min</em></div></label>
+          <label class="f">Cancelamentos<div class="inwrap"><input class="inp" type="number" step="0.1" id="imCancel"><em>%</em></div></label>
+          <label class="f">Nota iFood<input class="inp" type="number" step="0.1" id="imIfood"></label>
+          <label class="f">Tempo online<div class="inwrap"><input class="inp" type="number" step="0.1" id="imOnline"><em>%</em></div></label>
+          <label class="f">Comp (manual)<div class="inwrap"><input class="inp" type="number" step="0.1" id="imComp"><em>%</em></div></label>
+          <label class="f">Folha do mês<div class="inwrap"><input class="inp" type="number" step="0.01" id="imFolha"><em>R$</em></div></label>
+          <button class="btn pri" id="imSave">Salvar</button>
+        </div>
+        <p class="small muted" style="margin-top:10px">Comp é calculado automaticamente quando há vendas do mesmo mês do ano anterior; o valor manual só é usado na falta delas. Custo de pessoal = folha ÷ faturamento do mês (um lançamento de folha no DRE tem prioridade).</p>
+      </div>
+    </section>
+
+    <!-- ============ CMV POR LOJA ============ -->
+    <section class="tab" id="tab-cmv">
+      <div class="grid g6" id="cmvKpis"></div>
+      <div class="card mt">
+        <h3>Lançar contagem semanal <small>CMV real = estoque inicial + compras + transferências recebidas − transferências enviadas − devoluções − estoque final</small></h3>
+        <div class="form-row" style="grid-template-columns:repeat(4,1fr)">
+          <label class="f">Loja<select class="inp" id="cmLoja"></select></label>
+          <label class="f">Início da semana<input class="inp" type="date" id="cmSem"></label>
+          <label class="f">Vendas da semana<div class="inwrap"><input class="inp" type="number" id="cmVen"><em>R$</em></div></label>
+          <label class="f">CMV teórico (fichas técnicas)<div class="inwrap"><input class="inp" type="number" step="0.1" id="cmTeo"><em>%</em></div></label>
+          <label class="f">Estoque inicial<div class="inwrap"><input class="inp" type="number" id="cmEi"><em>R$</em></div></label>
+          <label class="f">Compras<div class="inwrap"><input class="inp" type="number" id="cmCo"><em>R$</em></div></label>
+          <label class="f">Transferências recebidas da CC<div class="inwrap"><input class="inp" type="number" id="cmTe" value="0"><em>R$</em></div></label>
+          <label class="f">Transferências enviadas<div class="inwrap"><input class="inp" type="number" id="cmTs" value="0"><em>R$</em></div></label>
+          <label class="f">Devoluções<div class="inwrap"><input class="inp" type="number" id="cmDev" value="0"><em>R$</em></div></label>
+          <label class="f">Estoque final (contagem)<div class="inwrap"><input class="inp" type="number" id="cmEf"><em>R$</em></div></label>
+          <label class="f">Responsável<input class="inp" id="cmResp" placeholder="Quem contou"></label>
+          <label class="f" style="grid-column:span 2">Observações<input class="inp" id="cmObs" placeholder="Ajustes, perdas, eventos da semana"></label>
+          <label class="f">Resultado<div class="inp" id="cmPrev" style="background:rgba(255,255,255,.04)">preencha os campos</div></label>
+        </div>
+        <div class="actions mt"><label class="f" style="flex-direction:row;align-items:center;gap:8px;margin-right:auto">Tolerância de dispersão<div class="inwrap" style="width:110px"><input class="inp" type="number" step="0.1" id="cmTol"><em>p.p.</em></div><span class="small muted">sugestão: até 1 p.p. entre o real e o teórico</span></label><button class="btn pri" id="cmSave">Salvar contagem</button></div>
+      </div>
+      <div class="grid g2 mt">
+        <div class="card"><h3>CMV real por loja <small>semanal · meta até 21%</small></h3><div class="chart"><canvas id="cCmv"></canvas></div></div>
+        <div class="card"><h3>Dispersão real x teórico <small>última semana, em pontos percentuais</small></h3><div class="chart"><canvas id="cDisp"></canvas></div></div>
+      </div>
+      <div class="card mt"><h3>CMV semana a semana <small>real · teórico · dispersão</small></h3><div class="tbl-wrap"><table id="tCmv"></table></div></div>
+      <div class="grid mt">
+        <div class="card"><h3>Dispersão por item <small id="cmItSub">última contagem</small></h3><div class="tbl-wrap"><table id="tCmvItem"></table></div>
+          <div class="form-row mt only-edit" style="grid-template-columns:1.2fr 1fr 1.5fr 1fr 1fr auto;align-items:end">
+            <label class="f">Loja<select class="inp" id="ciLoja"></select></label>
+            <label class="f">Semana<input class="inp" type="date" id="ciSem"></label>
+            <label class="f">Item<input class="inp" id="ciItem" list="ruItens" placeholder="Item"></label>
+            <label class="f">Consumo teórico<input class="inp" type="number" step="0.01" id="ciTeo"></label>
+            <label class="f">Consumo real<input class="inp" type="number" step="0.01" id="ciReal"></label>
+            <button class="btn pri" id="ciSave">Adicionar</button>
+          </div></div>
+        <div class="card"><h3>Lançamentos <small><button class="btn sm" id="cmCsv">Exportar CSV</button></small></h3><div class="tbl-wrap" style="max-height:420px;overflow:auto"><table id="tCmvReg"></table></div></div>
+      </div>
+    </section>
+
+    <!-- ============ COZINHA CENTRAL ============ -->
+    <section class="tab" id="tab-cc">
+      <div class="card" style="display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px;padding:12px 14px">
+        <div class="subnav" id="ccNav"><button data-s="rup" class="on">Rupturas</button><button data-s="est">Estoque da cozinha central</button></div>
+        <span class="small muted">Registros salvos no banco do portal</span>
+      </div>
+      <div class="ccs on" id="cc-rup">
+        <div class="grid g4" id="rupKpis"></div>
+        <div class="card mt only-op"><h3>Registrar ruptura</h3>
+          <div class="form-row" style="grid-template-columns:repeat(6,1fr)">
+            <label class="f">Data<input class="inp" type="date" id="ruData"></label>
+            <label class="f">Loja<select class="inp" id="ruLoja"></select></label>
+            <label class="f">Item<input class="inp" id="ruItem" list="ruItens" placeholder="Item em falta"><datalist id="ruItens"></datalist></label>
+            <label class="f">Motivo<select class="inp" id="ruMot"></select></label>
+            <label class="f">Horas indisponível<input class="inp" type="number" id="ruHor" value="2"></label>
+            <label class="f">Ação corretiva<input class="inp" id="ruAc" placeholder="O que foi feito"></label>
+          </div>
+          <div class="actions mt"><button class="btn pri" id="ruSave">Registrar</button></div>
+        </div>
+        <div class="card mt"><h3>Rupturas por semana e loja <small>meta: até 5 por loja na semana</small></h3><div class="chart"><canvas id="cRup"></canvas></div><div class="tbl-wrap mt"><table id="tRup"></table></div></div>
+        <div class="grid g2 mt">
+          <div class="card"><h3>Itens que mais faltam</h3><div class="chart"><canvas id="cRupItem"></canvas></div></div>
+          <div class="card"><h3>Motivos das rupturas</h3><div class="chart"><canvas id="cRupMot"></canvas></div></div>
+        </div>
+        <div class="card mt"><h3>Registros <small><button class="btn sm" id="ruCsv">Exportar CSV</button></small></h3><div class="tbl-wrap" style="max-height:440px;overflow:auto"><table id="tRupReg"></table></div></div>
+      </div>
+      <div class="ccs" id="cc-est">
+        <div class="grid g4" id="estKpis"></div>
+        <div class="card mt"><h3>Estoque da cozinha central <small>edite atual, mínimo e consumo · "Repor" cobre 7 dias de consumo acima do mínimo</small></h3><div class="tbl-wrap"><table id="tEst"></table></div>
+          <div class="form-row mt only-cc" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr auto;align-items:end">
+            <label class="f">Novo item<input class="inp" id="esNome" placeholder="Nome do item"></label>
+            <label class="f">Unidade<input class="inp" id="esUn" placeholder="kg, L, un"></label>
+            <label class="f">Estoque atual<input class="inp" type="number" id="esAt"></label>
+            <label class="f">Mínimo<input class="inp" type="number" id="esMin"></label>
+            <label class="f">Consumo/dia<input class="inp" type="number" step="0.1" id="esCons"></label>
+            <label class="f">Custo unitário<input class="inp" type="number" step="0.01" id="esCu"></label>
+            <button class="btn pri" id="esAdd">Adicionar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ DRE POR LOJA ============ -->
+    <section class="tab" id="tab-dre">
+      <div class="grid g4" id="dreKpis"></div>
+      <div class="card mt">
+        <h3>Premissas do DRE <small>valem para todas as lojas, exceto onde indicado · salvas no portal (só administrador e consultor alteram)</small></h3>
+        <div class="prm" id="drePrm"></div><p class="small muted" style="margin-top:10px" id="drePrmNote"></p>
+      </div>
+      <div class="card mt"><h3>DRE loja a loja <small>mês de referência: <span id="dreMes"></span> · <span class="est">est.</span> = linha estimada pela premissa (sem valor realizado)</small></h3><div class="tbl-wrap"><table class="dre" id="tDre"></table></div></div>
+      <div class="card mt only-edit"><h3>Lançar valor realizado <small>substitui a estimativa da linha no mês selecionado</small></h3>
+        <div class="form-row" style="grid-template-columns:1.2fr 1.5fr 1fr 2fr auto;align-items:end">
+          <label class="f">Loja<select class="inp" id="drLoja"></select></label>
+          <label class="f">Linha<select class="inp" id="drLinha"><option value="imp">Impostos</option><option value="cmv">CMV</option><option value="folha">Folha de pagamento</option><option value="cdel">Custos de delivery</option><option value="man">Manutenção</option><option value="mkt">Marketing, royalties, escritório e fundo</option><option value="cto">CTO</option><option value="agua">Água</option><option value="energia">Energia</option></select></label>
+          <label class="f">Valor<div class="inwrap"><input class="inp" type="number" step="0.01" id="drValor"><em>R$</em></div></label>
+          <label class="f">Observação<input class="inp" id="drObs" placeholder="Nota fiscal, competência..."></label>
+          <button class="btn pri" id="drSave">Salvar</button>
+        </div>
+        <div class="tbl-wrap mt"><table id="tDreLanc"></table></div>
+      </div>
+      <div class="grid g2 mt">
+        <div class="card"><h3>Resultado operacional por loja</h3><div class="chart"><canvas id="cDreRes"></canvas></div></div>
+        <div class="card"><h3>Para onde vai cada R$ 100 vendidos <small>rede</small></h3><div class="chart"><canvas id="cDreMix"></canvas></div></div>
+      </div>
+    </section>
+
+    <!-- ============ ORÇAMENTO DE INAUGURAÇÕES ============ -->
+    <section class="tab" id="tab-orc">
+      <div class="grid g4" id="orcKpis"></div>
+      <div class="grid g12 mt">
+        <div class="card"><h3>Premissas da nova loja <small>edite para simular</small></h3><div class="prm one" id="orcPrm"></div>
+          <div class="actions mt"><span class="small muted" style="margin-right:auto" id="orcNote"></span><button class="btn sm" id="orcReset">Voltar ao padrão</button><button class="btn sm only-gestor" id="orcPadrao">Salvar como padrão</button></div></div>
+        <div class="card"><h3>DRE orçado de uma loja madura <small>por mês</small></h3><div class="tbl-wrap"><table class="dre" id="tOrc"></table></div></div>
+      </div>
+      <div class="grid g2 mt">
+        <div class="card"><h3>Curva de maturação <small>sugestão · % do faturamento-alvo nos primeiros meses</small></h3><div class="chart sm"><canvas id="cRamp"></canvas></div><div class="tbl-wrap mt"><table id="tRamp"></table></div></div>
+        <div class="card"><h3>Lojas a inaugurar <small>faturamento-alvo de cada loja: o da premissa</small></h3><div class="tbl-wrap"><table id="tInaug"></table></div><p class="small muted" style="margin-top:10px" id="inaugNote"></p>
+          <div class="form-row mt only-gestor" style="grid-template-columns:1.2fr 1.4fr 1fr auto;align-items:end">
+            <label class="f">Nova loja<input class="inp" id="exNome" placeholder="Nome"></label>
+            <label class="f">Abertura prevista<input class="inp" id="exAb" placeholder="Ex.: 1º semestre de 2027"></label>
+            <label class="f">Data prevista<input class="inp" type="date" id="exData"></label>
+            <button class="btn pri" id="exAdd">Adicionar</button>
+          </div></div>
+      </div>
+      <div class="card mt"><h3>Cenários salvos <small>compare premissas lado a lado</small></h3>
+        <div class="actions" style="justify-content:flex-start;margin-bottom:12px"><input class="inp" id="cnNome" placeholder="Nome do cenário (ex.: conservador)" style="max-width:300px"><button class="btn pri" id="cnSave">Salvar premissas atuais como cenário</button></div>
+        <div class="tbl-wrap"><table id="tCen"></table></div></div>
+      <div class="card mt"><h3>Rede com 10 lojas <small id="redeSub">DRE consolidado mensal</small></h3><div class="grid g4" id="redeKpis"></div><div class="tbl-wrap mt"><table class="dre" id="tRede"></table></div></div>
+    </section>
+
+    <!-- ============ RH ============ -->
+    <section class="tab" id="tab-rh">
+      <div class="card" style="display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px;padding:12px 14px">
+        <div class="subnav" id="rhNav">
+          <button data-s="quadro" class="on">Quadro de pessoal</button><button data-s="mov">Turnover e absenteísmo</button><button data-s="oco">Ocorrências e advertências</button><button data-s="perf">Performance de gerentes</button><button data-s="nine">Nine box</button><button data-s="suc">Sucessão e carreira</button>
+        </div>
+        <select class="inp" id="rhLoja" style="max-width:240px"></select>
+      </div>
+
+      <div class="rhs on" id="rh-quadro">
+        <div class="grid g6" id="rhKpis"></div>
+        <div class="card mt"><h3>Quadro de pessoal <small>ativos / previstos por cargo</small></h3><div class="tbl-wrap"><table id="tQuadro"></table></div></div>
+        <div class="card mt"><h3>Tempo de casa por cargo</h3><div class="tbl-wrap"><table id="tCasa"></table></div></div>
+        <div class="card mt only-edit"><h3>Cadastrar colaborador</h3>
+          <div class="form-row" style="grid-template-columns:2fr 1.4fr 1.2fr 1fr 1fr 1fr auto;align-items:end">
+            <label class="f">Nome<input class="inp" id="coNome" placeholder="Nome e inicial do sobrenome"></label>
+            <label class="f">Cargo<select class="inp" id="coCargo"></select></label>
+            <label class="f">Loja<select class="inp" id="coLoja"></select></label>
+            <label class="f">Admissão<input class="inp" type="date" id="coAdm"></label>
+            <label class="f">Desempenho<select class="inp" id="coDes"><option value="1">Baixo</option><option value="2" selected>Médio</option><option value="3">Alto</option></select></label>
+            <label class="f">Potencial<select class="inp" id="coPot"><option value="1">Baixo</option><option value="2" selected>Médio</option><option value="3">Alto</option></select></label>
+            <button class="btn pri" id="coSave">Cadastrar</button>
+          </div>
+        </div>
+        <div class="card mt"><h3>Colaboradores <small><select class="inp" id="coFil" style="display:inline-block;width:auto;padding:5px 10px;margin-right:6px"><option value="ativos">Ativos</option><option value="deslig">Desligados</option><option value="todos">Todos</option></select><button class="btn sm" id="coCsv">Exportar CSV</button></small></h3><div class="tbl-wrap" style="max-height:480px;overflow:auto"><table id="tCol"></table></div></div>
+      </div>
+
+      <div class="rhs" id="rh-mov">
+        <div class="card only-edit"><h3>Lançamento mensal por loja <small>se já existir o mês da loja, o lançamento é substituído</small></h3>
+          <div class="form-row" style="grid-template-columns:repeat(7,1fr);align-items:end">
+            <label class="f">Loja<select class="inp" id="mvLoja"></select></label>
+            <label class="f">Mês<input class="inp" type="month" id="mvMes"></label>
+            <label class="f">Headcount médio<input class="inp" type="number" id="mvHc"></label>
+            <label class="f">Admissões<input class="inp" type="number" id="mvAd" value="0"></label>
+            <label class="f">Desligamentos<input class="inp" type="number" id="mvDe" value="0"></label>
+            <label class="f">Dias de falta<input class="inp" type="number" id="mvFa" value="0"></label>
+            <label class="f">Dias previstos<input class="inp" type="number" id="mvPr" placeholder="headcount × 26"></label>
+          </div>
+          <div class="actions mt"><span class="small muted" style="margin-right:auto" id="mvPrev">Turnover = ((admissões + desligamentos) ÷ 2) ÷ headcount médio · Absenteísmo = dias de falta ÷ dias previstos</span><button class="btn pri" id="mvSave">Salvar mês</button></div>
+        </div>
+        <div class="card mt"><h3>Turnover por loja <small>% ao mês</small></h3><div class="tbl-wrap"><table id="tTurnLoja"></table></div></div>
+        <div class="card mt"><h3>Absenteísmo por loja <small>% ao mês</small></h3><div class="tbl-wrap"><table id="tAbsLoja"></table></div></div>
+        <div class="grid g2 mt">
+          <div class="card"><h3>Histórico de turnover <small>rede em destaque</small></h3><div class="chart"><canvas id="cTurn"></canvas></div></div>
+          <div class="card"><h3>Histórico de absenteísmo</h3><div class="chart"><canvas id="cAbs"></canvas></div></div>
+        </div>
+        <div class="card mt"><h3>Lançamentos <small><button class="btn sm" id="mvCsv">Exportar CSV</button></small></h3><div class="tbl-wrap" style="max-height:380px;overflow:auto"><table id="tMov"></table></div></div>
+      </div>
+
+      <div class="rhs" id="rh-oco">
+        <div class="grid g6" id="ocKpis"></div>
+        <div class="card mt"><h3>Registrar ocorrência</h3>
+          <div class="form-row" style="grid-template-columns:2fr 1.3fr 1fr 1.3fr">
+            <label class="f">Colaborador<select class="inp" id="ocPes"></select></label>
+            <label class="f">Tipo<select class="inp" id="ocTipo"></select></label>
+            <label class="f">Data<input class="inp" type="date" id="ocData"></label>
+            <label class="f">Status<select class="inp" id="ocSt"><option>Registrada</option><option>Aguardando assinatura</option><option>Assinada</option><option>Recusou assinar (com testemunhas)</option><option>Concluída</option></select></label>
+            <label class="f" style="grid-column:span 2">Motivo<input class="inp" id="ocMot" placeholder="Ex.: atraso recorrente, descumprimento de padrão de higiene"></label>
+            <label class="f">Responsável<input class="inp" id="ocResp" placeholder="Quem aplicou"></label>
+            <label class="f">Observação<input class="inp" id="ocObs" placeholder="Detalhes, testemunhas, documentos"></label>
+          </div>
+          <div class="actions mt"><button class="btn pri" id="ocSave">Registrar</button></div>
+        </div>
+        <div class="grid g12 mt">
+          <div class="card"><h3>Atenção <small>últimos 6 meses</small></h3><div class="alerts" id="ocAlert"></div></div>
+          <div class="card"><h3>Ocorrências por loja e tipo</h3><div class="tbl-wrap"><table id="tOcRes"></table></div></div>
+        </div>
+        <div class="card mt"><h3>Histórico de ocorrências <small><select class="inp" id="ocFil" style="display:inline-block;width:auto;padding:5px 10px;margin-right:6px"></select><button class="btn sm" id="ocCsv">Exportar CSV</button></small></h3><div class="tbl-wrap" style="max-height:480px;overflow:auto"><table id="tOc"></table></div></div>
+      </div>
+      <div class="rhs" id="rh-perf">
+        <div class="grid">
+          <div class="card"><h3>Score dos gerentes <small>clique em um gerente para ver o detalhe</small></h3><div class="tbl-wrap"><table id="tPerf"></table></div>
+            <p class="small muted" style="margin-top:10px">Score = Vendas x meta (30%) + Indicadores na meta (25%) + Nota da visita de qualidade (15%) + Pessoas: turnover e absenteísmo (15%) + Liderança (15%). Sem visita salva, o peso da qualidade é redistribuído; o mesmo vale para qualquer componente ainda sem dado no mês (nenhuma nota é inventada).</p>
+            <div class="actions mt only-edit"><button class="btn pri" id="pfSave">Salvar avaliação do mês</button></div></div>
+          <div class="card"><h3 id="perfNome">Detalhe</h3><div class="grid g2" style="align-items:center"><div class="chart"><canvas id="cPerf"></canvas></div><div id="perfRec"></div></div></div>
+          <div class="card only-edit"><h3>Nota de liderança <small>0 a 5 · avaliação do mês selecionado</small></h3>
+            <div class="form-row" style="grid-template-columns:1.4fr 1fr auto;align-items:end;max-width:560px">
+              <label class="f">Loja<select class="inp" id="ldLoja"></select></label>
+              <label class="f">Nota<input class="inp" type="number" min="0" max="5" step="0.1" id="ldNota"></label>
+              <button class="btn pri" id="ldSave">Salvar</button>
+            </div></div>
+          <div class="card"><h3>Histórico de avaliações <small><button class="btn sm" id="pfCsv">Exportar CSV</button></small></h3><div class="tbl-wrap" style="max-height:420px;overflow:auto"><table id="tPerfHist"></table></div></div>
+        </div>
+      </div>
+
+      <div class="rhs" id="rh-nine">
+        <div class="card" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 14px;margin-bottom:16px"><b>Cargo</b><select class="inp" id="nbCargo" style="max-width:240px"></select><span class="small muted">Altere desempenho e potencial na tabela abaixo; a matriz e a sucessão se atualizam na hora.</span></div>
+        <div class="grid g21">
+          <div class="card"><h3>Nine box <small id="nbCount"></small></h3><div class="nine" id="nine"></div></div>
+          <div class="card"><h3>O que fazer em cada quadrante</h3><div class="metas-list" id="nbLeg"></div></div>
+        </div>
+        <div class="card mt"><h3>Avaliação individual <small><button class="btn sm" id="nbCsv">Exportar CSV</button> </small></h3><div class="tbl-wrap" style="max-height:520px;overflow:auto"><table id="tNine"></table></div></div>
+        <div class="card mt"><h3>Histórico de alterações do nine box</h3><div class="tbl-wrap" style="max-height:360px;overflow:auto"><table id="tNbHist"></table></div></div>
+      </div>
+
+      <div class="rhs" id="rh-suc">
+        <div class="card"><h3>Trilhas de carreira <small>sugestão de critérios · "prontos" = potencial alto, desempenho médio ou alto e tempo mínimo no cargo</small></h3><div id="trilhas"></div></div>
+        <div class="card mt"><h3>Mapa de sucessão dos cargos-chave <small>sucessor indicado automaticamente pelo nine box</small></h3><div class="tbl-wrap"><table id="tSuc"></table></div></div>
+      </div>
+    </section>
+
+    <!-- ============ CHECKLIST QUALIDADE ============ -->
+    <section class="tab" id="tab-qualidade">
+      <div class="card">
+        <h3>Nova visita operacional <small>visita → checklist → desvios → plano de ação → verificação</small></h3>
+        <div class="form-row">
+          <label class="f">Loja<select class="inp" id="qLoja"></select></label>
+          <label class="f">Data da visita<input class="inp" type="date" id="qData"></label>
+          <label class="f">Avaliador<input class="inp" id="qAval" placeholder="Nome de quem visitou"></label>
+          <label class="f">Gerente da loja<input class="inp" id="qGer" placeholder="Nome do gerente"></label>
+        </div>
+      </div>
+      <div class="grid g12 mt">
+        <div class="card"><h3>Pontuação da visita</h3>
+          <div class="score"><div class="ring" id="qRing"></div><div class="secbars" id="qBars"></div></div>
+          <p class="small muted" style="margin-top:12px">Nota = itens "Sim" ÷ itens avaliados (sem contar N/A). Na meta a partir de 90%.</p>
+        </div>
+        <div class="card"><h3>Itens do checklist <small><button class="btn sm" id="qOpenAll">Abrir/fechar tudo</button></small></h3><div id="qSecs"></div></div>
+      </div>
+      <div class="card mt"><h3>Plano de ação <small>gerado a partir dos itens marcados como "Não"</small></h3><div id="qPlano"></div>
+        <div class="actions mt"><button class="btn" id="qClear">Limpar</button><button class="btn" onclick="window.print()">Imprimir</button><button class="btn pri only-edit" id="qSave">Salvar visita</button></div>
+      </div>
+      <div class="card mt"><h3>Histórico de visitas <small><button class="btn sm" id="qCsv">Exportar CSV</button></small></h3><div id="qHist"></div></div>
+    </section>
+
+    <!-- ============ CHECKLIST DELIVERY ============ -->
+    <section class="tab" id="tab-delivery">
+      <div class="card">
+        <h3>Checklist de indicadores de delivery</h3>
+        <div class="form-row">
+          <label class="f">Loja<select class="inp" id="dLoja"></select></label>
+          <label class="f">Data<input class="inp" type="date" id="dData"></label>
+          <label class="f">Período<select class="inp" id="dPer"><option>Diário</option><option>Semanal</option></select></label>
+          <label class="f">Responsável<input class="inp" id="dResp" placeholder="Supervisor de delivery"></label>
+        </div>
+      </div>
+      <div class="card mt"><h3>Indicadores com meta <small id="dScore"></small></h3><div class="kgrid" id="dMetas"></div></div>
+      <div class="grid g2 mt">
+        <div class="card"><h3>Acompanhamento comercial e financeiro</h3><div class="kgrid" style="grid-template-columns:1fr 1fr" id="dAcomp"></div></div>
+        <div class="card"><h3>Rotina de delivery <small id="dRotScore"></small></h3><div id="dRot"></div></div>
+      </div>
+      <div class="card mt"><label class="f">Observações e ações<textarea class="inp" id="dObs" rows="3" placeholder="Desvios encontrados, ações combinadas, responsáveis e prazos"></textarea></label>
+        <div class="actions mt"><label class="f only-edit" style="flex-direction:row;align-items:center;gap:8px;margin-right:auto"><input type="checkbox" id="dPlano" checked> Gerar plano de ação para os desvios (rotina "Não" e indicadores fora da meta)</label><button class="btn" id="dClear">Limpar</button><button class="btn" onclick="window.print()">Imprimir</button><button class="btn pri only-op" id="dSave">Salvar checklist</button></div>
+      </div>
+      <div class="card mt"><h3>Histórico <small><button class="btn sm" id="dCsv">Exportar CSV</button></small></h3><div id="dHist"></div></div>
+    </section>
+    <!-- ============ PLANOS DE AÇÃO ============ -->
+    <section class="tab" id="tab-planos">
+      <div class="grid g6" id="paKpis"></div>
+      <div class="card mt" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 14px">
+        <b>Filtrar</b>
+        <select class="inp" id="paLoja" style="max-width:200px"></select>
+        <select class="inp" id="paSt" style="max-width:200px"><option value="abertos">Em aberto</option><option value="atrasados">Atrasados</option><option value="todos">Todos</option><option>Pendente</option><option>Em andamento</option><option>Concluído</option><option>Cancelado</option></select>
+        <select class="inp" id="paOr" style="max-width:200px"><option value="todos">Todas as origens</option><option value="visita">Visita de qualidade</option><option value="delivery">Checklist de delivery</option><option value="indicador">Indicador fora da meta</option><option value="manual">Manual</option></select>
+        <span style="margin-left:auto"><button class="btn sm" id="paCsv">Exportar CSV</button></span>
+      </div>
+      <div class="card mt only-edit"><h3>Nova ação</h3>
+        <div class="form-row" style="grid-template-columns:1.1fr 1.1fr 2fr 2fr 1.2fr 1fr 1fr auto;align-items:end">
+          <label class="f">Loja<select class="inp" id="pnLoja"></select></label>
+          <label class="f">Origem<select class="inp" id="pnOr"><option value="manual">Manual</option><option value="indicador">Indicador fora da meta</option></select></label>
+          <label class="f">Problema / desvio<input class="inp" id="pnProb" placeholder="O que está errado"></label>
+          <label class="f">Ação corretiva<input class="inp" id="pnAc" placeholder="O que será feito"></label>
+          <label class="f">Responsável<input class="inp" id="pnResp" placeholder="Quem"></label>
+          <label class="f">Prazo<input class="inp" type="date" id="pnPrazo"></label>
+          <label class="f">Prioridade<select class="inp" id="pnPri"><option>Alta</option><option selected>Média</option><option>Baixa</option></select></label>
+          <button class="btn pri" id="pnSave">Criar</button>
+        </div>
+      </div>
+      <div class="grid g12 mt">
+        <div class="card"><h3>Pendências por loja</h3><div class="tbl-wrap"><table id="tPaLoja"></table></div></div>
+        <div class="card"><h3>Ações <small id="paCount"></small></h3><div class="tbl-wrap" style="max-height:640px;overflow:auto"><table id="tPa"></table></div></div>
+      </div>
+    </section>
+
+    <!-- ============ RELATÓRIOS ============ -->
+    <section class="tab" id="tab-relatorios">
+      <div class="card"><h3>Relatórios gerenciais <small>PDF: o relatório abre pronto para imprimir ou salvar em PDF · CSV: dados tabulares</small></h3>
+        <div class="rep-list" id="repList"></div>
+        <p class="small muted" style="margin-top:12px">Cada relatório informa o cliente, o período, as lojas incluídas, a data de geração e a origem dos dados. As lojas incluídas respeitam o seu perfil de acesso.</p>
+      </div>
+    </section>
+
+    <!-- ============ CONFIGURAÇÕES ============ -->
+    <section class="tab" id="tab-config">
+      <div class="card" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:16px;padding:12px 14px">
+        <div class="subnav" id="cfNav"><button data-s="lojas" class="on">Lojas</button><button data-s="metas">Metas</button><button data-s="mv">Metas de vendas</button><button data-s="prem">Premissas por loja</button><button data-s="quadro">Quadro previsto</button><button data-s="users">Usuários</button><button data-s="hist">Histórico de alterações</button></div>
+      </div>
+      <div class="ccs on" id="cf-lojas">
+        <div class="card"><h3>Lojas</h3><div class="tbl-wrap"><table id="tCfLojas"></table></div>
+          <div class="form-row mt" style="grid-template-columns:1fr 1.5fr 1.2fr 1.3fr 1.5fr auto;align-items:end">
+            <label class="f">Código<input class="inp" id="lgId" placeholder="ex.: moema"></label>
+            <label class="f">Nome<input class="inp" id="lgNome"></label>
+            <label class="f">Status<select class="inp" id="lgSt"><option value="operando">Em operação</option><option value="inauguracao">Em inauguração</option><option value="fechada">Fechada</option></select></label>
+            <label class="f">Canais<select class="inp" id="lgCan"><option value="delivery">Delivery</option><option value="salao+delivery">Salão + delivery</option><option value="salao">Salão</option></select></label>
+            <label class="f">Inauguração<input class="inp" id="lgInau" placeholder="Ex.: Março de 2027"></label>
+            <button class="btn pri" id="lgAdd">Adicionar</button>
+          </div></div>
+      </div>
+      <div class="ccs" id="cf-metas">
+        <div class="card"><h3>Metas vigentes <small>alterar uma meta cria uma nova vigência; o histórico fica guardado</small></h3><div class="tbl-wrap"><table id="tCfMetas"></table></div>
+          <div class="form-row mt" style="grid-template-columns:1.6fr 1.4fr 1fr 1fr 1fr auto;align-items:end">
+            <label class="f">Indicador<select class="inp" id="mtInd"></select></label>
+            <label class="f">Aplicar a<select class="inp" id="mtLoja"></select></label>
+            <label class="f">Meta<input class="inp" type="number" step="0.01" id="mtVal" placeholder="vazio = só acompanhar"></label>
+            <label class="f">Direção<select class="inp" id="mtDir"><option value="min">Maior é melhor</option><option value="max">Menor é melhor</option></select></label>
+            <label class="f">Vigente desde<input class="inp" type="date" id="mtDesde"></label>
+            <button class="btn pri" id="mtSave">Salvar meta</button>
+          </div></div>
+        <div class="card mt"><h3>Histórico de metas</h3><div class="tbl-wrap" style="max-height:380px;overflow:auto"><table id="tCfMetasHist"></table></div></div>
+      </div>
+      <div class="ccs" id="cf-mv">
+        <div class="card"><h3>Meta de vendas mensal por loja <small>R$ · edite e saia do campo para salvar</small></h3>
+          <div class="actions" style="justify-content:flex-start;margin-bottom:10px"><label class="f" style="flex-direction:row;align-items:center;gap:8px">Ano<select class="inp" id="mvAno" style="width:auto"></select></label></div>
+          <div class="tbl-wrap"><table id="tCfMv"></table></div></div>
+      </div>
+      <div class="ccs" id="cf-prem">
+        <div class="card"><h3>Premissas do DRE por loja <small>em branco = usa a premissa geral</small></h3><div class="tbl-wrap"><table id="tCfPrem"></table></div></div>
+      </div>
+      <div class="ccs" id="cf-quadro">
+        <div class="card"><h3>Quadro previsto por loja e cargo <small>edite e saia do campo para salvar</small></h3><div class="tbl-wrap"><table id="tCfQuadro"></table></div></div>
+      </div>
+      <div class="ccs" id="cf-users">
+        <div class="card"><h3>Usuários e permissões</h3><div class="tbl-wrap"><table id="tCfUsers"></table></div>
+          <div class="form-row mt" style="grid-template-columns:1.4fr 1.6fr 1.2fr 1.3fr;align-items:end">
+            <label class="f">Nome<input class="inp" id="usNome"></label>
+            <label class="f">E-mail<input class="inp" type="email" id="usEmail"></label>
+            <label class="f">Senha inicial<input class="inp" type="text" id="usSenha" placeholder="mínimo 8 caracteres"></label>
+            <label class="f">Perfil<select class="inp" id="usPapel"></select></label>
+          </div>
+          <div class="mt"><span class="small muted">Lojas autorizadas (regional, gerente e colaborador)</span><div class="chk mt" id="usLojas"></div></div>
+          <div class="actions mt"><span class="small muted" style="margin-right:auto" id="usPapelTxt"></span><button class="btn pri" id="usAdd">Criar usuário</button></div>
+        </div>
+      </div>
+      <div class="ccs" id="cf-hist">
+        <div class="card"><h3>Histórico de alterações <small>últimos 300 registros · <select class="inp" id="hsTab" style="display:inline-block;width:auto;padding:5px 10px"></select></small></h3><div class="tbl-wrap" style="max-height:640px;overflow:auto"><table id="tHist"></table></div></div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<div class="modal hidden" id="modal"><div class="card" id="modalBody"></div></div>
+
+<script src="vendor/chart.umd.js"></script>
+<script src="vendor/supabase.js"></script>
+<script src="js/core.js"></script>
+<script src="js/v_comercial.js"></script>
+<script src="js/v_financeiro.js"></script>
+<script src="js/v_operacoes.js"></script>
+<script src="js/v_rh.js"></script>
+<script src="js/v_checklists.js"></script>
+<script src="js/v_gestao.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

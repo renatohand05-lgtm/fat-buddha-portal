@@ -1,0 +1,182 @@
+/* ================= CMV por loja ================= */
+let CM_TOL=1;
+function renderCMV(){
+  CM_TOL=+(cfg('cmv_tol')??1)||1; try{const l=localStorage.getItem('fb_cmv_tol');if(l&&!P.gestor)CM_TOL=+l}catch(e){}
+  const reg=(S.db.cmv_contagens||[]), sems=uniq(reg.map(r=>r.semana)).sort().slice(-12), last=sems.at(-1);
+  const lojas=LOJAS.map(l=>l.id).filter(id=>reg.some(r=>r.loja_id===id));
+  const lw=reg.filter(r=>r.semana===last);
+  const mc=METAS(null).find(m=>m.k==='cmv'), metaCmv=mc&&mc.meta!=null?mc.meta:21;
+  const V=sum(lw,r=>r.vendas), Rr=sum(lw,cmvRealR), Tt=sum(lw,r=>r.vendas*r.cmv_teorico/100);
+  const acima=lw.filter(r=>cmvReal(r)>metaCmv).length, fora=lw.filter(r=>cmvReal(r)-r.cmv_teorico>CM_TOL).length;
+  $('#cmvKpis').innerHTML=kpi('CMV real da rede',V?Rr/V*100:null,'pct1',last?`semana de ${semTxt(last)} · meta até ${nf1.format(metaCmv).replace(',0','')}%`:'nenhuma contagem lançada')+kpi('CMV teórico da rede',V?Tt/V*100:null,'pct1','pelas fichas técnicas')+kpi('Dispersão da rede',V?(Rr-Tt)/V*100:null,'pp','real − teórico, em p.p.')+
+    kpi('Perda estimada',V?Rr-Tt:null,'brl','na semana, acima do teórico')+kpi(`Lojas acima de ${nf1.format(metaCmv).replace(',0','')}%`,lw.length?acima:null,'int',`de ${lw.length} contadas`)+kpi('Lojas fora da tolerância',lw.length?fora:null,'int',`dispersão acima de ${nf1.format(CM_TOL)} p.p.`);
+  animateKpis($('#cmvKpis'));
+  $('#cmTol').value=CM_TOL;
+  if(sems.length) mk('cCmv',{type:'line',data:{labels:sems.map(semTxt),datasets:lojas.map((id,i)=>({label:lojaNome(id),data:sems.map(s=>{const r=reg.find(x=>x.loja_id===id&&x.semana===s);return r?cmvReal(r):null}),borderColor:PAL[i%6],backgroundColor:PAL[i%6],tension:.3,pointRadius:3,borderWidth:2,spanGaps:true}))
+    .concat([{label:`Meta ${nf1.format(metaCmv).replace(',0','')}%`,data:sems.map(()=>metaCmv),borderColor:'#ffffff',borderDash:[6,5],pointRadius:0,borderWidth:1.5},
+             {label:'Teórico (rede)',data:sems.map(s=>{const w=reg.filter(r=>r.semana===s);const v=sum(w,r=>r.vendas);return v?sum(w,r=>r.vendas*r.cmv_teorico/100)/v*100:null}),borderColor:C.beige,borderDash:[2,4],pointRadius:0,borderWidth:1.5}])},options:{plugins:{tooltip:tipPct},scales:{y:yPct,x:xG}}});
+  else noData('cCmv','Nenhuma contagem semanal lançada.');
+  const dv=lw.map(r=>({id:r.loja_id,v:cmvReal(r)-r.cmv_teorico}));
+  if(dv.length) mk('cDisp',{type:'bar',data:{labels:dv.map(d=>lojaNome(d.id)),datasets:[{label:'Dispersão',data:dv.map(d=>d.v),backgroundColor:dv.map(d=>d.v<=CM_TOL?'rgba(63,197,142,.85)':d.v<=CM_TOL*2?'rgba(242,179,61,.85)':'rgba(229,48,63,.85)'),borderRadius:10,maxBarThickness:70},
+    {type:'line',label:'Tolerância',data:dv.map(()=>CM_TOL),borderColor:C.gold,borderDash:[6,5],pointRadius:0,borderWidth:2}]},
+    options:{plugins:{tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+nf1.format(c.parsed.y)+' p.p.'}}},scales:{y:{grid:{color:C.grid},border:{display:false},ticks:{callback:v=>nf1.format(v)+' p.p.'}},x:xG}}});
+  else noData('cDisp','Sem contagem na última semana.');
+  $('#tCmv').innerHTML=sems.length?`<tr><th>Semana</th>${lojas.map(id=>`<th class="num" colspan="3" style="text-align:center">${esc(lojaNome(id))}</th>`).join('')}</tr><tr><th></th>${lojas.map(()=>`<th class="num">Real</th><th class="num">Teórico</th><th class="num">Disp.</th>`).join('')}</tr>`+
+    sems.slice().reverse().map(s=>`<tr><td><b>${semTxt(s)}</b></td>${lojas.map(id=>{const r=reg.find(x=>x.loja_id===id&&x.semana===s);if(!r)return '<td class="num muted">—</td><td></td><td></td>';const re=cmvReal(r),d=re-r.cmv_teorico;
+      return `<td class="num"><span class="sem s-${status({meta:metaCmv,t:'max'},re)}" style="min-width:54px">${nf1.format(re)}%</span></td><td class="num muted">${nf1.format(r.cmv_teorico)}%</td><td class="num"><span class="sem s-${d<=CM_TOL?'ok':d<=CM_TOL*2?'warn':'bad'}" style="min-width:0">${d>0?'+':''}${nf1.format(d)}</span></td>`}).join('')}</tr>`).join(''):'<tr><td><div class="empty">Nenhuma contagem lançada ainda.</div></td></tr>';
+  const its=(S.db.cmv_itens||[]), ultSem=uniq(its.map(i=>i.semana)).sort().at(-1), li=its.filter(i=>i.semana===ultSem);
+  $('#cmItSub').textContent=ultSem?`semana de ${semTxt(ultSem)}`:'nenhum item lançado';
+  $('#tCmvItem').innerHTML=li.length?`<tr><th>Loja</th><th>Item</th><th class="num">Consumo teórico</th><th class="num">Consumo real</th><th class="num">Diferença</th><th></th></tr>`+
+    li.sort((a,b)=>(b.real-b.teorico)/b.teorico-(a.real-a.teorico)/a.teorico).map(i=>{const d=(i.real-i.teorico)/i.teorico*100;return `<tr><td>${esc(lojaNome(i.loja_id))}</td><td><b>${esc(i.item)}</b></td><td class="num">${nf1.format(i.teorico)}</td><td class="num">${nf1.format(i.real)}</td><td class="num"><span class="sem s-${d<=2?'ok':d<=5?'warn':'bad'}" style="min-width:0">${d>0?'+':''}${nf1.format(d)}%</span></td><td class="num">${P.excluir(i.loja_id)?`<button class="btn sm" data-cid="${i.id}">Excluir</button>`:''}</td></tr>`}).join('')
+    :'<tr><td><div class="empty">Lance o consumo teórico e real dos itens críticos para ver a dispersão por item.</div></td></tr>';
+  $('#tCmvItem').querySelectorAll('[data-cid]').forEach(b=>b.onclick=async()=>{if(!confirm('Excluir este item?'))return;if(await dbw(sb.from('cmv_itens').delete().eq('id',b.dataset.cid),'Item excluído.')){await load(['cmv_itens']);renderCMV()}});
+  $('#tCmvReg').innerHTML=reg.length?`<tr><th>Semana</th><th>Loja</th><th class="num">Vendas</th><th class="num">EI</th><th class="num">Compras</th><th class="num">Transf. +/−</th><th class="num">Devol.</th><th class="num">EF</th><th class="num">CMV real</th><th>Responsável</th><th></th></tr>`+
+    reg.slice().sort((a,b)=>b.semana.localeCompare(a.semana)||a.loja_id.localeCompare(b.loja_id)).map(r=>`<tr><td>${semTxt(r.semana)}</td><td><b>${esc(lojaNome(r.loja_id))}</b></td><td class="num">${brl(r.vendas)}</td><td class="num">${brl(r.estoque_inicial)}</td><td class="num">${brl(r.compras)}</td><td class="num">${brl(r.transf_entrada)} / ${brl(r.transf_saida)}</td><td class="num">${brl(r.devolucoes)}</td><td class="num">${brl(r.estoque_final)}</td><td class="num">${nf1.format(cmvReal(r))}%</td><td>${esc(r.responsavel)||'—'}${r.obs?`<div class="small muted">${esc(r.obs)}</div>`:''}</td><td class="num">${P.editar(r.loja_id)?`<button class="btn sm" data-ce="${r.id}">Editar</button>`:''} ${P.excluir(r.loja_id)?`<button class="btn sm" data-cm="${r.id}">Excluir</button>`:''}</td></tr>`).join('')
+    :'<tr><td><div class="empty">Nenhuma contagem lançada.</div></td></tr>';
+  $('#tCmvReg').querySelectorAll('[data-cm]').forEach(b=>b.onclick=async()=>{if(!confirm('Excluir esta contagem?'))return;if(await dbw(sb.from('cmv_contagens').delete().eq('id',b.dataset.cm),'Contagem excluída.')){await load(['cmv_contagens']);renderCMV()}});
+  $('#tCmvReg').querySelectorAll('[data-ce]').forEach(b=>b.onclick=()=>{const r=reg.find(x=>x.id==b.dataset.ce);
+    [['#cmLoja','loja_id'],['#cmSem','semana'],['#cmVen','vendas'],['#cmTeo','cmv_teorico'],['#cmEi','estoque_inicial'],['#cmCo','compras'],['#cmTe','transf_entrada'],['#cmTs','transf_saida'],['#cmDev','devolucoes'],['#cmEf','estoque_final'],['#cmResp','responsavel'],['#cmObs','obs']].forEach(([s,k])=>$(s).value=r[k]??'');
+    $('#cmSave').scrollIntoView({behavior:'smooth',block:'center'});toast('Contagem carregada. Ao salvar, ela é atualizada.')});
+}
+function initCMV(){
+  $('#cmLoja').innerHTML=optLojas(lojasEditaveis()); $('#ciLoja').innerHTML=optLojas(lojasEditaveis());
+  const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));$('#cmSem').value=isoD(d);$('#ciSem').value=isoD(d);
+  const vals=()=>({loja_id:$('#cmLoja').value,semana:$('#cmSem').value?semanaDe($('#cmSem').value):'',vendas:+$('#cmVen').value,estoque_inicial:+$('#cmEi').value||0,compras:+$('#cmCo').value||0,transf_entrada:+$('#cmTe').value||0,transf_saida:+$('#cmTs').value||0,devolucoes:+$('#cmDev').value||0,estoque_final:+$('#cmEf').value||0,cmv_teorico:+$('#cmTeo').value,responsavel:$('#cmResp').value||null,obs:$('#cmObs').value||null});
+  const prev=()=>{const r=vals();if(r.vendas&&(r.estoque_inicial||r.compras||r.transf_entrada)){const re=cmvReal(r);$('#cmPrev').innerHTML=`CMV real <b>${nf1.format(re)}%</b> (${brl(cmvRealR(r))})${r.cmv_teorico?` · dispersão <b>${re-r.cmv_teorico>0?'+':''}${nf1.format(re-r.cmv_teorico)} p.p.</b>`:''}`}else $('#cmPrev').textContent='preencha os campos'};
+  ['#cmVen','#cmEi','#cmCo','#cmTe','#cmTs','#cmDev','#cmEf','#cmTeo'].forEach(s=>$(s).oninput=prev);
+  $('#cmTol').onchange=async()=>{const v=+$('#cmTol').value||1;
+    if(P.gestor){if(await dbw(sb.from('config').upsert({chave:'cmv_tol',valor:v}),'Tolerância salva para todos.')){await load(['config']);renderCMV()}}
+    else{try{localStorage.setItem('fb_cmv_tol',v)}catch(e){}CM_TOL=v;renderCMV()}};
+  $('#cmSave').onclick=async()=>{const r=vals();if(!r.semana||!r.vendas||!$('#cmTeo').value){toast('Preencha semana, vendas e CMV teórico.');return}
+    if(r.vendas<=0){toast('Vendas precisam ser maiores que zero.');return}
+    const re=cmvReal(r); if(re<0||re>100){if(!confirm(`O CMV real calculado é ${nf1.format(re)}%. Confere os valores? Salvar mesmo assim?`))return}
+    if(await dbw(sb.from('cmv_contagens').upsert(r,{onConflict:'loja_id,semana'}),'Contagem salva.')){['#cmVen','#cmEi','#cmCo','#cmEf','#cmObs'].forEach(s=>$(s).value='');['#cmTe','#cmTs','#cmDev'].forEach(s=>$(s).value=0);prev();await load(['cmv_contagens']);renderCMV()}};
+  $('#ciSave').onclick=async()=>{const r={loja_id:$('#ciLoja').value,semana:semanaDe($('#ciSem').value),item:$('#ciItem').value.trim(),teorico:+$('#ciTeo').value,real:+$('#ciReal').value};
+    if(!r.item||!r.teorico||!$('#ciReal').value){toast('Informe item, consumo teórico e real.');return}
+    if(await dbw(sb.from('cmv_itens').upsert(r,{onConflict:'loja_id,semana,item'}),'Item salvo.')){['#ciItem','#ciTeo','#ciReal'].forEach(s=>$(s).value='');await load(['cmv_itens']);renderCMV()}};
+  $('#cmCsv').onclick=()=>csv('cmv-semanal-fat-buddha.csv',[['Semana','Loja','Vendas','Estoque inicial','Compras','Transferências recebidas','Transferências enviadas','Devoluções','Estoque final','CMV R$','CMV real %','CMV teórico %','Dispersão p.p.','Responsável','Observações']].concat((S.db.cmv_contagens||[]).map(r=>[r.semana,lojaNome(r.loja_id),r.vendas,r.estoque_inicial,r.compras,r.transf_entrada,r.transf_saida,r.devolucoes,r.estoque_final,cmvRealR(r).toFixed(2),cmvReal(r).toFixed(1),r.cmv_teorico,(cmvReal(r)-r.cmv_teorico).toFixed(1),r.responsavel,r.obs])));
+}
+
+/* ================= DRE ================= */
+function dreTable(cols){ // cols: [{nome, d}]
+  const pc=(v,f)=>f?nf1.format(v/f*100)+'%':'—';
+  const head=`<tr><th>Linha</th>${cols.map(c=>`<th class="num">${esc(c.nome)}</th><th class="num pc">%</th>`).join('')}</tr>`;
+  const body=DRE_LINES.map(([k,n,t])=>`<tr class="l-${t}"><td>${n}</td>${cols.map(c=>{const v=c.d[k];const neg=t==='neg';const e=c.d.est&&c.d.est[k]?'<span class="est">est.</span>':'';return `<td class="num ${t==='res'?(v>=0?'up':'down'):''}">${neg?'- ':''}${brl(Math.abs(v))}${e}</td><td class="num pc">${pc(v,c.d.fat)}</td>`}).join('')}</tr>`).join('');
+  const pe=`<tr class="l-sub"><td>Ponto de equilíbrio</td>${cols.map(c=>`<td class="num">${ok_(c.d.pe)?brl(c.d.pe):'—'}</td><td class="num pc">${c.d.fat&&ok_(c.d.pe)?nf0.format(c.d.pe/c.d.fat*100)+'%':'—'}</td>`).join('')}</tr>`;
+  return head+body+pe;
+}
+function prmInputs(el,P0,DEF,fields,onch,ro){
+  el.innerHTML = fields.map(f=>f.t==='base'
+    ? `<label class="f">${f.n}<select class="inp" data-p="${f.k}" ${ro?'disabled':''}><option value="delivery" ${P0[f.k]==='delivery'?'selected':''}>sobre a venda do delivery</option><option value="total" ${P0[f.k]==='total'?'selected':''}>sobre o faturamento total</option></select></label>`
+    : `<label class="f">${f.n}<div class="inwrap"><input class="inp" type="number" step="${f.s||0.1}" data-p="${f.k}" value="${P0[f.k]}" ${ro?'disabled':''}><em>${f.u}</em></div></label>`).join('');
+  el.querySelectorAll('[data-p]').forEach(i=>i.onchange=()=>{const k=i.dataset.p;P0[k]=i.tagName==='SELECT'?i.value:(i.value===''?DEF[k]:+i.value);onch(k)});
+}
+const FIELDS_DRE=[{k:'impostos',n:'Impostos',u:'%'},{k:'delivery',n:'Custos de delivery',u:'%'},{k:'deliveryBase',n:'Base dos custos de delivery',t:'base'},{k:'manutencao',n:'Manutenção',u:'%'},{k:'marketing',n:'Marketing, royalties, escritório e fundo',u:'%'},{k:'cto',n:'CTO por loja',u:'R$',s:100},{k:'agua',n:'Água por loja',u:'R$',s:50},{k:'energia',n:'Energia por loja',u:'R$',s:50}];
+const FIELDS_DRE_EST=[{k:'cmv',n:'CMV (sem contagem no mês)',u:'%'},{k:'pessoal',n:'Folha (sem lançamento no mês)',u:'%'}];
+const NOME_LINHA={imp:'Impostos',cmv:'CMV',folha:'Folha de pagamento',cdel:'Custos de delivery',man:'Manutenção',mkt:'Marketing, royalties, escritório e fundo',cto:'CTO',agua:'Água',energia:'Energia'};
+function dreRede(mes=S.mes){
+  const lojas=OPER.filter(l=>lojaStats(l.id,mes).temVenda);
+  const cols=lojas.map(l=>({nome:l.nome,id:l.id,d:lojaDre(l.id,mes)}));
+  const tot={};DRE_LINES.forEach(([k])=>tot[k]=sum(cols,c=>c.d[k]));
+  const fixRede=sum(cols,c=>c.d.folha+c.d.cto+c.d.agua+c.d.energia);
+  tot.mg=tot.fat?tot.res/tot.fat*100:null; tot.pe=tot.fat?fixRede/(1-(tot.imp+tot.cmv+tot.cdel+tot.man+tot.mkt)/tot.fat):null;
+  return {cols,tot};
+}
+function renderDRE(){
+  const base=dreBase(), DEF=Object.assign({},base);
+  prmInputs($('#drePrm'),base,DEF,FIELDS_DRE.concat(FIELDS_DRE_EST),async()=>{if(await dbw(sb.from('config').upsert({chave:'dre',valor:base}),'Premissas salvas.')){await load(['config']);renderDRE()}},!P.gestor);
+  $('#dreMes').textContent=mesLongo(S.mes);
+  const exc=OPER.filter(l=>IDX.prem[l.id]&&Object.keys(IDX.prem[l.id]).length).map(l=>`${l.nome}: ${Object.entries(IDX.prem[l.id]).map(([k,v])=>({delivery:'custos de delivery',impostos:'impostos',manutencao:'manutenção',marketing:'marketing',cto:'CTO',agua:'água',energia:'energia',cmv:'CMV',pessoal:'folha'}[k]||k)+' '+(['cto','agua','energia'].includes(k)?brl(v):nf1.format(v).replace(',0','')+'%')).join(', ')}`);
+  $('#drePrmNote').innerHTML=(exc.length?'Exceções por loja: '+esc(exc.join(' · '))+'. ':'')+'CMV vem das contagens semanais do mês e a folha do lançamento do mês; sem esses dados, a linha usa a premissa e aparece como estimada. Valores realizados lançados abaixo substituem a estimativa.';
+  const {cols,tot}=dreRede();
+  if(!cols.length){$('#tDre').innerHTML='<tr><td><div class="empty">O DRE aparece quando houver vendas lançadas no mês.</div></td></tr>';$('#dreKpis').innerHTML=kpi('Resultado operacional da rede',null,'brlK','sem vendas no mês')+kpi('Faturamento da rede',null,'brlK',mesLongo(S.mes))+kpi('Lojas com resultado positivo',null,'int','')+kpi('Melhor margem',null,'pct1','');animateKpis($('#dreKpis'));noData('cDreRes');noData('cDreMix')}
+  else{
+    const all=cols.concat([{nome:'Rede',d:tot}]);
+    $('#tDre').innerHTML=dreTable(all);
+    const pos=cols.filter(c=>c.d.res>0).length, best=cols.slice().sort((a,b)=>b.d.mg-a.d.mg)[0];
+    $('#dreKpis').innerHTML=kpi('Resultado operacional da rede',tot.res,'brlK',`margem de ${nf1.format(tot.mg)}%`)+
+      kpi('Faturamento da rede',tot.fat,'brlK',mesLongo(S.mes))+
+      kpi('Lojas com resultado positivo',pos,'int',`de ${cols.length} com vendas no mês`,pos/cols.length*100)+
+      kpi('Melhor margem',best.d.mg,'pct1',best.nome);
+    animateKpis($('#dreKpis'));
+    mk('cDreRes',{type:'bar',data:{labels:cols.map(c=>c.nome),datasets:[{label:'Resultado',data:cols.map(c=>c.d.res),backgroundColor:cols.map(c=>c.d.res>=0?'rgba(63,197,142,.85)':'rgba(229,48,63,.85)'),borderRadius:10,maxBarThickness:70}]},
+      options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+brl(c.parsed.y)+' · '+nf1.format(cols[c.dataIndex].d.mg)+'%'}}},scales:{y:yR,x:xG}}});
+    const parts=[['CMV',tot.cmv],['Folha',tot.folha],['Custos de delivery',tot.cdel],['Impostos',tot.imp],['Marketing e outros',tot.mkt],['CTO, água e energia',tot.cto+tot.agua+tot.energia],['Manutenção',tot.man],['Resultado',Math.max(0,tot.res)]];
+    mk('cDreMix',{type:'doughnut',data:{labels:parts.map(p=>p[0]),datasets:[{data:parts.map(p=>p[1]/tot.fat*100),backgroundColor:['#e5303f','#f2b33d','#c2410c','#8a7c72','#eedbca','#6b4f45','#b9aa9e','#3fc58e'],borderWidth:0}]},
+      options:{cutout:'62%',plugins:{legend:{position:'right'},tooltip:{callbacks:{label:c=>' '+c.label+': R$ '+nf1.format(c.parsed)}}}}});
+  }
+  const lanc=(S.db.dre_lancamentos||[]).filter(r=>r.mes===S.mes).sort((a,b)=>a.loja_id.localeCompare(b.loja_id));
+  $('#tDreLanc').innerHTML=lanc.length?`<tr><th>Loja</th><th>Linha</th><th class="num">Valor</th><th>Observação</th><th></th></tr>`+lanc.map(r=>`<tr><td><b>${esc(lojaNome(r.loja_id))}</b></td><td>${NOME_LINHA[r.linha]}</td><td class="num">${brl(r.valor)}</td><td>${esc(r.obs)||'—'}</td><td class="num">${P.excluir(r.loja_id)?`<button class="btn sm" data-dl="${r.id}">Excluir</button>`:''}</td></tr>`).join(''):`<tr><td><div class="empty">Nenhum valor realizado lançado em ${mesLongo(S.mes)}.</div></td></tr>`;
+  $('#tDreLanc').querySelectorAll('[data-dl]').forEach(b=>b.onclick=async()=>{if(!confirm('Excluir este lançamento? A linha volta a usar a estimativa.'))return;if(await dbw(sb.from('dre_lancamentos').delete().eq('id',b.dataset.dl),'Lançamento excluído.')){await load(['dre_lancamentos']);renderDRE()}});
+}
+function initDRE(){
+  $('#drLoja').innerHTML=optLojas(lojasEditaveis(true));
+  $('#drSave').onclick=async()=>{const r={loja_id:$('#drLoja').value,mes:S.mes,linha:$('#drLinha').value,valor:num($('#drValor').value),obs:$('#drObs').value||null};
+    if(r.valor==null||r.valor<0){toast('Informe um valor válido.');return}
+    if(await dbw(sb.from('dre_lancamentos').upsert(r,{onConflict:'loja_id,mes,linha'}),`${NOME_LINHA[r.linha]} de ${mesTxt(S.mes)} salvo.`)){$('#drValor').value='';$('#drObs').value='';await load(['dre_lancamentos']);renderDRE()}};
+}
+
+/* ================= ORÇAMENTO ================= */
+const ORC_DEF0={faturamento:500000,mixDelivery:100,cmv:21,folha:19,impostos:10,delivery:28,deliveryBase:'delivery',manutencao:1.5,marketing:7,cto:12000,agua:1500,energia:4500,curva:[70,80,90,95,100,100]};
+const orcPadrao=()=>Object.assign({},ORC_DEF0,cfg('orcamento')||{});
+let ORCP=null;
+const FIELDS_ORC=[{k:'faturamento',n:'Faturamento-alvo',u:'R$',s:1000},{k:'mixDelivery',n:'Delivery no faturamento',u:'%'},{k:'cmv',n:'CMV',u:'%'},{k:'folha',n:'Folha',u:'%'},...FIELDS_DRE.map(f=>Object.assign({},f,{n:f.n.replace(' por loja','')}))];
+function orcDre(fat,PR=ORCP){ // fat opcional para a curva (folha fica fixa em R$)
+  const f=fat??PR.faturamento;
+  return dreCalc(Object.assign({},PR,{fat:f,fatDel:f*PR.mixDelivery/100,folhaR:PR.faturamento*PR.folha/100}));
+}
+function orcCurva(PR=ORCP){const ramp=PR.curva||ORC_DEF0.curva;const rd=ramp.map(p=>orcDre(PR.faturamento*p/100,PR));let acc=0;const accs=rd.map(x=>acc+=x.res);return {ramp,rd,accs,ano1:accs.at(-1)+orcDre(null,PR).res*(12-ramp.length)}}
+function renderOrc(){
+  if(!ORCP){try{ORCP=JSON.parse(localStorage.getItem('fb_orc_sim')||'null')}catch(e){} ORCP=Object.assign({},orcPadrao(),ORCP||{})}
+  const DEF=orcPadrao();
+  const curvaFields=(ORCP.curva||[]).map((v,i)=>({k:'c'+i,n:'Mês '+(i+1),u:'%',s:1}));
+  const view=Object.assign({},ORCP,Object.fromEntries((ORCP.curva||[]).map((v,i)=>['c'+i,v])));
+  prmInputs($('#orcPrm'),view,Object.assign({},DEF,Object.fromEntries((DEF.curva||[]).map((v,i)=>['c'+i,v]))),FIELDS_ORC.concat(curvaFields),k=>{
+    if(/^c\d+$/.test(k)){ORCP.curva=ORCP.curva.slice();ORCP.curva[+k.slice(1)]=view[k]}else ORCP[k]=view[k];
+    try{localStorage.setItem('fb_orc_sim',JSON.stringify(ORCP))}catch(e){} renderOrc()});
+  $('#orcNote').textContent=JSON.stringify(ORCP)===JSON.stringify(DEF)?'Premissas padrão do portal.':'Simulação: alterações valem só para você até salvar.';
+  $('#orcReset').onclick=()=>{ORCP=Object.assign({},orcPadrao());try{localStorage.removeItem('fb_orc_sim')}catch(e){}renderOrc()};
+  $('#orcPadrao').onclick=async()=>{if(!confirm('Salvar estas premissas como padrão do orçamento para todos os usuários?'))return;if(await dbw(sb.from('config').upsert({chave:'orcamento',valor:ORCP}),'Premissas padrão salvas.')){await load(['config']);renderOrc()}};
+  const d=orcDre();
+  $('#tOrc').innerHTML=dreTable([{nome:'Mensal',d}]);
+  $('#orcKpis').innerHTML=kpi('Resultado mensal por loja',d.res,'brlK',`margem de ${nf1.format(d.mg)}%`)+
+    kpi('Resultado anual por loja',d.res*12,'brlK','loja madura, 12 meses')+
+    kpi('Ponto de equilíbrio',d.pe,'brlK',`${nf0.format(d.pe/d.fat*100)}% do faturamento-alvo`,d.pe/d.fat*100)+
+    kpi('Custos variáveis',d.varPct*100,'pct1','CMV, impostos, delivery, manutenção e marketing');
+  animateKpis($('#orcKpis'));
+  const {ramp,rd,accs,ano1}=orcCurva();
+  mk('cRamp',{type:'bar',data:{labels:ramp.map((_,i)=>'Mês '+(i+1)),datasets:[
+    {type:'line',label:'Resultado acumulado',data:accs,borderColor:C.gold,pointRadius:3,tension:.3,borderWidth:2},
+    {label:'Resultado do mês',data:rd.map(x=>x.res),backgroundColor:rd.map(x=>x.res>=0?'rgba(63,197,142,.85)':'rgba(229,48,63,.85)'),borderRadius:8}
+  ]},options:{interaction:{mode:'index',intersect:false},plugins:{tooltip:tipBrl},scales:{y:yR,x:xG}}});
+  $('#tRamp').innerHTML=`<tr><th>Mês</th><th class="num">% do alvo</th><th class="num">Faturamento</th><th class="num">Resultado</th><th class="num">Acumulado</th></tr>`+
+    rd.map((x,i)=>`<tr><td>Mês ${i+1}</td><td class="num">${ramp[i]}%</td><td class="num">${brl(x.fat)}</td><td class="num ${x.res>=0?'up':'down'}">${brl(x.res)}</td><td class="num">${brl(accs[i])}</td></tr>`).join('');
+  const ex=S.db.expansao||[];
+  $('#tInaug').innerHTML=`<tr><th>Loja</th><th>Abertura</th><th class="num">Resultado/mês</th><th class="num">1º ano*</th><th></th></tr>`+
+    (ex.length?ex.map(x=>`<tr><td><b>${esc(x.nome)}</b>${x.loja_id?' <span class="tag">cadastrada</span>':''}</td><td>${esc(x.abertura||'')}${x.data_prevista?` <span class="small muted">${fmtD(x.data_prevista)}</span>`:''}</td><td class="num ${d.res>=0?'up':'down'}">${brl(d.res)}</td><td class="num">${brl(ano1)}</td><td class="num">${P.gestor?`<button class="btn sm" data-ex="${x.id}">Excluir</button>`:''}</td></tr>`).join(''):'<tr><td colspan="5"><div class="empty">Nenhuma inauguração planejada.</div></td></tr>');
+  $('#tInaug').querySelectorAll('[data-ex]').forEach(b=>b.onclick=async()=>{if(!confirm('Excluir esta loja do plano de expansão?'))return;if(await dbw(sb.from('expansao').delete().eq('id',b.dataset.ex),'Removida do plano.')){await load(['expansao']);renderOrc()}});
+  $('#inaugNote').innerHTML=`* 1º ano = primeiros ${ramp.length} meses pela curva de maturação + ${12-ramp.length} meses com a loja madura. O plano de expansão é separado do cadastro de lojas em operação: a loja só entra nos indicadores quando for cadastrada em Configurações.`;
+  // cenários
+  const cen=S.db.orc_cenarios||[];
+  const atual={nome:'Simulação atual',premissas:ORCP};
+  $('#tCen').innerHTML=`<tr><th>Cenário</th><th class="num">Faturamento-alvo</th><th class="num">CMV</th><th class="num">Folha</th><th class="num">Resultado/mês</th><th class="num">Margem</th><th class="num">Ponto de equilíbrio</th><th class="num">1º ano</th><th></th></tr>`+
+    [atual].concat(cen).map(c=>{const pr=Object.assign({},ORC_DEF0,c.premissas);const x=orcDre(null,pr);return `<tr ${c===atual?'style="background:rgba(229,48,63,.08)"':''}><td><b>${esc(c.nome)}</b>${c.created_at?`<div class="small muted">${fmtD(c.created_at.slice(0,10))}</div>`:''}</td><td class="num">${brl(pr.faturamento)}</td><td class="num">${nf1.format(pr.cmv)}%</td><td class="num">${nf1.format(pr.folha)}%</td><td class="num ${x.res>=0?'up':'down'}">${brl(x.res)}</td><td class="num">${nf1.format(x.mg)}%</td><td class="num">${brl(x.pe)}</td><td class="num">${brl(orcCurva(pr).ano1)}</td><td class="num">${c.id?`<button class="btn sm" data-cu="${c.id}">Usar</button> <button class="btn sm" data-cx="${c.id}">Excluir</button>`:''}</td></tr>`}).join('');
+  $('#tCen').querySelectorAll('[data-cu]').forEach(b=>b.onclick=()=>{ORCP=Object.assign({},ORC_DEF0,cen.find(c=>c.id==b.dataset.cu).premissas);try{localStorage.setItem('fb_orc_sim',JSON.stringify(ORCP))}catch(e){}renderOrc();window.scrollTo({top:0,behavior:'smooth'})});
+  $('#tCen').querySelectorAll('[data-cx]').forEach(b=>b.onclick=async()=>{if(!confirm('Excluir este cenário?'))return;if(await dbw(sb.from('orc_cenarios').delete().eq('id',b.dataset.cx),'Cenário excluído.')){await load(['orc_cenarios']);renderOrc()}});
+  // rede com 10 lojas
+  const p=cfg('projecao10')||{lojasBase:[],novasLojas:8};
+  const baseIds=(p.lojasBase||[]).filter(id=>LBYID[id]), base=baseIds.map(id=>lojaDre(id)), novas=p.novasLojas;
+  const semVenda=baseIds.filter(id=>!lojaStats(id).temVenda);
+  $('#redeSub').textContent=`DRE consolidado mensal · ${baseIds.map(lojaNome).join(' e ')} com o DRE de ${mesLongo(S.mes)} + ${novas} lojas no orçamento`+(semVenda.length?` · atenção: ${semVenda.map(lojaNome).join(', ')} sem vendas no mês`:'');
+  const cons={};DRE_LINES.forEach(([k])=>cons[k]=sum(base,x=>x[k])+d[k]*novas);
+  $('#redeKpis').innerHTML=kpi('Faturamento mensal',cons.fat,'brlK',`${baseIds.length+novas} lojas`)+kpi('Resultado operacional mensal',cons.res,'brlK',`margem de ${cons.fat?nf1.format(cons.res/cons.fat*100):'—'}%`)+kpi('Resultado anual',cons.res*12,'brlK','rede madura')+kpi('Lojas novas no orçamento',novas,'int',`além de ${baseIds.map(lojaNome).join(' e ')}`);
+  animateKpis($('#redeKpis'));
+  const cols=baseIds.map((id,i)=>({nome:lojaNome(id),d:base[i]})).concat([{nome:`${novas} lojas (orçamento)`,d:Object.assign(Object.fromEntries(DRE_LINES.map(([k])=>[k,d[k]*novas])),{pe:d.pe*novas})},{nome:`Rede com ${baseIds.length+novas} lojas`,d:Object.assign(cons,{pe:sum(base,x=>ok_(x.pe)?x.pe:0)+d.pe*novas})}]);
+  $('#tRede').innerHTML=dreTable(cols);
+}
+function initOrc(){
+  $('#cnSave').onclick=async()=>{const n=$('#cnNome').value.trim();if(!n){toast('Dê um nome ao cenário.');return}
+    if(await dbw(sb.from('orc_cenarios').insert({nome:n,premissas:ORCP}),'Cenário salvo.')){$('#cnNome').value='';await load(['orc_cenarios']);renderOrc()}};
+  $('#exAdd').onclick=async()=>{const n=$('#exNome').value.trim();if(!n){toast('Informe o nome da loja.');return}
+    if(await dbw(sb.from('expansao').insert({nome:n,abertura:$('#exAb').value||null,data_prevista:$('#exData').value||null,ordem:(S.db.expansao||[]).length+1}),'Loja adicionada ao plano.')){['#exNome','#exAb','#exData'].forEach(s=>$(s).value='');await load(['expansao']);renderOrc()}};
+}
