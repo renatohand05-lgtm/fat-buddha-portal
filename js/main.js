@@ -53,7 +53,9 @@ async function entrar(){
   const nome=pf.nome||user.email;
   $('#userBox').innerHTML=`<div class="av">${esc(nome.trim()[0]||'?').toUpperCase()}</div><div><b>${esc(nome)}</b><span>${PAPEL_TXT[pf.papel]}</span></div><button id="btnSair" title="Sair">Sair</button>`;
   $('#btnSair').onclick=async()=>{await sb.auth.signOut();location.hash='';location.reload()};
+  if(!(S.db.vendas_diarias||[]).some(r=>ymOf(r.data)===S.mes)){const ms=(S.db.vendas_diarias||[]).map(r=>ymOf(r.data)).filter(m=>m<=S.mes).sort();if(ms.length)S.mes=ms.at(-1)}
   initMes(); initOrc(); initConfig(); aplicarLojas();
+  aplicarDemo();
   const start=(location.hash||'').slice(1); go(TITLES[start]?start:abasPermitidas()[0]);
 }
 async function mostrarLogin(modo){

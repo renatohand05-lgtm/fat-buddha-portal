@@ -461,9 +461,10 @@
     <!-- ============ CONFIGURAÇÕES ============ -->
     <section class="tab" id="tab-config">
       <div class="card" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:16px;padding:12px 14px">
-        <div class="subnav" id="cfNav"><button data-s="lojas" class="on">Lojas</button><button data-s="metas">Metas</button><button data-s="mv">Metas de vendas</button><button data-s="prem">Premissas por loja</button><button data-s="quadro">Quadro previsto</button><button data-s="users">Usuários</button><button data-s="hist">Histórico de alterações</button></div>
+        <div class="subnav" id="cfNav"><button data-s="lojas" class="on">Lojas</button><button data-s="metas">Metas</button><button data-s="mv">Metas de vendas</button><button data-s="prem">Premissas por loja</button><button data-s="quadro">Quadro previsto</button><button data-s="users">Usuários</button><button data-s="integ">Integrações</button><button data-s="hist">Histórico de alterações</button></div>
       </div>
       <div class="ccs on" id="cf-lojas">
+        <div class="card hidden" id="demoCard" style="margin-bottom:16px;border-color:rgba(242,179,61,.35)"><h3>Dados de demonstração <small>carregados a partir do painel original</small></h3><p class="muted small" id="demoTxt"></p><div class="actions mt"><button class="btn pri" id="demoDel">Remover dados de demonstração</button></div></div>
         <div class="card"><h3>Lojas</h3><div class="tbl-wrap"><table id="tCfLojas"></table></div>
           <div class="form-row mt" style="grid-template-columns:1fr 1.5fr 1.2fr 1.3fr 1.5fr auto;align-items:end">
             <label class="f">Código<input class="inp" id="lgId" placeholder="ex.: moema"></label>
@@ -509,6 +510,24 @@
           <div class="actions mt"><span class="small muted" style="margin-right:auto" id="usPapelTxt"></span><button class="btn pri" id="usAdd">Criar usuário</button></div>
         </div>
       </div>
+      <div class="ccs" id="cf-integ">
+        <div class="card"><h3>API de integração <small>outros sistemas (PDV, iFood, ERP, planilhas) enviam dados direto para o portal</small></h3>
+          <div class="metas-list"><div><span>Endereço base</span><b id="apiUrl" style="user-select:all;word-break:break-all"></b></div><div><span>Autenticação</span><b>cabeçalho <code>x-api-key</code> com a chave gerada abaixo</b></div><div><span>Formato</span><b>JSON · um objeto, uma lista ou {"registros": [...]} · até 2.000 por chamada</b></div></div>
+          <div class="tbl-wrap mt"><table id="tApiRec"></table></div>
+        </div>
+        <div class="card mt"><h3>Gerar chave de acesso <small>a chave aparece uma única vez · guarde em local seguro</small></h3>
+          <div class="form-row" style="grid-template-columns:1.5fr 2fr;align-items:end">
+            <label class="f">Nome (quem vai usar)<input class="inp" id="akNome" placeholder="Ex.: PDV Brooklyn, Integração iFood"></label>
+            <div><span class="small muted">Permissões</span><div class="chk mt" id="akEsc"></div></div>
+          </div>
+          <div class="mt"><span class="small muted">Lojas permitidas (nenhuma marcada = todas)</span><div class="chk mt" id="akLojas"></div></div>
+          <div class="actions mt"><button class="btn pri" id="akAdd">Gerar chave</button></div>
+          <div id="akNova" class="hidden mt"></div>
+        </div>
+        <div class="card mt"><h3>Chaves cadastradas</h3><div class="tbl-wrap"><table id="tApiKeys"></table></div></div>
+        <div class="card mt"><h3>Exemplo de envio <small><select class="inp" id="apiExRec" style="display:inline-block;width:auto;padding:5px 10px"></select></small></h3><pre id="apiEx" style="white-space:pre-wrap;font-size:12px;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:12px;padding:14px;overflow:auto;max-height:420px"></pre></div>
+        <div class="card mt"><h3>Últimas chamadas recebidas <small><button class="btn sm" id="apiLogR">Atualizar</button></small></h3><div class="tbl-wrap" style="max-height:420px;overflow:auto"><table id="tApiLog"></table></div></div>
+      </div>
       <div class="ccs" id="cf-hist">
         <div class="card"><h3>Histórico de alterações <small>últimos 300 registros · <select class="inp" id="hsTab" style="display:inline-block;width:auto;padding:5px 10px"></select></small></h3><div class="tbl-wrap" style="max-height:640px;overflow:auto"><table id="tHist"></table></div></div>
       </div>
@@ -527,6 +546,7 @@
 <script src="js/v_rh.js"></script>
 <script src="js/v_checklists.js"></script>
 <script src="js/v_gestao.js"></script>
+<script src="js/v_integracao.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

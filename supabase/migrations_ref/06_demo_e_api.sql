@@ -1,0 +1,2 @@
+-- marca demo, limpar_demo(), tabelas da API de integração (aplicar antes de 07_carga_demo.sql)
+-- conteúdo idêntico à migração "demo_flag_and_api"
