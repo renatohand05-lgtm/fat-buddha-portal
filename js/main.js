@@ -88,7 +88,7 @@ entrar();
 
 /* ================= fundo animado ================= */
 /* modo leve automático: se o computador não der conta, tira o desfoque dos cartões e mantém o fundo animado */
-(function(){let n=0;const t0=performance.now();function f(){n++;const dt=performance.now()-t0;if(dt<1500)requestAnimationFrame(f);else if(n/dt*1000<40)document.body.classList.add('lite')}setTimeout(()=>requestAnimationFrame(f),800)})();
+(function(){let n=0;const t0=performance.now();function f(){n++;const dt=performance.now()-t0;if(dt<1500)requestAnimationFrame(f);else if(n/dt*1000<28)document.body.classList.add('lite')}setTimeout(()=>requestAnimationFrame(f),800)})();
 /* 1) brilhos grandes: desenhados em baixa resolução e ampliados (ficam suaves sem custo de blur) */
 (function(){
   const cv=$('#bgc'), x=cv.getContext('2d'), S=8; let W,H;

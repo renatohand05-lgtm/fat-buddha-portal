@@ -272,3 +272,101 @@ td .inp{padding:6px 8px}
 .mini .ring{width:110px;height:110px}
 @media (max-width:900px){.top-r{width:100%;justify-content:flex-end}}
 #mlSem{max-height:330px;overflow:auto;padding-right:4px}#tab-loja .g21 .chart{height:330px}
+
+/* =====================================================================
+   CAMADA PREMIUM — mesma identidade (vermelho, dourado, bege), mais
+   profundidade, nitidez e brilho. Tudo aditivo: nada do layout muda.
+   ===================================================================== */
+@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin.woff2) format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-ext.woff2) format("woff2");
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+:root{
+  --font:"Inter",-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --edge:linear-gradient(160deg,rgba(255,236,220,.26),rgba(255,236,220,.06) 38%,rgba(229,48,63,.10) 70%,rgba(242,179,61,.22));
+  --glow-red:0 0 0 1px rgba(229,48,63,.25),0 12px 34px -6px rgba(229,48,63,.55);
+  --shadow-deep:0 1px 0 rgba(255,255,255,.04) inset,0 18px 50px -12px rgba(0,0,0,.55),0 4px 14px rgba(0,0,0,.22);
+}
+body{font-feature-settings:"cv11","ss01","ss03";text-rendering:optimizeLegibility;-moz-osx-font-smoothing:grayscale}
+.val,.num,td.num,.kpi .val,.pill-month{font-variant-numeric:tabular-nums;font-feature-settings:"tnum","cv11"}
+
+/* fundo: grão fino (acaba com o "degrau" dos degradês) + vinheta nas bordas */
+.bg::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(130% 95% at 50% 40%,transparent 55%,rgba(8,5,5,.62) 100%),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .93 0 0 0 0 .86 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* cartões de vidro: borda em degradê, reflexo no topo, sombra profunda e leve elevação */
+.card{position:relative;isolation:isolate;
+  background:linear-gradient(180deg,rgba(255,246,238,.075),rgba(255,246,238,.035) 60%,rgba(255,246,238,.045));
+  border-color:transparent;box-shadow:var(--shadow-deep);
+  backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);
+  transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s}
+.card::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;background:var(--edge);pointer-events:none;z-index:-1;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.card::after{content:"";position:absolute;left:12%;right:12%;top:0;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,240,228,.55),transparent);opacity:.7}
+@media (hover:hover){
+  .grid>.card:hover{transform:translateY(-2px);box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 26px 60px -14px rgba(0,0,0,.65),0 0 0 1px rgba(229,48,63,.10),0 10px 40px -18px rgba(229,48,63,.45)}
+}
+.card h3{letter-spacing:-.15px}
+
+/* KPIs: número com brilho metálico, linha de destaque e barra com reflexo */
+.kpi{overflow:hidden}
+.kpi .lbl{text-transform:uppercase;letter-spacing:.7px;font-size:11px;font-weight:600;color:#c7b6a8}
+.kpi .val{font-size:27px;font-weight:750;letter-spacing:-.8px;
+  background:linear-gradient(180deg,#fffaf5 0%,#f6e6d6 55%,#e6c9ae 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 2px 10px rgba(229,48,63,.18))}
+.kpi::after{left:0;right:auto;width:42%;height:2px;background:linear-gradient(90deg,var(--red),var(--gold) 70%,transparent);opacity:.85}
+.kpi .bar{height:6px;background:rgba(255,255,255,.07);box-shadow:inset 0 1px 2px rgba(0,0,0,.35)}
+.kpi .bar i{position:relative;background:linear-gradient(90deg,#c41e2d,var(--red) 35%,#ff8a3d 70%,var(--gold));box-shadow:0 0 12px rgba(242,179,61,.45)}
+.kpi .bar i::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.45),transparent 60%)}
+
+/* menu lateral */
+.side{background:linear-gradient(180deg,rgba(28,20,18,.72),rgba(16,11,10,.66));box-shadow:inset -1px 0 0 rgba(255,236,220,.06),12px 0 40px -20px rgba(0,0,0,.6)}
+.brand img{box-shadow:0 0 0 2px rgba(20,15,14,.9),0 0 0 3.5px rgba(242,179,61,.55),0 8px 28px rgba(229,48,63,.5);image-rendering:-webkit-optimize-contrast}
+.nav button{position:relative}
+.nav button.on{background:linear-gradient(135deg,#f0414f 0%,#d8273a 45%,#a8121f 100%);box-shadow:var(--glow-red),inset 0 1px 0 rgba(255,255,255,.28)}
+.nav button.on::before{content:"";position:absolute;left:-16px;top:22%;bottom:22%;width:3px;border-radius:0 4px 4px 0;background:var(--gold);box-shadow:0 0 12px var(--gold)}
+.nav button:not(.on):hover{background:linear-gradient(90deg,rgba(255,246,238,.09),rgba(255,246,238,.03))}
+
+/* título da página com leve degradê */
+.top h1{background:linear-gradient(90deg,#fff8f2,#eedbca 70%,#e9b98a);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-.6px}
+
+/* botões */
+.btn{transition:transform .15s,filter .2s,background .2s,box-shadow .2s}
+.btn:active{transform:translateY(1px) scale(.99)}
+.btn.pri{background:linear-gradient(135deg,#f0414f 0%,#d8273a 50%,#a8121f 100%);box-shadow:var(--glow-red),inset 0 1px 0 rgba(255,255,255,.25)}
+.btn.pri:hover{filter:brightness(1.1) saturate(1.05)}
+.pill-month{background:linear-gradient(180deg,rgba(255,246,238,.10),rgba(255,246,238,.04));box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 6px 18px rgba(0,0,0,.25)}
+.inp,select.inp{background:rgba(8,5,5,.35);box-shadow:inset 0 1px 3px rgba(0,0,0,.35)}
+
+/* selos de status com brilho */
+.s-ok{box-shadow:inset 0 0 0 1px rgba(63,197,142,.28),0 0 14px -4px rgba(63,197,142,.5)}
+.s-warn{box-shadow:inset 0 0 0 1px rgba(242,179,61,.3),0 0 14px -4px rgba(242,179,61,.5)}
+.s-bad{box-shadow:inset 0 0 0 1px rgba(255,92,104,.32),0 0 14px -4px rgba(255,92,104,.55)}
+
+/* tabelas */
+th{text-transform:uppercase;letter-spacing:.6px;font-size:10.8px;color:#b8a597}
+tbody tr{transition:background .15s}
+tbody tr:hover td{background:rgba(255,236,220,.035)}
+.sec{background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.015))}
+
+/* login */
+.login .card{box-shadow:0 30px 80px -20px rgba(0,0,0,.75),0 0 60px -20px rgba(229,48,63,.35)}
+.login .lg img{box-shadow:0 0 0 3px rgba(20,15,14,.9),0 0 0 5px rgba(242,179,61,.6),0 14px 44px rgba(229,48,63,.55);animation:halo 4.5s ease-in-out infinite}
+@keyframes halo{50%{box-shadow:0 0 0 3px rgba(20,15,14,.9),0 0 0 5px rgba(242,179,61,.85),0 14px 60px rgba(229,48,63,.75)}}
+.login .lg b{font-size:22px;letter-spacing:-.3px}
+
+/* barra de rolagem discreta */
+*{scrollbar-width:thin;scrollbar-color:rgba(255,236,220,.18) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:rgba(255,236,220,.16);border-radius:10px;border:3px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background-color:rgba(255,236,220,.28)}
+::selection{background:rgba(229,48,63,.45);color:#fff}
+
+/* modo leve (máquinas fracas): mantém o visual, só tira o que pesa */
+.lite .card{background:linear-gradient(180deg,rgba(38,29,27,.92),rgba(30,23,21,.92))}
+.lite .kpi .val{filter:none}
+@media (prefers-reduced-motion:reduce){.login .lg img{animation:none}.card{transition:none}}
+@media print{.bg::after,.card::before,.card::after{display:none}}
+@media (max-width:900px){.nav button.on::before{display:none}.kpi .val{font-size:24px}}

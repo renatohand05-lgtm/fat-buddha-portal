@@ -78,6 +78,53 @@ Chart.defaults.color=C.tick; Chart.defaults.font.family=getComputedStyle(documen
 Chart.defaults.plugins.legend.labels.usePointStyle=true; Chart.defaults.plugins.legend.labels.boxWidth=8;
 Chart.defaults.plugins.tooltip.backgroundColor='rgba(30,23,21,.95)'; Chart.defaults.plugins.tooltip.borderColor='rgba(255,236,220,.15)'; Chart.defaults.plugins.tooltip.borderWidth=1; Chart.defaults.plugins.tooltip.padding=10;
 Chart.defaults.maintainAspectRatio=false;
+/* nitidez: desenha os gráficos em 2x (ou mais) — fica cristalino em qualquer tela */
+Chart.defaults.devicePixelRatio=Math.max(2,window.devicePixelRatio||1);
+Chart.defaults.font.weight=500;
+Chart.defaults.plugins.tooltip.cornerRadius=10; Chart.defaults.plugins.tooltip.titleFont={weight:700}; Chart.defaults.plugins.tooltip.boxPadding=4;
+/* acabamento premium: barras e áreas em degradê, linhas com brilho */
+function _rgba(c,a){
+  if(typeof c!=='string') return c;
+  let m=c.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if(m){let h=m[1];if(h.length===3)h=h.split('').map(x=>x+x).join('');const n=parseInt(h,16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`}
+  m=c.match(/^rgba?\(([^,]+),([^,]+),([^,)]+)(?:,([^)]+))?\)$/);
+  if(m) return `rgba(${m[1].trim()},${m[2].trim()},${m[3].trim()},${(m[4]!=null?+m[4]:1)*a})`;
+  return c;
+}
+function _grad(chart,base,horiz,a0,a1){
+  const {ctx,chartArea:ca}=chart; if(!ca||typeof base!=='string'||!/^(#|rgb)/.test(base)) return base;
+  const g=horiz?ctx.createLinearGradient(ca.left,0,ca.right,0):ctx.createLinearGradient(0,ca.bottom,0,ca.top);
+  g.addColorStop(0,_rgba(base,a0)); g.addColorStop(1,_rgba(base,a1)); return g;
+}
+const premiumFx={id:'premiumFx',
+  beforeInit(chart){
+    const tipo=chart.config.type, horiz=chart.options.indexAxis==='y';
+    chart.data.datasets.forEach(ds=>{
+      const t=ds.type||tipo;
+      if(t==='bar'&&ds.backgroundColor&&!ds._fx){
+        const orig=ds.backgroundColor; ds._fx=1;
+        if(!ds.hoverBackgroundColor) ds.hoverBackgroundColor=orig;
+        ds.backgroundColor=c=>{const b=Array.isArray(orig)?orig[c.dataIndex%orig.length]:(typeof orig==='function'?orig(c):orig);return _grad(c.chart,b,horiz,.55,1)};
+      }
+      if(t==='line'&&ds.fill&&ds.backgroundColor&&!ds._fx&&typeof ds.backgroundColor==='string'){
+        const b=ds.borderColor||ds.backgroundColor; ds._fx=1;
+        ds.backgroundColor=c=>{const g=_grad(c.chart,typeof b==='string'?b:ds.backgroundColor,false,0,.32);return g};
+      }
+    });
+  },
+  beforeDatasetDraw(chart,args){
+    const ds=chart.data.datasets[args.index], t=ds.type||chart.config.type;
+    if(t!=='line'||document.body.classList.contains('lite')) return;
+    const c=chart.ctx; c.save(); c.shadowColor=_rgba(typeof ds.borderColor==='string'?ds.borderColor:'#e5303f',.55); c.shadowBlur=14; c.shadowOffsetY=4;
+  },
+  afterDatasetDraw(chart,args){
+    const ds=chart.data.datasets[args.index], t=ds.type||chart.config.type;
+    if(t!=='line'||document.body.classList.contains('lite')) return;
+    chart.ctx.restore();
+  }
+};
+Chart.register(premiumFx);
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{Chart.defaults.font.family=getComputedStyle(document.body).fontFamily;Object.values(charts).forEach(c=>{try{c.update('none')}catch(e){}})});
 const charts={};
 function mk(id,cfg){ if(charts[id]) charts[id].destroy(); const el=document.getElementById(id); el.style.display=''; const ph=el.parentElement.querySelector('.chart-empty'); if(ph) ph.remove(); charts[id]=new Chart(el,cfg); return charts[id]; }
 function noData(id,msg){
