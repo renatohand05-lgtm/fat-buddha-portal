@@ -433,3 +433,21 @@ alter table public.api_chaves alter column escopos set default array['vendas','v
 alter table public.lojas add column if not exists ifood_merchant text unique;
 alter table public.lojas add column if not exists codigo_pdv text unique;
 alter table public.lojas add column if not exists cnpj text;
+
+-- ---------- ajustes aplicados depois (migrações alertas_cozinha_central, agrega_tempo_real_remove_vazio, permissoes_funcoes_conexoes) ----------
+-- alertas da cozinha central não têm loja
+alter table public.alertas alter column loja_id drop not null;
+drop policy if exists sel on public.alertas;
+create policy sel on public.alertas for select to authenticated using (
+  (select public.meu_papel()) <> 'colaborador' and (
+    case when loja_id is null then (select public.meu_papel()) in ('admin','consultor','diretoria','regional') else public.pode_ver(loja_id) end));
+-- agrega_tempo_real: quando o dia fica sem pedidos, remove a venda "tempo_real" do dia e das horas (ver versão no banco)
+alter function public.fmt_br(numeric) set search_path = public;
+revoke execute on function public.contagem_limite() from public, anon;
+revoke execute on function public.nf_categoria(text,text) from public, anon;
+revoke execute on function public.nf_editar(text) from public, anon;
+revoke execute on function public.nf_ver(text) from public, anon;
+revoke execute on function public.tg_nota() from public, anon, authenticated;
+revoke execute on function public.tg_pedidos_agrega() from public, anon, authenticated;
+revoke execute on function public.nf_aplicar_regras() from public, anon;
+grant execute on function public.contagem_limite(), public.nf_categoria(text,text), public.nf_editar(text), public.nf_ver(text), public.nf_aplicar_regras() to authenticated;
