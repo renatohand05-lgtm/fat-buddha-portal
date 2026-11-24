@@ -4,7 +4,7 @@ let ccSub='rup';
 function renderCC(){
   $$('#ccNav button').forEach(b=>b.classList.toggle('on',b.dataset.s===ccSub));
   $$('#tab-cc .ccs').forEach(s=>s.classList.toggle('on',s.id==='cc-'+ccSub));
-  ccSub==='rup'?ccRup():ccEst();
+  ccSub==='rup'?ccRup():ccSub==='cont'?ccCont():ccEst();
 }
 function ccRup(){
   const rs=S.db.rupturas||[], sems=uniq(rs.map(r=>semanaDe(r.data))).sort().slice(-6);
@@ -45,11 +45,16 @@ function ccEst(){
   const ord=es.map(i=>({i,st:estStatus(i)})).sort((a,b)=>({bad:0,warn:1,ok:2})[a.st[1]]-({bad:0,warn:1,ok:2})[b.st[1]]||a.i.item.localeCompare(b.i.item));
   const ed=P.editaCC;
   const inp=(id,f,v,st)=>ed?`<input class="inp ein" style="width:96px;padding:6px 8px;text-align:right" type="number" step="${st}" data-id="${id}" data-f="${f}" value="${v}">`:nf1.format(v).replace(',0','');
-  $('#tEst').innerHTML=es.length?`<tr><th>Item</th><th>Un.</th><th class="num">Estoque atual</th><th class="num">Mínimo</th><th class="num">Consumo/dia</th><th class="num">Cobertura</th><th>Status</th><th class="num">Repor</th><th class="num">Custo unit.</th><th class="num">Valor</th><th></th></tr>`+
+  $('#tEst').innerHTML=es.length?`<tr><th>Item</th><th>Un.</th><th class="num">Estoque atual</th><th class="num">Mínimo</th><th class="num">Consumo/dia</th><th class="num">Cobertura</th><th>Status</th><th class="num">Repor</th><th class="num">Custo unit.</th><th class="num">Valor</th><th class="num" title="Diferença máxima aceita na contagem sem justificativa">Limite div.</th><th></th></tr>`+
     ord.map(({i,st})=>{const cob=+i.consumo_dia?i.atual/i.consumo_dia:null;const rep=repor(i);
-      return `<tr><td><b>${esc(i.item)}</b></td><td>${esc(i.un)}</td><td class="num">${inp(i.id,'atual',i.atual,1)}</td><td class="num">${inp(i.id,'minimo',i.minimo,1)}</td><td class="num">${inp(i.id,'consumo_dia',i.consumo_dia,.1)}</td><td class="num">${cob==null?'—':nf1.format(cob)+' dias'}</td><td><span class="sem s-${st[1]}" style="min-width:0">${st[0]}</span></td><td class="num">${rep?'<b>'+nf0.format(rep)+' '+esc(i.un)+'</b>':'<span class="muted">—</span>'}</td><td class="num">${ed?`<input class="inp ein" style="width:90px;padding:6px 8px;text-align:right" type="number" step="0.01" data-id="${i.id}" data-f="custo" value="${i.custo}">`:'R$ '+nf2.format(i.custo)}</td><td class="num">${brl(i.atual*i.custo)}</td><td class="num">${P.gestor?`<button class="btn sm" data-ed="${i.id}">Excluir</button>`:''}</td></tr>`}).join('')
+      return `<tr><td><b>${esc(i.item)}</b></td><td>${esc(i.un)}</td><td class="num">${inp(i.id,'atual',i.atual,1)}</td><td class="num">${inp(i.id,'minimo',i.minimo,1)}</td><td class="num">${inp(i.id,'consumo_dia',i.consumo_dia,.1)}</td><td class="num">${cob==null?'—':nf1.format(cob)+' dias'}</td><td><span class="sem s-${st[1]}" style="min-width:0">${st[0]}</span></td><td class="num">${rep?'<b>'+nf0.format(rep)+' '+esc(i.un)+'</b>':'<span class="muted">—</span>'}</td><td class="num">${ed?`<input class="inp ein" style="width:90px;padding:6px 8px;text-align:right" type="number" step="0.01" data-id="${i.id}" data-f="custo" value="${i.custo}">`:'R$ '+nf2.format(i.custo)}</td><td class="num">${brl(i.atual*i.custo)}</td><td class="num">${ed?`<input class="inp ein" style="width:70px;padding:6px 8px;text-align:right" type="number" step="1" min="0" data-id="${i.id}" data-f="limite_div" value="${i.limite_div??''}" placeholder="${limGlobal()}">`:nf0.format(limItem(i))}</td><td class="num">${P.gestor?`<button class="btn sm" data-ed="${i.id}">Excluir</button>`:''}</td></tr>`}).join('')
     :'<tr><td><div class="empty">Nenhum item cadastrado no estoque da cozinha central.</div></td></tr>';
-  $('#tEst').querySelectorAll('.ein').forEach(el=>el.onchange=async()=>{const v=+el.value;if(isNaN(v)||v<0){toast('Valor inválido.');return}if(await dbw(sb.from('estoque_cc').update({[el.dataset.f]:v}).eq('id',el.dataset.id),'Estoque atualizado.')){await load(['estoque_cc']);ccEst()}});
+  $('#tEst').querySelectorAll('.ein').forEach(el=>el.onchange=async()=>{const v=+el.value;if(isNaN(v)||v<0){toast('Valor inválido.');return}
+    if(el.dataset.f==='atual'){const i=es.find(x=>x.id==el.dataset.id);
+      // estoque atual só muda por contagem: acima do limite, exige justificativa
+      if(!await salvarContagem([{id:i.id,item:i.item,un:i.un,esperado:+i.atual,contado:v,limite:limItem(i),justificativa:''}])){el.value=i.atual;return}
+      ccEst();return}
+    if(el.dataset.f==='limite_div'){if(await dbw(sb.from('estoque_cc').update({limite_div:el.value===''?null:v}).eq('id',el.dataset.id),'Limite do item salvo.')){await load(['estoque_cc']);ccEst()}return}if(await dbw(sb.from('estoque_cc').update({[el.dataset.f]:v}).eq('id',el.dataset.id),'Estoque atualizado.')){await load(['estoque_cc']);ccEst()}});
   $('#tEst').querySelectorAll('[data-ed]').forEach(b=>b.onclick=async()=>{if(!confirm('Excluir este item do estoque?'))return;if(await dbw(sb.from('estoque_cc').delete().eq('id',b.dataset.ed),'Item excluído.')){await load(['estoque_cc']);ccEst()}});
 }
 function initCC(){

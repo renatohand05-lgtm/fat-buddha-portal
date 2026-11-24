@@ -149,7 +149,8 @@ const TABLES = {
   estoque_cc:{order:'item'}, rupturas:{order:'data'}, dre_lancamentos:{}, orc_cenarios:{order:'created_at'}, expansao:{order:'ordem'},
   colaboradores:{order:'nome'}, quadro_previsto:{}, lideranca:{}, rh_movimentos:{order:'mes'}, ocorrencias:{order:'data'},
   avaliacoes_gerentes:{order:'periodo'}, visitas_qualidade:{order:'data'}, delivery_checklists:{order:'data'}, planos_acao:{order:'created_at'},
-  ninebox_historico:{order:'em'}, alertas:{order:'criado_em'}, alertas_lidos:{}
+  ninebox_historico:{order:'em'}, alertas:{order:'criado_em'}, alertas_lidos:{},
+  ifood_diario:{order:'data'}, notas_fiscais:{order:'emissao'}, nf_regras:{}, contagens_estoque:{order:'created_at'}
 };
 function busy(on){const l=$('#loading');if(on){l.classList.add('on');l.style.width='70%'}else{l.style.width='100%';setTimeout(()=>{l.classList.remove('on');l.style.width='0'},300)}}
 async function fetchAll(t){
@@ -309,7 +310,12 @@ function lojaStats(id,mes=S.mes){
   // delivery e qualidade: média dos checklists de delivery do mês; na falta, lançamento manual do mês
   const chk=(S.db.delivery_checklists||[]).filter(c=>c.loja_id===id&&ymOf(c.data)===mes);
   const man=IDX.im.get(id+'|'+mes)||{};
+  // iFood (integração ou relatório importado) tem prioridade: é o dado medido pela plataforma
+  const ifd=(S.db.ifood_diario||[]).filter(r=>r.loja_id===id&&ymOf(r.data)===mes);
+  if(ifd.length){const R=ifResumo(ifd), t=`iFood · ${ifd.length} dia${ifd.length>1?'s':''}`;
+    [['preparo',R.preparo],['cancel',R.cancel],['ifood',R.nota],['online',R.online]].forEach(([k,v])=>{if(v!=null){ind[k]=v;src[k]=t}})}
   ['preparo','cancel','ifood','online'].forEach(k=>{
+    if(ind[k]!=null) return;
     const vs=chk.map(c=>c.metas&&c.metas[k]).filter(v=>v!=null&&v!=='').map(Number);
     if(vs.length){ind[k]=sum(vs)/vs.length;src[k]=`média de ${vs.length} checklist${vs.length>1?'s':''} de delivery`}
     else if(man[k]!=null){ind[k]=+man[k];src[k]='indicador lançado no mês'}

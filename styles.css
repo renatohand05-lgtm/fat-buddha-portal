@@ -370,3 +370,34 @@ tbody tr:hover td{background:rgba(255,236,220,.035)}
 @media (prefers-reduced-motion:reduce){.login .lg img{animation:none}.card{transition:none}}
 @media print{.bg::after,.card::before,.card::after{display:none}}
 @media (max-width:900px){.nav button.on::before{display:none}.kpi .val{font-size:24px}}
+
+/* ---------- vendas em tempo real ---------- */
+.live-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.live-h b{font-size:15px}
+.live-dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(63,197,142,.6);animation:pulso 1.8s infinite}
+.live-dot.off{background:var(--dim);animation:none;box-shadow:none}
+@keyframes pulso{0%{box-shadow:0 0 0 0 rgba(63,197,142,.55)}70%{box-shadow:0 0 0 10px rgba(63,197,142,0)}100%{box-shadow:0 0 0 0 rgba(63,197,142,0)}}
+.live-g{display:grid;grid-template-columns:1.1fr 1.6fr 1fr;gap:16px;align-items:center}
+.live-k{display:flex;flex-direction:column;gap:10px}
+.live-k span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:600}
+.live-k b{font-size:22px;font-weight:750;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.live-k em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+.live-list{display:flex;flex-direction:column;gap:6px;font-size:12.5px}
+.live-list>div{display:grid;grid-template-columns:44px 1fr auto;gap:8px;padding:6px 10px;border-radius:9px;background:rgba(255,255,255,.035)}
+.live-list span:first-child{color:var(--muted);font-variant-numeric:tabular-nums}
+.live-list b{font-variant-numeric:tabular-nums}
+.live-list b.down{color:#ff9aa2;font-weight:500}
+.live-off .live-h{margin:0}
+@media (max-width:1000px){.live-g{grid-template-columns:1fr}}
+/* ---------- contagem com bloqueio ---------- */
+tr.ct-bloq td{background:rgba(255,92,104,.07)}
+tr.ct-bloq .ct-j{border-color:rgba(255,92,104,.6)}
+.ct-modal{padding:10px 0;border-bottom:1px solid var(--line)}
+.ct-modal textarea{margin-top:6px;resize:vertical}
+/* ---------- notas e conexões ---------- */
+tr.nf-pend td{background:rgba(242,179,61,.05)}
+.conx-p{margin:10px 0 0 18px;display:flex;flex-direction:column;gap:4px;color:var(--muted)}
+.conx .metas-list b{text-align:right}
+
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.3)}
+#ifAtencao{max-height:330px;overflow:auto}
