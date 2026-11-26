@@ -1,5 +1,5 @@
 /* ================= PLANOS DE AÇÃO ================= */
-const ORIG={visita:'Visita de qualidade',delivery:'Checklist de delivery',indicador:'Indicador fora da meta',manual:'Manual'};
+const ORIG={visita:'Visita de qualidade',delivery:'Checklist de delivery',indicador:'Indicador fora da meta',manual:'Manual',google:'Avaliação do Google'};
 const atrasado = a => !['Concluído','Cancelado'].includes(a.status) && a.prazo && a.prazo<isoHoje();
 function renderPlanos(){
   const all=S.db.planos_acao||[], hoje=isoHoje();

@@ -150,7 +150,8 @@ const TABLES = {
   colaboradores:{order:'nome'}, colaboradores_folha:{}, quadro_previsto:{}, vagas:{order:'created_at'}, lideranca:{}, rh_movimentos:{order:'mes'}, ocorrencias:{order:'data'},
   avaliacoes_gerentes:{order:'periodo'}, visitas_qualidade:{order:'data'}, delivery_checklists:{order:'data'}, planos_acao:{order:'created_at'},
   ninebox_historico:{order:'em'}, alertas:{order:'criado_em'}, alertas_lidos:{},
-  ifood_diario:{order:'data'}, notas_fiscais:{order:'emissao'}, itens_controle:{order:'ordem'}, producao_padrao:{order:'ordem'}, nf_regras:{}, contagens_estoque:{order:'created_at'}
+  ifood_diario:{order:'data'}, notas_fiscais:{order:'emissao'}, itens_controle:{order:'ordem'}, producao_padrao:{order:'ordem'}, nf_regras:{}, contagens_estoque:{order:'created_at'},
+  google_notas:{order:'data'}, google_reviews:{order:'publicado_em'}
 };
 function busy(on){const l=$('#loading');if(on){l.classList.add('on');l.style.width='70%'}else{l.style.width='100%';setTimeout(()=>{l.classList.remove('on');l.style.width='0'},300)}}
 async function fetchAll(t){
