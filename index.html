@@ -441,14 +441,14 @@
     <section class="tab" id="tab-rh">
       <div class="card" style="display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px;padding:12px 14px">
         <div class="subnav" id="rhNav">
-          <button data-s="quadro" class="on">Quadro de pessoal</button><button data-s="mov">Turnover e absenteísmo</button><button data-s="oco">Ocorrências e advertências</button><button data-s="perf">Performance de gerentes</button><button data-s="nine">Nine box</button><button data-s="suc">Sucessão e carreira</button><button data-s="folha">Folha salarial</button>
+          <button data-s="quadro" class="on">Quadro de pessoal</button><button data-s="vagas">Vagas</button><button data-s="mov">Turnover e absenteísmo</button><button data-s="oco">Ocorrências e advertências</button><button data-s="perf">Performance de gerentes</button><button data-s="nine">Nine box</button><button data-s="suc">Sucessão e carreira</button><button data-s="folha">Folha salarial</button>
         </div>
         <select class="inp" id="rhLoja" style="max-width:240px"></select>
       </div>
 
       <div class="rhs on" id="rh-quadro">
         <div class="grid g6" id="rhKpis"></div>
-        <div class="card mt"><h3>Quadro de pessoal <small>ativos / previstos por cargo</small></h3><div class="tbl-wrap"><table id="tQuadro"></table></div></div>
+        <div class="card mt"><h3>Quadro de pessoal x quadro meta <small>ativos / meta por cargo · +N = vagas em andamento</small><span style="margin-left:auto;display:flex;gap:8px"><button class="btn sm" id="btnNovaVaga">Abrir vaga</button><button class="btn sm" id="btnMeta">Editar quadro meta</button></span></h3><div class="tbl-wrap"><table id="tQuadro"></table></div></div>
         <div class="card mt"><h3>Tempo de casa por cargo</h3><div class="tbl-wrap"><table id="tCasa"></table></div></div>
         <div class="card mt only-edit"><h3>Cadastrar colaborador</h3>
           <div class="form-row" style="grid-template-columns:2fr 1.2fr 1.4fr 1.6fr .8fr 1fr .9fr .9fr auto;align-items:end">
@@ -464,6 +464,14 @@
           </div>
         </div>
         <div class="card mt"><h3>Colaboradores <small><select class="inp" id="coFil" style="display:inline-block;width:auto;padding:5px 10px;margin-right:6px"><option value="ativos">Ativos</option><option value="deslig">Desligados</option><option value="todos">Todos</option></select><button class="btn sm" id="coCsv">Exportar CSV</button></small></h3><div class="tbl-wrap" style="max-height:480px;overflow:auto"><table id="tCol"></table></div></div>
+      </div>
+
+      <div class="rhs" id="rh-vagas">
+        <div class="grid g6" id="vgKpis"></div>
+        <div class="card mt"><h3>Falta para o quadro meta <small>meta − ativos − vagas em andamento</small></h3><div class="tbl-wrap" style="max-height:420px;overflow:auto"><table id="tVgGap"></table></div></div>
+        <div class="card mt"><h3>Vagas <small><select class="inp" id="vgFil" style="display:inline-block;width:auto;padding:5px 10px"><option value="andamento">Em andamento</option><option value="todas">Todas</option><option value="encerradas">Encerradas</option></select></small><span style="margin-left:auto"><button class="btn pri sm" id="btnNovaVaga2">Abrir vaga</button></span></h3>
+          <p class="small muted">O gerente solicita; o supervisor regional ou a gestão aprova; depois a vaga vai para seleção e é encerrada ao registrar as contratações. Vaga parada há 2 dias sem aprovação ou com prazo vencido aparece no sino.</p>
+          <div class="tbl-wrap"><table id="tVagas"></table></div></div>
       </div>
 
       <div class="rhs" id="rh-folha">
@@ -640,7 +648,7 @@
     <!-- ============ CONFIGURAÇÕES ============ -->
     <section class="tab" id="tab-config">
       <div class="card" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:16px;padding:12px 14px">
-        <div class="subnav" id="cfNav"><button data-s="lojas" class="on">Lojas</button><button data-s="metas">Metas</button><button data-s="mv">Metas de vendas</button><button data-s="prem">Premissas por loja</button><button data-s="quadro">Quadro previsto</button><button data-s="users">Usuários</button><button data-s="integ">Integrações</button><button data-s="hist">Histórico de alterações</button></div>
+        <div class="subnav" id="cfNav"><button data-s="lojas" class="on">Lojas</button><button data-s="metas">Metas</button><button data-s="mv">Metas de vendas</button><button data-s="prem">Premissas por loja</button><button data-s="quadro">Quadro meta</button><button data-s="users">Usuários</button><button data-s="integ">Integrações</button><button data-s="hist">Histórico de alterações</button></div>
       </div>
       <div class="ccs on" id="cf-lojas">
         <div class="card hidden" id="demoCard" style="margin-bottom:16px;border-color:rgba(242,179,61,.35)"><h3>Dados de demonstração <small>carregados a partir do painel original</small></h3><p class="muted small" id="demoTxt"></p><div class="actions mt"><button class="btn pri" id="demoDel">Remover dados de demonstração</button></div></div>
@@ -675,7 +683,7 @@
         <div class="card"><h3>Premissas do DRE por loja <small>em branco = usa a premissa geral</small></h3><div class="tbl-wrap"><table id="tCfPrem"></table></div></div>
       </div>
       <div class="ccs" id="cf-quadro">
-        <div class="card"><h3>Quadro previsto por loja e cargo <small>edite e saia do campo para salvar</small></h3><div class="tbl-wrap"><table id="tCfQuadro"></table></div></div>
+        <div class="card"><h3>Quadro meta por loja e cargo <small>edite e saia do campo para salvar · também em RH › Quadro de pessoal</small></h3><div class="tbl-wrap"><table id="tCfQuadro"></table></div></div>
       </div>
       <div class="ccs" id="cf-users">
         <div class="card"><h3>Usuários e permissões</h3><div class="tbl-wrap"><table id="tCfUsers"></table></div>

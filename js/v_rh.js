@@ -17,7 +17,7 @@ function renderRH(){
   $$('.rhs').forEach(s=>s.classList.toggle('on',s.id==='rh-'+rhSub));
   if(rhSub==='folha'&&!P.veFolha)rhSub='quadro';
   $('#rhLoja').style.display=rhSub==='folha'?'none':'';
-  ({quadro:rhQuadro,mov:rhMov,oco:rhOco,perf:rhPerf,nine:rhNine,suc:rhSuc,folha:rhFolha})[rhSub]();
+  ({quadro:rhQuadro,vagas:rhVagas,mov:rhMov,oco:rhOco,perf:rhPerf,nine:rhNine,suc:rhSuc,folha:rhFolha})[rhSub]();
 }
 const quadroPrev = (id,c) => {const q=(S.db.quadro_previsto||[]).find(x=>x.loja_id===id&&x.cargo===c);return q?q.previsto:0};
 const quadroAtivo = (id,c) => people().filter(p=>p.loja_id===id&&p.cargo===c).length;
@@ -30,13 +30,14 @@ function rhQuadro(){
   const lastA=lr.length?sm('faltas')/sm('dias_previstos')*100:null;
   const cs=ps.map(p=>mesesCasa(p.admissao)).filter(x=>x!=null), casa=cs.length?sum(cs)/cs.length:null;
   const tal=ps.filter(p=>p.desempenho===3&&p.potencial===3).length;
-  $('#rhKpis').innerHTML=kpi('Colaboradores ativos',at,'int',`de ${prev} previstos`,prev?at/prev*100:null)+kpi('Vagas abertas',Math.max(0,prev-at),'int','para completar o quadro')+
+  const vab=sum(vagasAnd().filter(v=>ids.includes(v.loja_id)),v=>v.quantidade-v.preenchidas), gap=sum(ids.flatMap(id=>CARGOS.map(c=>gapVaga(id,c))));
+  $('#rhKpis').innerHTML=kpi('Colaboradores ativos',at,'int',`de ${prev} na meta`,prev?at/prev*100:null)+kpi('Vagas em andamento',vab,'int',gap?`faltam ${gap} sem vaga aberta`:prev>at?'cobrem a falta do quadro':'quadro completo')+
     kpi('Turnover',lastT,'pct1',lm?mesTxt(lm)+' · seleção atual':'sem lançamento ainda')+
     kpi('Absenteísmo',lastA,'pct1',lm?mesTxt(lm)+' · seleção atual':'sem lançamento ainda')+
     kpi('Tempo médio de casa',casa,'int','meses')+kpi('Talentos no nine box',ps.length?tal:null,'int','alto desempenho e alto potencial');
   animateKpis($('#rhKpis'));
   $('#tQuadro').innerHTML=`<tr><th>Cargo</th>${ids.map(id=>`<th class="num">${esc(lojaNome(id))}</th>`).join('')}<th class="num">Total</th></tr>`+
-    CARGOS.map(c=>{let tp=0,ta=0;return `<tr><td><b>${c}</b></td>${ids.map(id=>{const q={previsto:quadroPrev(id,c),ativo:quadroAtivo(id,c)};tp+=q.previsto;ta+=q.ativo;return `<td class="num"><span class="sem s-${q.ativo>=q.previsto?'ok':q.ativo>=q.previsto*.8?'warn':'bad'}">${q.ativo}/${q.previsto}</span></td>`}).join('')}<td class="num"><b>${ta}/${tp}</b></td></tr>`}).join('');
+    CARGOS.map(c=>{let tp=0,ta=0;return `<tr><td><b>${c}</b></td>${ids.map(id=>{const q={previsto:quadroPrev(id,c),ativo:quadroAtivo(id,c)};tp+=q.previsto;ta+=q.ativo;const va=vagasAbertas(id,c);return `<td class="num"><span class="sem s-${q.ativo>=q.previsto?'ok':q.ativo>=q.previsto*.8?'warn':'bad'}">${q.ativo}/${q.previsto}</span>${va?` <span class="small" style="color:var(--gold)" title="vagas em andamento">+${va}</span>`:''}</td>`}).join('')}<td class="num"><b>${ta}/${tp}</b></td></tr>`}).join('');
   $('#tCasa').innerHTML=ps.length?`<tr><th>Cargo</th><th class="num">Pessoas</th><th class="num">Tempo médio de casa</th><th class="num">Até 6 meses</th><th class="num">6 a 12 meses</th><th class="num">Mais de 1 ano</th></tr>`+
     CARGOS.map(c=>{const g=ps.filter(p=>p.cargo===c);if(!g.length)return '';const m=g.map(p=>mesesCasa(p.admissao)).filter(x=>x!=null);return `<tr><td><b>${c}</b></td><td class="num">${g.length}${m.length<g.length?` <span class="small muted">(${g.length-m.length} sem data)</span>`:''}</td><td class="num">${m.length?casaTxt(Math.round(sum(m)/m.length)):'—'}</td><td class="num">${m.filter(x=>x<6).length}</td><td class="num">${m.filter(x=>x>=6&&x<12).length}</td><td class="num">${m.filter(x=>x>=12).length}</td></tr>`}).join(''):'<tr><td><div class="empty">Nenhum colaborador cadastrado nesta seleção.</div></td></tr>';
   const fil=$('#coFil').value, all=(S.db.colaboradores||[]).filter(p=>ids.includes(p.loja_id)&&(fil==='todos'||(fil==='ativos'?ativo(p):!ativo(p))));
@@ -71,7 +72,8 @@ function editarColab(id){
       if(!u.nome){toast('O nome é obrigatório.');return}
       if(u.desligamento&&u.admissao&&u.desligamento<u.admissao){toast('O desligamento não pode ser antes da admissão.');return}
       if(u.fim_experiencia&&u.admissao&&u.fim_experiencia<u.admissao){toast('O fim da experiência não pode ser antes da admissão.');return}
-      if(await dbw(sb.from('colaboradores').update(u).eq('id',id),'Colaborador atualizado.')){fecharModal();await load(['colaboradores','colaboradores_folha','ninebox_historico','alertas']);renderRH()}};
+      if(await dbw(sb.from('colaboradores').update(u).eq('id',id),'Colaborador atualizado.')){fecharModal();await load(['colaboradores','colaboradores_folha','ninebox_historico','alertas']);renderRH();
+        if(!p.desligamento&&u.desligamento&&u.loja_id&&P.editar(u.loja_id)&&!vagasAnd().some(v=>v.substitui_id===id))setTimeout(()=>ofertaSubstituicao({...p,...u}),250)}};
     const d=el.querySelector('#mDel'); if(d) d.onclick=async()=>{if(!confirm('Excluir o cadastro apaga também as ocorrências e o histórico de nine box desta pessoa. Para quem saiu da empresa, prefira informar a data de desligamento. Excluir mesmo assim?'))return;
       if(await dbw(sb.from('colaboradores').delete().eq('id',id),'Cadastro excluído.')){fecharModal();await load(['colaboradores','ocorrencias','ninebox_historico']);renderRH()}};
   });
@@ -177,7 +179,7 @@ function initRH(){
   // colaboradores
   $('#coCargo').innerHTML=CARGOS.map(c=>`<option>${c}</option>`).join(''); $('#coLoja').innerHTML=optLojas(lojasEditaveis())+(P.gestor?Object.entries(SETORES).map(([k,v])=>`<option value="m:${k}">${v}</option>`).join(''):''); $('#coAdm').value=isoHoje();
   $('#coLoja').onchange=()=>{$('#coCargo').disabled=$('#coLoja').value.startsWith('m:')};
-  initFolha();
+  initFolha(); initVagas();
   $('#coFil').onchange=rhQuadro;
   $('#coSave').onclick=async()=>{const lv=$('#coLoja').value, m=lv.startsWith('m:'), cf=$('#coCf').value.trim()||null;
     const r={nome:$('#coNome').value.trim(),setor:m?lv.slice(2):'loja',loja_id:m?null:lv,cargo:m?cf:$('#coCargo').value,cargo_folha:cf,contrato:$('#coCt').value||null,admissao:$('#coAdm').value,desempenho:+$('#coDes').value,potencial:+$('#coPot').value};
@@ -354,4 +356,142 @@ function initFolha(){
   $('#foUni').innerHTML='<option value="todas">Todas as unidades</option>'+uniOrdem().map(k=>`<option value="${k}">${esc(uniNomeK(k))}</option>`).join('');
   ['#foUni','#foCt'].forEach(s=>$(s).onchange=rhFolha); $('#foBusca').oninput=rhFolha;
   $('#foCsv').onclick=()=>csv('folha-fat-buddha.csv',[['Unidade','Nome','Contrato','Cargo na folha','Cargo no portal','Admissão','Fim da experiência','Salário','VT','Tipo de VT','Plano','Margem']].concat(folhaSel().map(p=>{const f=folhaDe(p.id)||{};return [unidadeNome(p),p.nome,p.contrato,p.cargo_folha,p.cargo,p.admissao,p.fim_experiencia,f.salario,f.vt,f.tipo_vt,f.plano,f.margem]})));
+}
+
+/* ================= RH: vagas e quadro meta ================= */
+const VG_ST={solicitada:['Aguardando aprovação','warn'],aprovada:['Aprovada','neu'],em_selecao:['Em seleção','neu'],preenchida:['Preenchida','ok'],cancelada:['Cancelada','bad']};
+const VG_MOT=['Aumento de quadro','Substituição','Nova loja','Temporária'];
+const VG_AND=['solicitada','aprovada','em_selecao'];
+const vagasAnd = () => (S.db.vagas||[]).filter(v=>VG_AND.includes(v.status));
+const vagasAbertas = (id,c) => sum(vagasAnd().filter(v=>v.loja_id===id&&v.cargo===c),v=>v.quantidade-v.preenchidas);
+const gapVaga = (id,c) => Math.max(0,quadroPrev(id,c)-quadroAtivo(id,c)-vagasAbertas(id,c));
+const diasEntre = (a,b) => Math.max(0,Math.round((new Date(b||Date.now()).getTime()-new Date(a).getTime())/864e5));
+const vgUni = v => v.loja_id?lojaNome(v.loja_id):(SETORES[v.setor]||'Matriz');
+const turnoDe = t => /noturn/i.test(t||'')?'Noturno':/diurn/i.test(t||'')?'Diurno':'';
+function vagasSel(){const ids=rhIds(), todas=$('#rhLoja').value==='todas';return (S.db.vagas||[]).filter(v=>v.loja_id?ids.includes(v.loja_id):todas&&P.veTudo)}
+function rhVagas(){
+  const ids=rhIds(), fil=$('#vgFil').value, all=vagasSel(), and=all.filter(v=>VG_AND.includes(v.status));
+  const enc=all.filter(v=>v.status==='preenchida'&&v.encerrada_em), mAt=isoHoje().slice(0,7), encM=enc.filter(v=>v.encerrada_em.slice(0,7)===mAt);
+  const sol=and.filter(v=>v.status==='solicitada'), sel=and.filter(v=>v.status==='em_selecao');
+  const gaps=ids.flatMap(id=>CARGOS.map(c=>({id,c,meta:quadroPrev(id,c),at:quadroAtivo(id,c),va:vagasAbertas(id,c),g:gapVaga(id,c)}))).filter(x=>x.g>0);
+  const pos=v=>v.quantidade-v.preenchidas;
+  $('#vgKpis').innerHTML=kpi('Posições em aberto',sum(and,pos),'int',`${and.length} vaga${and.length===1?'':'s'} em andamento`)+
+    kpi('Aguardando aprovação',sol.length,'int',sol.length?`a mais antiga há ${Math.max(...sol.map(v=>diasEntre(v.created_at)))} dia(s)`:'nenhuma pendente')+
+    kpi('Em seleção',sum(sel,pos),'int','posições em processo seletivo')+
+    kpi('Preenchidas no mês',sum(encM,v=>v.quantidade),'int',mesTxt(mAt))+
+    kpi('Tempo médio para preencher',enc.length?sum(enc,v=>diasEntre(v.created_at,v.encerrada_em))/enc.length:null,'int',enc.length?'dias, da abertura ao fechamento':'sem vaga preenchida ainda')+
+    kpi('Falta sem vaga aberta',sum(gaps,g=>g.g),'int',gaps.length?'abaixo do quadro meta':'quadro meta coberto');
+  animateKpis($('#vgKpis'));
+  $('#tVgGap').innerHTML=gaps.length?`<tr><th>Loja</th><th>Cargo</th><th class="num">Meta</th><th class="num">Ativos</th><th class="num">Em andamento</th><th class="num">Falta</th><th></th></tr>`+
+    gaps.map(x=>`<tr><td>${esc(lojaNome(x.id))}</td><td><b>${x.c}</b></td><td class="num">${x.meta}</td><td class="num">${x.at}</td><td class="num">${x.va||'—'}</td><td class="num"><span class="sem s-bad" style="min-width:0">${x.g}</span></td><td class="num">${P.editar(x.id)?`<button class="btn sm" data-vgap="${x.id}|${x.c}|${x.g}">Abrir vaga</button>`:''}</td></tr>`).join('')
+    :`<tr><td><div class="empty">${sum(ids,id=>sum(CARGOS,c=>quadroPrev(id,c)))?'Nenhuma falta: ativos e vagas em andamento cobrem o quadro meta.':'Quadro meta ainda não definido.'+(P.gestor?' Use "Editar quadro meta" em Quadro de pessoal.':'')}</div></td></tr>`;
+  $('#tVgGap').querySelectorAll('[data-vgap]').forEach(b=>b.onclick=()=>{const [l,c,g]=b.dataset.vgap.split('|');novaVaga({loja_id:l,cargo:c,quantidade:+g,motivo:'Aumento de quadro'})});
+  const st=['solicitada','aprovada','em_selecao','preenchida','cancelada'];
+  const lista=all.filter(v=>fil==='todas'||(fil==='andamento'?VG_AND.includes(v.status):!VG_AND.includes(v.status)))
+    .sort((a,b)=>st.indexOf(a.status)-st.indexOf(b.status)||b.created_at.localeCompare(a.created_at));
+  const nomeColab=id=>{const p=(S.db.colaboradores||[]).find(x=>x.id===id);return p?p.nome:''};
+  $('#tVagas').innerHTML=lista.length?`<tr><th>Aberta em</th><th>Unidade</th><th>Cargo</th><th class="num">Posições</th><th>Motivo</th><th>Turno · contrato</th><th>Prazo</th><th>Situação</th><th></th></tr>`+
+    lista.map(v=>{const l=v.loja_id, ed=v.loja_id?P.editar(l):P.gestor, ap=P.aprovaVaga(l), andm=VG_AND.includes(v.status), venc=andm&&v.prazo&&v.prazo<isoHoje(), s=VG_ST[v.status];
+      const acoes=[v.status==='solicitada'&&ap?`<button class="btn pri sm" data-va="aprovar" data-id="${v.id}">Aprovar</button>`:'',
+        v.status==='aprovada'&&ed?`<button class="btn sm" data-va="selecao" data-id="${v.id}">Iniciar seleção</button>`:'',
+        (v.status==='aprovada'||v.status==='em_selecao')&&ed?`<button class="btn sm" data-va="contratar" data-id="${v.id}">Registrar contratação</button>`:'',
+        andm&&ed&&(v.status==='solicitada'||ap)?`<button class="btn sm" data-va="editar" data-id="${v.id}">Editar</button>`:'',
+        andm&&ed?`<button class="btn sm" data-va="cancelar" data-id="${v.id}">Cancelar</button>`:''].join('');
+      return `<tr><td>${fmtD(v.created_at.slice(0,10))}${v.solicitante?`<div class="small muted">${esc(v.solicitante)}</div>`:''}</td><td>${esc(vgUni(v))}</td><td><b>${esc(v.cargo)}</b>${v.cargo_folha&&v.cargo_folha!==v.cargo?`<div class="small muted">${esc(v.cargo_folha)}</div>`:''}</td>
+        <td class="num">${v.preenchidas}/${v.quantidade}</td><td>${esc(v.motivo)}${v.substitui_id?`<div class="small muted">no lugar de ${esc(nomeColab(v.substitui_id))}</div>`:''}</td>
+        <td class="small">${[v.turno,v.contrato].filter(Boolean).join(' · ')||'—'}</td><td>${v.prazo?(venc?`<span class="sem s-bad" style="min-width:0">${fmtD(v.prazo)}</span>`:fmtD(v.prazo)):'—'}</td>
+        <td><span class="sem s-${s[1]}" style="min-width:0">${s[0]}</span><div class="small muted">${andm?diasEntre(v.created_at)+' dia(s) em aberto':v.encerrada_em?'em '+fmtD(v.encerrada_em.slice(0,10)):''}</div>${v.status==='cancelada'&&v.motivo_cancelamento?`<div class="small muted">${esc(v.motivo_cancelamento)}</div>`:''}${v.obs?`<div class="small muted">${esc(v.obs)}</div>`:''}</td>
+        <td><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;min-width:150px">${acoes}</div></td></tr>`}).join('')
+    :`<tr><td><div class="empty">${fil==='andamento'?'Nenhuma vaga em andamento.':'Nenhuma vaga nesta seleção.'}</div></td></tr>`;
+  $('#tVagas').querySelectorAll('[data-va]').forEach(b=>b.onclick=()=>acaoVaga(b.dataset.va,+b.dataset.id));
+}
+async function vgSalvar(q,msg){if(await dbw(q,msg)){await load(['vagas','alertas']);renderRH();return true}return false}
+function acaoVaga(a,id){
+  const v=S.db.vagas.find(x=>x.id===id), up=o=>sb.from('vagas').update(o).eq('id',id);
+  if(a==='aprovar') return vgSalvar(up({status:'aprovada'}),'Vaga aprovada.');
+  if(a==='selecao') return vgSalvar(up({status:'em_selecao'}),'Vaga em seleção.');
+  if(a==='editar') return novaVaga(v);
+  if(a==='cancelar') return modal(`<h3>Cancelar vaga <small><button class="btn sm" id="mX">Fechar</button></small></h3><p class="small muted">${esc(v.cargo)} · ${esc(vgUni(v))} · ${v.quantidade-v.preenchidas} posição(ões) em aberto</p>
+      <label class="f mt">Motivo do cancelamento<input class="inp" id="vgMc" placeholder="Ex.: quadro revisto, promoção interna"></label><div class="actions mt"><button class="btn pri" id="vgOk">Cancelar vaga</button></div>`,el=>{
+      el.querySelector('#mX').onclick=fecharModal;
+      el.querySelector('#vgOk').onclick=async()=>{const m=el.querySelector('#vgMc').value.trim();if(m.length<5){toast('Informe o motivo do cancelamento.');return}if(await vgSalvar(up({status:'cancelada',motivo_cancelamento:m}),'Vaga cancelada.'))fecharModal()}});
+  if(a==='contratar'){const r=v.quantidade-v.preenchidas;
+    return modal(`<h3>Registrar contratação <small><button class="btn sm" id="mX">Fechar</button></small></h3><p class="small muted">${esc(v.cargo)} · ${esc(vgUni(v))} · ${v.preenchidas} de ${v.quantidade} preenchida(s)</p>
+      <label class="f mt">Posições preenchidas agora<input class="inp" type="number" min="1" max="${r}" id="vgQ" value="1"></label>
+      <label class="small mt" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="vgCad" checked> Cadastrar o contratado no quadro de pessoal em seguida</label>
+      <div class="actions mt"><button class="btn pri" id="vgOk">Registrar</button></div>`,el=>{
+      el.querySelector('#mX').onclick=fecharModal;
+      el.querySelector('#vgOk').onclick=async()=>{const q=Math.round(+el.querySelector('#vgQ').value||0);if(q<1||q>r){toast(`Informe de 1 a ${r}.`);return}
+        const cad=el.querySelector('#vgCad').checked;
+        if(await vgSalvar(up({preenchidas:v.preenchidas+q}),q+v.preenchidas>=v.quantidade?'Vaga preenchida e encerrada.':'Contratação registrada.')){fecharModal();if(cad)prepararCadastro(v)}}});}
+}
+function prepararCadastro(v){
+  rhSub='quadro';renderRH();
+  if(v.loja_id&&[...$('#coLoja').options].some(o=>o.value===v.loja_id))$('#coLoja').value=v.loja_id;else if(!v.loja_id)$('#coLoja').value='m:'+v.setor;
+  $('#coLoja').onchange&&$('#coLoja').onchange();
+  if(v.loja_id)$('#coCargo').value=v.cargo; $('#coCf').value=v.cargo_folha||(v.loja_id?'':v.cargo); $('#coCt').value=v.contrato||''; $('#coAdm').value=isoHoje();
+  $('#coNome').scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>$('#coNome').focus(),400);
+  toast('Preencha o nome do contratado e clique em Cadastrar.');
+}
+function novaVaga(pre={}){
+  const ed=!!pre.id, lj=lojasEditaveis(), uniOpts=lj.map(l=>`<option value="${l.id}">${esc(l.nome)}</option>`).join('')+(P.gestor?Object.entries(SETORES).map(([k,v])=>`<option value="m:${k}">${v}</option>`).join(''):'');
+  if(!uniOpts){toast('Seu perfil não abre vagas.');return}
+  const prazo=pre.prazo||new Date(Date.now()+15*864e5).toISOString().slice(0,10);
+  modal(`<h3>${ed?'Editar vaga':'Abrir vaga'} <small><button class="btn sm" id="mX">Fechar</button></small></h3>
+    <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
+      <label class="f">Unidade<select class="inp" id="vgU">${uniOpts}</select></label>
+      <label class="f">Cargo<select class="inp" id="vgC">${CARGOS.map(c=>`<option ${c===pre.cargo?'selected':''}>${c}</option>`).join('')}</select></label>
+      <label class="f">Cargo na folha<input class="inp" id="vgCf" value="${esc(pre.cargo_folha||'')}" placeholder="Ex.: Cozinheiro nível A noturno"></label>
+      <label class="f">Posições<input class="inp" type="number" min="1" max="50" id="vgQ" value="${pre.quantidade||1}"></label>
+      <label class="f">Motivo<select class="inp" id="vgM">${VG_MOT.map(m=>`<option ${m===pre.motivo?'selected':''}>${m}</option>`).join('')}</select></label>
+      <label class="f" id="vgSw">No lugar de<select class="inp" id="vgS"></select></label>
+      <label class="f">Turno<select class="inp" id="vgT"><option value="">—</option>${['Diurno','Noturno','Integral'].map(t=>`<option ${t===(pre.turno||turnoDe(pre.cargo_folha))?'selected':''}>${t}</option>`).join('')}</select></label>
+      <label class="f">Contrato<select class="inp" id="vgCt"><option value="">—</option>${['CLT','PJ'].map(t=>`<option ${t===pre.contrato?'selected':''}>${t}</option>`).join('')}</select></label>
+      <label class="f">Prazo para contratar<input class="inp" type="date" id="vgP" value="${prazo}"></label>
+    </div>
+    <label class="f mt">Observações<input class="inp" id="vgO" value="${esc(pre.obs||'')}" placeholder="Perfil, escala, requisitos"></label>
+    <p class="small muted mt">${P.aprovaVaga(pre.loja_id||(lj[0]||{}).id)?'Você aprova vagas: ela já entra aprovada.':'A vaga entra como "aguardando aprovação" do supervisor regional ou da gestão.'}</p>
+    <div class="actions mt"><button class="btn pri" id="vgOk">${ed?'Salvar':'Abrir vaga'}</button></div>`,el=>{
+    const q=s=>el.querySelector(s), u=q('#vgU');
+    if(pre.loja_id)u.value=pre.loja_id;else if(pre.setor&&pre.setor!=='loja')u.value='m:'+pre.setor;
+    const subs=()=>{const l=u.value,m=q('#vgM').value==='Substituição';q('#vgSw').style.display=m?'':'none';
+      const ps=(S.db.colaboradores||[]).filter(p=>(l.startsWith('m:')?!p.loja_id&&p.setor===l.slice(2):p.loja_id===l)&&(!p.desligamento||diasEntre(p.desligamento)<=120)).sort((a,b)=>(b.desligamento||'').localeCompare(a.desligamento||'')||a.nome.localeCompare(b.nome));
+      q('#vgS').innerHTML='<option value="">—</option>'+ps.map(p=>`<option value="${p.id}" ${p.id===pre.substitui_id?'selected':''}>${esc(p.nome)} · ${esc(p.cargo_folha||p.cargo)}${p.desligamento?' (desligado em '+fmtD(p.desligamento)+')':''}</option>`).join('');
+      const mz=l.startsWith('m:');q('#vgC').disabled=mz};
+    u.onchange=subs;q('#vgM').onchange=subs;subs();
+    q('#vgS').onchange=()=>{const p=(S.db.colaboradores||[]).find(x=>x.id===+q('#vgS').value);if(p){if(!u.value.startsWith('m:'))q('#vgC').value=p.cargo;if(!q('#vgCf').value)q('#vgCf').value=p.cargo_folha||'';if(!q('#vgCt').value)q('#vgCt').value=p.contrato||'';if(!q('#vgT').value)q('#vgT').value=turnoDe(p.cargo_folha)}};
+    q('#mX').onclick=fecharModal;
+    q('#vgOk').onclick=async()=>{const lv=u.value,mz=lv.startsWith('m:'),cf=q('#vgCf').value.trim()||null,qt=Math.round(+q('#vgQ').value||0);
+      if(qt<1||qt>50){toast('Informe de 1 a 50 posições.');return}
+      if(mz&&!cf){toast('Para a matriz, informe o cargo na folha.');return}
+      const o={loja_id:mz?null:lv,setor:mz?lv.slice(2):'loja',cargo:mz?cf:q('#vgC').value,cargo_folha:cf,quantidade:qt,motivo:q('#vgM').value,
+        substitui_id:q('#vgM').value==='Substituição'&&q('#vgS').value?+q('#vgS').value:null,turno:q('#vgT').value||null,contrato:q('#vgCt').value||null,prazo:q('#vgP').value||null,obs:q('#vgO').value.trim()||null};
+      if(!ed)o.solicitante=(S.perfil&&S.perfil.nome)||null;
+      const okMsg=ed?'Vaga atualizada.':P.aprovaVaga(o.loja_id)?'Vaga aberta e aprovada.':'Vaga solicitada: aguardando aprovação.';
+      if(await vgSalvar(ed?sb.from('vagas').update(o).eq('id',pre.id):sb.from('vagas').insert(o),okMsg)){fecharModal();if(!ed&&rhSub!=='vagas'){rhSub='vagas';renderRH()}}};
+  });
+}
+function ofertaSubstituicao(p){
+  modal(`<h3>Abrir vaga de substituição?</h3><p>${esc(p.nome)} foi desligado(a) em ${fmtD(p.desligamento)}. Quer abrir a vaga para ${esc(p.cargo_folha||p.cargo)} em ${esc(lojaNome(p.loja_id))}?</p>
+    <div class="actions mt"><button class="btn" id="mX">Agora não</button><button class="btn pri" id="vgSub">Abrir vaga</button></div>`,el=>{
+    el.querySelector('#mX').onclick=fecharModal;
+    el.querySelector('#vgSub').onclick=()=>{fecharModal();novaVaga({loja_id:p.loja_id,cargo:p.cargo,cargo_folha:p.cargo_folha,contrato:p.contrato,motivo:'Substituição',substitui_id:p.id,turno:turnoDe(p.cargo_folha)})}});
+}
+function editarMeta(){
+  const ids=rhIds();
+  modal(`<h3>Quadro meta <small><button class="btn sm" id="mX">Fechar</button></small></h3>
+    <p class="small muted">Quantas pessoas cada loja deve ter por cargo. Entre parênteses, os ativos hoje. A diferença vira "falta para o quadro meta" na aba Vagas.</p>
+    <div class="tbl-wrap mt"><table><tr><th>Cargo</th>${ids.map(id=>`<th class="num">${esc(lojaNome(id))}</th>`).join('')}</tr>${CARGOS.map(c=>`<tr><td><b>${c}</b></td>${ids.map(id=>`<td class="num" style="white-space:nowrap"><input class="inp" type="number" min="0" max="99" style="width:64px;text-align:right;padding:5px 6px" data-ml="${id}" data-mc="${c}" value="${quadroPrev(id,c)}"> <span class="small muted">(${quadroAtivo(id,c)})</span></td>`).join('')}</tr>`).join('')}</table></div>
+    <div class="actions mt"><button class="btn pri" id="mtOk">Salvar quadro meta</button></div>`,el=>{
+    el.querySelector('#mX').onclick=fecharModal;
+    el.querySelector('#mtOk').onclick=async()=>{const rows=[...el.querySelectorAll('[data-ml]')].map(i=>({loja_id:i.dataset.ml,cargo:i.dataset.mc,previsto:Math.max(0,Math.round(+i.value||0))}))
+        .filter(r=>r.previsto!==quadroPrev(r.loja_id,r.cargo));
+      if(!rows.length){fecharModal();return}
+      if(await dbw(sb.from('quadro_previsto').upsert(rows,{onConflict:'loja_id,cargo'}),'Quadro meta salvo.')){fecharModal();await load(['quadro_previsto']);renderRH()}};
+  });
+}
+function initVagas(){
+  $('#btnMeta').style.display=P.gestor?'':'none';
+  ['#btnNovaVaga','#btnNovaVaga2'].forEach(s=>{$(s).style.display=lojasEditaveis().length?'':'none';$(s).onclick=()=>novaVaga({loja_id:$('#rhLoja').value!=='todas'?$('#rhLoja').value:undefined})});
+  $('#btnMeta').onclick=editarMeta; $('#vgFil').onchange=rhVagas;
 }
