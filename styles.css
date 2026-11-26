@@ -562,3 +562,24 @@ b.neg,em.neg,.cmg-stat b.neg{color:#ff9aa2}b.pos,.cmg-stat b.pos{color:#7fe3b8}e
 .vo-ult{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:rgba(0,0,0,.12)}
 .vo-ult .cmg-dot{flex:0 0 10px}
 @media print{.qs:not(.on){display:none!important}.vo-res{position:static}}
+
+/* Notas do Google · comparação de períodos */
+.gg-db-head,.gg-db-r{display:grid;grid-template-columns:minmax(96px,130px) 1fr 84px 92px;gap:12px;align-items:center}
+.gg-db-head{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.gg-db-sc{display:flex;justify-content:space-between;text-transform:none;letter-spacing:0;font-variant-numeric:tabular-nums}
+.gg-db-r{padding:10px 0;border-top:1px solid rgba(255,236,220,.06);font-size:13px}
+.gg-db-r.forte{font-weight:650;border-top:0}
+.gg-db-l{display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gg-db-tr{position:relative;height:16px;border-radius:9px;background:rgba(255,255,255,.05)}
+.gg-db-tr em{position:absolute;top:-4px;bottom:-4px;width:0;border-left:2px dashed rgba(255,236,220,.45)}
+.gg-db-ln{position:absolute;top:7px;height:2px;border-radius:2px;opacity:.7}
+.gg-db-p{position:absolute;top:2px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#f7eee6;box-shadow:0 0 0 2px #1d1715}
+.gg-db-p.ant{background:#1d1715;border:2px solid rgba(255,236,220,.6);width:8px;height:8px;top:2px}
+.gg-db-v{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.gg-db-d{display:flex;flex-direction:column;align-items:flex-end;font-variant-numeric:tabular-nums;white-space:nowrap}
+.gg-db-d small{color:var(--muted);font-size:11px}
+.gg-db-leg{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-top:10px}
+.gg-db-leg span{display:inline-flex;align-items:center;gap:6px}
+.gg-db-leg .gg-db-p{position:static;margin:0;display:inline-block}
+.gg-db-leg i.dash{display:inline-block;width:0;height:12px;border-left:2px dashed rgba(255,236,220,.5)}
+@media (max-width:560px){.gg-db-head,.gg-db-r{grid-template-columns:90px 1fr 70px}.gg-db-d,.gg-db-head span:last-child{display:none}}

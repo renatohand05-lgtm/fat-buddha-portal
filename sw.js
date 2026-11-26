@@ -1,5 +1,5 @@
 /* Fat Buddha · service worker: guarda a estrutura do portal; dados sempre vêm do servidor */
-const V = 'fb-v19';
+const V = 'fb-v20';
 const BASE = ['/', '/index.html', '/styles.css', '/logo.png', '/fonts/inter-latin.woff2', '/manifest.webmanifest', '/vendor/chart.umd.js', '/vendor/supabase.js',
   '/js/core.js', '/js/v_comercial.js', '/js/v_financeiro.js', '/js/v_operacoes.js', '/js/v_rh.js', '/js/v_checklists.js', '/js/v_gestao.js', '/js/v_integracao.js', '/js/v_loja.js', '/js/v_conexoes.js', '/js/v_cmvop.js', '/js/v_cmvgrupo.js', '/js/v_dre.js', '/js/v_google.js', '/js/v_vistoria.js', '/js/main.js'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => c.addAll(BASE)).then(() => self.skipWaiting())); });

@@ -39,6 +39,44 @@ function ggLojas(){
   return LOJAS.filter(l=>l.status==='operando'||l.google_place_id||com.has(l.id));
 }
 
+// ---------- comparação de períodos (dumbbell: anterior → atual) ----------
+const ggIsoD=d=>d.toISOString().slice(0,10);
+function ggSemana(iso){const d=new Date(iso+'T12:00');const w=(d.getDay()+6)%7;d.setDate(d.getDate()-w);return ggIsoD(d)} // segunda-feira da semana
+function ggRefData(){const h=isoHoje();return ymOf(h)===S.mes||S.mes>ymOf(h)?h:fimMes(S.mes)}
+function ggUltimo(serie,ini,fim){let r=null;for(const x of serie){if(x.data>=ini&&x.data<=fim)r=x}return r}
+function ggPeriodos(tipo){
+  const ref=ggRefData();
+  if(tipo==='sem'){const ini=ggSemana(ref),d=new Date(ini+'T12:00');d.setDate(d.getDate()-7);const iniA=ggIsoD(d),e=new Date(ini+'T12:00');e.setDate(e.getDate()-1);const fimA=ggIsoD(e);
+    const f=new Date(ini+'T12:00');f.setDate(f.getDate()+6);
+    return {atual:[ini,ref],ant:[iniA,fimA],tAtual:`semana de ${fmtD(ini).slice(0,5)} a ${fmtD(ggIsoD(f)).slice(0,5)}`,tAnt:`semana de ${fmtD(iniA).slice(0,5)} a ${fmtD(fimA).slice(0,5)}`,nAtual:'Esta semana',nAnt:'Semana anterior'}}
+  const m=ymOf(ref),ma=addMes(m,-1);
+  return {atual:[iniMes(m),ref],ant:[iniMes(ma),fimMes(ma)],tAtual:mesLongo(m),tAnt:mesLongo(ma),nAtual:mesTxt(m),nAnt:mesTxt(ma)};
+}
+function ggComparar(L,meta){
+  [['sem','#ggSem','#ggSemSub'],['mes','#ggMes','#ggMesSub']].forEach(([tipo,el,sub])=>{
+    const P_=ggPeriodos(tipo);
+    const rows=L.map(x=>{const a=ggUltimo(x.s,...P_.atual),b=ggUltimo(x.s,...P_.ant);return {x,a,b}}).filter(r=>r.a||r.b);
+    // rede: média ponderada pelo total de avaliações
+    const red=k=>{const v=rows.filter(r=>r[k]);const t=sum(v,r=>+r[k].total);return v.length?{nota:t?sum(v,r=>r[k].nota*r[k].total)/t:sum(v,r=>+r[k].nota)/v.length,total:t}:null};
+    const ra=red('a'),rb=red('b');
+    $(sub).textContent=`${P_.nAnt} → ${P_.nAtual}`;
+    if(!rows.length){$(el).innerHTML='<div class="empty">Sem notas no período.</div>';return}
+    const vals=rows.flatMap(r=>[r.a&&+r.a.nota,r.b&&+r.b.nota]).filter(v=>v!=null).concat([meta]);
+    const lo=Math.max(1,Math.floor((Math.min(...vals)-.2)*2)/2),X=v=>(v-lo)/(5-lo)*100;
+    const linha=(nome,cor,a,b,forte)=>{const r1=v=>Math.round(v*10)/10,na=a?r1(+a.nota):null,nb=b?r1(+b.nota):null,d=na!=null&&nb!=null?r1(na-nb):null,dt=a&&b?a.total-b.total:null;
+      const st=d==null||d===0?'eq':d>0?'down':'up';
+      return `<div class="gg-db-r ${forte?'forte':''}"><span class="gg-db-l">${cor?`<span class="cmg-dot" style="--cor:${cor}"></span>`:''}${esc(nome)}</span>
+        <span class="gg-db-tr"><em style="left:${X(meta)}%" title="meta ${nf1g(meta)}"></em>${na!=null&&nb!=null?`<i class="gg-db-ln" style="left:${Math.min(X(na),X(nb))}%;width:${Math.abs(X(na)-X(nb))}%;background:${cor||'#f7eee6'}"></i>`:''}
+          ${nb!=null?`<b class="gg-db-p ant" style="left:${X(nb)}%" title="${esc(P_.nAnt)}: ${nf1g(nb)}"></b>`:''}${na!=null?`<b class="gg-db-p" style="left:${X(na)}%;background:${cor||'#f7eee6'}" title="${esc(P_.nAtual)}: ${nf1g(na)}"></b>`:''}</span>
+        <span class="gg-db-v">${nb!=null?nf1g(nb):'—'} → <b>${na!=null?nf1g(na):'—'}</b></span>
+        <span class="gg-db-d"><span class="cmg-delta ${st}">${d==null?(nb==null?'sem anterior':'sem atual'):(d>0?'+':'')+nf1.format(d===0?0:d)}</span>${dt!=null?`<small>${dt>=0?'+':''}${nf0.format(dt)} aval.</small>`:''}</span></div>`};
+    $(el).innerHTML=`<div class="gg-db-head"><span></span><span class="gg-db-sc"><span>${nf1g(lo)}</span><span>5,0</span></span><span>nota</span><span>variação</span></div>`
+      +(rows.length>1?linha('Rede',null,ra,rb,true):'')+rows.map(r=>linha(r.x.l.nome,ggCor(r.x.l.id),r.a,r.b)).join('')
+      +`<div class="gg-db-leg"><span><b class="gg-db-p ant"></b>${esc(P_.tAnt)}</span><span><b class="gg-db-p"></b>${esc(P_.tAtual)}</span><span><i class="dash"></i>meta ${nf1g(meta)}</span></div>`
+      +(rows.some(r=>!r.b)?`<p class="small muted" style="margin-top:8px">A comparação completa aparece quando houver nota registrada também ${tipo==='sem'?'na semana anterior':'no mês anterior'}. A partir de agora o histórico é gravado todo dia.</p>`:'');
+  });
+}
+
 function renderGoogle(){
   const meta=ggMeta(), hoje=isoHoje(), d30=new Date(Date.now()-30*864e5).toISOString().slice(0,10), d90=new Date(Date.now()-90*864e5).toISOString().slice(0,10);
   const ls=ggLojas(), revs=(S.db.google_reviews||[]);
@@ -79,13 +117,8 @@ function renderGoogle(){
       <div class="gg-l-foot">${r0?`<span title="${esc(r0.texto||'')}">última avaliação: <b>${r0.nota}★</b> ${esc(ggQuando(r0))}</span>`:`<span class="muted">posição de ${fmtD(x.u.data)}${x.u.fonte==='manual'?' · lançada à mão':''}</span>`}${x.l.google_uri?`<a href="${esc(x.l.google_uri)}" target="_blank" rel="noopener">Abrir no Google ↗</a>`:''}</div>`
       :`<div class="gg-l-vazio">${x.l.google_place_id?'Vinculada ao Google · a nota entra na próxima atualização':'Ainda sem nota do Google'}</div>`}
     </div>`}).join('')||'<div class="card empty">Nenhuma loja.</div>';
-  // evolução
-  const datas=[...new Set((S.db.google_notas||[]).filter(r=>r.data>=d90&&ls.some(l=>l.id===r.loja_id)).map(r=>r.data))].sort();
-  if(datas.length>=2){
-    mk('cGgEvo',{type:'line',data:{labels:datas.map(d=>fmtD(d).slice(0,5)),datasets:L.filter(x=>x.s.length).map(x=>({label:x.l.nome,data:datas.map(d=>{const r=x.s.find(p=>p.data===d);return r?+r.nota:null}),borderColor:ggCor(x.l.id),backgroundColor:ggCor(x.l.id),borderWidth:2,pointRadius:3,pointHoverRadius:6,tension:.25,spanGaps:true}))
-      .concat([{label:`Meta ${nf1g(meta)}`,data:datas.map(()=>meta),borderColor:'rgba(255,236,220,.45)',borderDash:[6,5],pointRadius:0,borderWidth:1.5}])},
-      options:{interaction:{mode:'index',intersect:false},plugins:{tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+(c.parsed.y==null?'—':nf1.format(c.parsed.y))}}},scales:{y:{grid:{color:C.grid},border:{display:false},suggestedMin:Math.max(1,Math.min(meta,...datas.length?(S.db.google_notas||[]).filter(r=>r.data>=d90).map(r=>+r.nota):[meta])-.3),suggestedMax:5,ticks:{callback:v=>nf1.format(v)}},x:xG}}});
-  } else noData('cGgEvo','A evolução aparece a partir da segunda atualização (a busca roda todo dia às 6h, 15h e 22h).');
+  // evolução: semana vs semana e mês vs mês
+  ggComparar(L,meta);
   // avaliações
   $('#ggRvLoja').innerHTML='<option value="">Todas as lojas</option>'+ls.map(l=>`<option value="${l.id}" ${GG_F.loja===l.id?'selected':''}>${esc(l.nome)}</option>`).join('');
   $$('#ggRvF button').forEach(b=>b.classList.toggle('on',b.dataset.f===GG_F.f));
