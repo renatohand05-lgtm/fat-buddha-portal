@@ -74,7 +74,7 @@ function initCMV(){
 function dreTable(cols){ // cols: [{nome, d}]
   const pc=(v,f)=>f?nf1.format(v/f*100)+'%':'—';
   const head=`<tr><th>Linha</th>${cols.map(c=>`<th class="num">${esc(c.nome)}</th><th class="num pc">%</th>`).join('')}</tr>`;
-  const body=DRE_LINES.map(([k,n,t])=>`<tr class="l-${t}"><td>${n}</td>${cols.map(c=>{const v=c.d[k];const neg=t==='neg';const e=c.d.est&&c.d.est[k]?'<span class="est">est.</span>':'';return `<td class="num ${t==='res'?(v>=0?'up':'down'):''}">${neg?'- ':''}${brl(Math.abs(v))}${e}</td><td class="num pc">${pc(v,c.d.fat)}</td>`}).join('')}</tr>`).join('');
+  const body=DRE_LINES.map(([k,n,t])=>`<tr class="l-${t}"><td>${n}</td>${cols.map(c=>{const v=c.d[k];const neg=t==='neg';const e=c.d.est&&c.d.est[k]?'<span class="est">est.</span>':'';if(v==null)return `<td class="num"><span class="muted" title="O fechamento oficial não traz essa divisão">—</span></td><td class="num pc">—</td>`;return `<td class="num ${t==='res'?(v>=0?'up':'down'):''}">${neg?'- ':''}${brl(Math.abs(v))}${e}${k==='fat'&&c.d.oficial?'<span class="est" style="background:rgba(63,197,142,.16);color:#7fe3b8" title="Faturamento do fechamento oficial">oficial</span>':''}</td><td class="num pc">${pc(v,c.d.fat)}</td>`}).join('')}</tr>`).join('');
   const pe=`<tr class="l-sub"><td>Ponto de equilíbrio</td>${cols.map(c=>`<td class="num">${ok_(c.d.pe)?brl(c.d.pe):'—'}</td><td class="num pc">${c.d.fat&&ok_(c.d.pe)?nf0.format(c.d.pe/c.d.fat*100)+'%':'—'}</td>`).join('')}</tr>`;
   return head+body+pe;
 }
@@ -86,11 +86,13 @@ function prmInputs(el,P0,DEF,fields,onch,ro){
 }
 const FIELDS_DRE=[{k:'impostos',n:'Impostos',u:'%'},{k:'delivery',n:'Custos de delivery',u:'%'},{k:'deliveryBase',n:'Base dos custos de delivery',t:'base'},{k:'manutencao',n:'Manutenção',u:'%'},{k:'marketing',n:'Marketing, royalties, escritório e fundo',u:'%'},{k:'cto',n:'CTO por loja',u:'R$',s:100},{k:'agua',n:'Água por loja',u:'R$',s:50},{k:'energia',n:'Energia por loja',u:'R$',s:50}];
 const FIELDS_DRE_EST=[{k:'cmv',n:'CMV (sem contagem no mês)',u:'%'},{k:'pessoal',n:'Folha (sem lançamento no mês)',u:'%'}];
-const NOME_LINHA={imp:'Impostos',cmv:'CMV',folha:'Folha de pagamento',cdel:'Custos de delivery',man:'Manutenção',mkt:'Marketing, royalties, escritório e fundo',cto:'CTO',agua:'Água',energia:'Energia'};
+const NOME_LINHA={fat:'Faturamento (fechamento oficial)',fat_del:'Faturamento delivery (fechamento oficial)',imp:'Impostos',cmv:'CMV',folha:'Folha de pagamento',cdel:'Custos de delivery',man:'Manutenção',mkt:'Marketing, royalties, escritório e fundo',cto:'CTO',agua:'Água',energia:'Energia'};
 function dreRede(mes=S.mes){
-  const lojas=OPER.filter(l=>lojaStats(l.id,mes).temVenda);
+  // mês com fechamento oficial: o DRE da rede mostra só as lojas do fechamento (as demais teriam só estimativa)
+  const ofi=l=>IDX.dl.has(l.id+'|'+mes+'|fat'), temOfi=OPER.some(ofi);
+  const lojas=OPER.filter(l=>temOfi?ofi(l):lojaStats(l.id,mes).temVenda);
   const cols=lojas.map(l=>({nome:l.nome,id:l.id,d:lojaDre(l.id,mes)}));
-  const tot={};DRE_LINES.forEach(([k])=>tot[k]=sum(cols,c=>c.d[k]));
+  const tot={};DRE_LINES.forEach(([k])=>tot[k]=cols.some(c=>c.d[k]==null)?null:sum(cols,c=>c.d[k]));
   const fixRede=sum(cols,c=>c.d.folha+c.d.cto+c.d.agua+c.d.energia);
   tot.mg=tot.fat?tot.res/tot.fat*100:null; tot.pe=tot.fat?fixRede/(1-(tot.imp+tot.cmv+tot.cdel+tot.man+tot.mkt)/tot.fat):null;
   return {cols,tot};
@@ -98,9 +100,9 @@ function dreRede(mes=S.mes){
 function renderDRE(){
   const base=dreBase(), DEF=Object.assign({},base);
   prmInputs($('#drePrm'),base,DEF,FIELDS_DRE.concat(FIELDS_DRE_EST),async()=>{if(await dbw(sb.from('config').upsert({chave:'dre',valor:base}),'Premissas salvas.')){await load(['config']);renderDRE()}},!P.gestor);
-  $('#dreMes').textContent=mesLongo(S.mes);
+  $('#dreMes').textContent=mesLongo(S.mes)+(OPER.some(l=>IDX.dl.has(l.id+'|'+S.mes+'|fat'))?' · fechamento oficial':'');
   const exc=OPER.filter(l=>IDX.prem[l.id]&&Object.keys(IDX.prem[l.id]).length).map(l=>`${l.nome}: ${Object.entries(IDX.prem[l.id]).map(([k,v])=>({delivery:'custos de delivery',impostos:'impostos',manutencao:'manutenção',marketing:'marketing',cto:'CTO',agua:'água',energia:'energia',cmv:'CMV',pessoal:'folha'}[k]||k)+' '+(['cto','agua','energia'].includes(k)?brl(v):nf1.format(v).replace(',0','')+'%')).join(', ')}`);
-  $('#drePrmNote').innerHTML=(exc.length?'Exceções por loja: '+esc(exc.join(' · '))+'. ':'')+'CMV vem das contagens semanais do mês e a folha do lançamento do mês; sem esses dados, a linha usa a premissa e aparece como estimada. Valores realizados lançados abaixo substituem a estimativa.';
+  $('#drePrmNote').innerHTML=(exc.length?'Exceções por loja: '+esc(exc.join(' · '))+'. ':'')+'CMV vem das contagens semanais do mês e a folha do lançamento do mês; sem esses dados, a linha usa a premissa e aparece como estimada. Valores realizados lançados abaixo substituem a estimativa, e o faturamento do fechamento oficial (marcado "oficial") substitui a soma das vendas.';
   const {cols,tot}=dreRede();
   if(!cols.length){$('#tDre').innerHTML='<tr><td><div class="empty">O DRE aparece quando houver vendas lançadas no mês.</div></td></tr>';$('#dreKpis').innerHTML=kpi('Resultado operacional da rede',null,'brlK','sem vendas no mês')+kpi('Faturamento da rede',null,'brlK',mesLongo(S.mes))+kpi('Lojas com resultado positivo',null,'int','')+kpi('Melhor margem',null,'pct1','');animateKpis($('#dreKpis'));noData('cDreRes');noData('cDreMix')}
   else{

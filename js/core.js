@@ -356,16 +356,16 @@ const ST = new Proxy({},{get:(_,id)=>lojaStats(id)});
 /* ---------------- DRE (fórmulas do painel original) ---------------- */
 /* calcula um DRE mensal. cmv, folha e demais % sobre o faturamento bruto; valores realizados (R$) substituem a estimativa */
 function dreCalc(o){
-  const fat=o.fat, del=o.fatDel, sal=fat-del, R=o.real||{};
+  const fat=o.fat, del=o.fatDel, sal=del==null?null:fat-del, R=o.real||{};
   const imp=R.imp??fat*o.impostos/100, cmv=R.cmv??(o.cmvR!=null?o.cmvR:fat*o.cmv/100), folha=R.folha??(o.folhaR!=null?o.folhaR:fat*o.folha/100);
-  const baseDel = o.deliveryBase==='total'?fat:del;
+  const baseDel = o.deliveryBase==='total'||del==null?fat:del;
   const cdel=R.cdel??baseDel*o.delivery/100, man=R.man??fat*o.manutencao/100, mkt=R.mkt??fat*o.marketing/100;
   const cto=R.cto??o.cto, agua=R.agua??o.agua, energia=R.energia??o.energia;
   const fixos=cto+agua+energia;
   const res=fat-imp-cmv-folha-cdel-man-mkt-fixos;
   const varPct=fat?(imp+cmv+cdel+man+mkt)/fat:0;
   const pe=(folha+fixos)/(1-varPct);
-  return {fat,sal,del,imp,rl:fat-imp,cmv,folha,cdel,man,mkt,cto,agua,energia,res,mg:fat?res/fat*100:null,pe,varPct,est:o.est||{}};
+  return {fat,sal,del,imp,rl:fat-imp,cmv,folha,cdel,man,mkt,cto,agua,energia,res,mg:fat?res/fat*100:null,pe,varPct,est:o.est||{},oficial:!!o.oficial};
 }
 const DRE_LINES = [
   ['fat','Faturamento bruto','tot'],['sal','Salão','sub'],['del','Delivery','sub'],
@@ -383,7 +383,10 @@ function lojaDre(id,mes=S.mes){
   ['imp','cmv','folha','cdel','man','mkt','cto','agua','energia'].forEach(k=>{const r=IDX.dl.get(id+'|'+mes+'|'+k);if(r)real[k]=+r.valor;else est[k]=true});
   let cmvR=null; if(real.cmv==null&&s.ind.cmv!=null){cmvR=s.fat*s.ind.cmv/100;est.cmv=false}
   let folhaR=null; const man=IDX.im.get(id+'|'+mes); if(real.folha==null&&man&&man.folha_valor!=null){folhaR=+man.folha_valor;est.folha=false}
-  return dreCalc(Object.assign({},P0,{fat:s.fat,fatDel:s.del,folha:P0.pessoal,cmvR,folhaR,real,est}));
+  // faturamento oficial do fechamento (lançado no DRE) substitui a soma das vendas; sem a divisão salão/delivery no fechamento, ela fica em branco
+  const fo=IDX.dl.get(id+'|'+mes+'|fat'), fd=IDX.dl.get(id+'|'+mes+'|fat_del');
+  const fat=fo?+fo.valor:s.fat, fatDel=fo?(fd?+fd.valor:null):s.del;
+  return dreCalc(Object.assign({},P0,{fat,fatDel,folha:P0.pessoal,cmvR,folhaR,real,est,oficial:!!fo}));
 }
 
 /* ---------------- RH ---------------- */
