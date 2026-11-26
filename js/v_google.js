@@ -42,7 +42,8 @@ function ggLojas(){
 // ---------- comparação de períodos (dumbbell: anterior → atual) ----------
 const ggIsoD=d=>d.toISOString().slice(0,10);
 function ggSemana(iso){const d=new Date(iso+'T12:00');const w=(d.getDay()+6)%7;d.setDate(d.getDate()-w);return ggIsoD(d)} // segunda-feira da semana
-function ggRefData(){const h=isoHoje();return ymOf(h)===S.mes||S.mes>ymOf(h)?h:fimMes(S.mes)}
+// referência: hoje; só usa o mês do topo quando ele é anterior e tem nota registrada (o portal pode abrir no último mês com vendas)
+function ggRefData(){const h=isoHoje();if(S.mes<ymOf(h)&&(S.db.google_notas||[]).some(r=>ymOf(r.data)===S.mes))return fimMes(S.mes);return h}
 function ggUltimo(serie,ini,fim){let r=null;for(const x of serie){if(x.data>=ini&&x.data<=fim)r=x}return r}
 function ggPeriodos(tipo){
   const ref=ggRefData();
