@@ -6,7 +6,7 @@ let cmSub = 'sem';
 const LISTAS = {
   bebidas:   {n:'Bebidas',    loc:['Estoque seco','Geladeira'],                   ent:'Recebido no dia'},
   sobremesas:{n:'Sobremesas', loc:['Congelador','Geladeira'],                     ent:'Recebido / preparado'},
-  proteinas: {n:'Proteínas',  loc:['Congelado','Descongelando','Descongelado (pista)'], ent:'Recebido da matriz'},
+  proteinas: {n:'Proteínas',  loc:['Congelado','Descongelado e descongelando'], ent:'Recebido da matriz'},
 };
 const MOTIVOS = ['Fora do padrão de qualidade','Vencido','Erro de preparo','Sobra de produção','Queda ou acidente','Temperatura fora da faixa','Devolução de cliente','Outro'];
 const n0 = v => v==null||v===''?null:+v;
