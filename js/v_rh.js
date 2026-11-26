@@ -242,6 +242,31 @@ function initMov(){
 /* ================= RH: ocorrências e advertências ================= */
 const OC_TIPOS=['Advertência verbal','Advertência escrita','Suspensão','Falta injustificada','Atraso','Atestado médico','Feedback','Elogio','Treinamento','Desligamento'];
 const OC_COR={'Advertência verbal':'warn','Advertência escrita':'bad','Suspensão':'bad','Falta injustificada':'bad','Atraso':'warn','Atestado médico':'neu','Feedback':'neu','Elogio':'ok','Treinamento':'ok','Desligamento':'bad'};
+const OC_DOC=['Advertência escrita','Suspensão','Desligamento'];
+const MAX_DOC=10*1024*1024;
+const nomeArq = n => n.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w.\-]+/g,'-').slice(-80);
+async function ocEnviar(o,files){
+  const novos=[];busy(true);
+  for(const f of files){
+    if(f.size>MAX_DOC){toast(`${f.name}: acima de 10 MB.`);continue}
+    if(!/^(application\/pdf|image\/)/.test(f.type||'')){toast(`${f.name}: envie PDF ou foto.`);continue}
+    const path=`${o.loja_id}/${o.id}/${Date.now()}-${nomeArq(f.name)}`;
+    const {error}=await sb.storage.from('rh-documentos').upload(path,f,{contentType:f.type,upsert:false});
+    if(error){toast(`Falha ao enviar ${f.name}: ${error.message}`);continue}
+    novos.push({path,nome:f.name,tipo:f.type,tamanho:f.size,enviado_em:new Date().toISOString(),por:(S.perfil&&S.perfil.nome)||null});
+  }
+  busy(false);
+  if(!novos.length)return false;
+  const {error}=await sb.from('ocorrencias').update({anexos:(o.anexos||[]).concat(novos)}).eq('id',o.id);
+  if(error){toast(error.message);await sb.storage.from('rh-documentos').remove(novos.map(x=>x.path));return false}
+  return novos.length;
+}
+async function ocAbrir(path){
+  const w=window.open('','_blank');
+  const {data,error}=await sb.storage.from('rh-documentos').createSignedUrl(path,300);
+  if(error||!data){if(w)w.close();toast('Não foi possível abrir o documento.');return}
+  if(w)w.location=data.signedUrl;else location.href=data.signedUrl;
+}
 const OC_ST=['Registrada','Aguardando assinatura','Assinada','Recusou assinar (com testemunhas)','Concluída'];
 function rhOco(){
   const ids=rhIds().filter(id=>P.veOco(id));
@@ -257,14 +282,21 @@ function rhOco(){
     if(sus>=1&&adv+fal>=1)return {s:'bad',p,t:`${sus} suspensão e ${adv+fal} outras ocorrências — avaliar desligamento com o jurídico/RH.`};
     if(adv>=2)return {s:'bad',p,t:`${adv} advertências — próximo passo previsto: suspensão.`};
     if(fal>=2)return {s:'warn',p,t:`${fal} faltas injustificadas — conversar e registrar advertência.`};
-    if(adv===1)return {s:'warn',p,t:'1 advertência — acompanhar.'};return null}).filter(Boolean).sort((a,b)=>(a.s==='bad'?0:1)-(b.s==='bad'?0:1));
+    if(adv===1)return {s:'warn',p,t:'1 advertência — acompanhar.'};return null}).filter(Boolean)
+    .concat(rec.filter(o=>OC_DOC.includes(o.tipo)&&!(o.anexos||[]).length).map(o=>({s:'warn',p:cb[o.colaborador_id]||{nome:'—',cargo:'',loja_id:o.loja_id},t:`${o.tipo} de ${fmtD(o.data)} sem documento anexado — suba a via assinada (ou o termo de recusa com testemunhas).`}))).sort((a,b)=>(a.s==='bad'?0:1)-(b.s==='bad'?0:1));
   $('#ocAlert').innerHTML=al.length?al.map(a=>`<div class="alert"><span class="dot" style="background:${a.s==='bad'?'var(--bad)':'var(--amber)'}"></span><div><b>${esc(a.p.nome)}</b> <span>${a.p.cargo?esc(a.p.cargo)+' · ':''}${esc(lojaNome(a.p.loja_id))}</span><br><span>${a.t}</span></div></div>`).join(''):'<div class="empty">Nenhum colaborador em atenção.</div>';
   const tiposUsados=OC_TIPOS.filter(t=>all.some(o=>o.tipo===t));
   $('#tOcRes').innerHTML=tiposUsados.length?`<tr><th>Loja</th>${tiposUsados.map(t=>`<th class="num">${t}</th>`).join('')}<th class="num">Total</th></tr>`+ids.map(id=>{const os=all.filter(o=>o.loja_id===id);return `<tr><td><b>${esc(lojaNome(id))}</b></td>${tiposUsados.map(t=>`<td class="num">${os.filter(o=>o.tipo===t).length||'<span class="muted">—</span>'}</td>`).join('')}<td class="num"><b>${os.length}</b></td></tr>`}).join(''):'<tr><td><div class="empty">Nenhuma ocorrência registrada ainda.</div></td></tr>';
   const fil=$('#ocFil').value||'todos';
   const lst=all.filter(o=>fil==='todos'||o.tipo===fil).sort((a,b)=>b.data.localeCompare(a.data));
-  $('#tOc').innerHTML=lst.length?`<tr><th>Data</th><th>Colaborador</th><th>Loja</th><th>Tipo</th><th>Motivo</th><th>Responsável</th><th>Status</th><th></th></tr>`+lst.map(o=>{const p=cb[o.colaborador_id]||{};return `<tr><td>${fmtD(o.data)}</td><td><b>${esc(p.nome)}</b><div class="small muted">${esc(p.cargo)}</div></td><td>${esc(lojaNome(o.loja_id))}</td><td><span class="sem s-${OC_COR[o.tipo]||'neu'}" style="min-width:0">${esc(o.tipo)}</span></td><td style="white-space:normal;min-width:220px">${esc(o.motivo)}${o.obs?`<div class="small muted">${esc(o.obs)}</div>`:''}</td><td>${esc(o.responsavel)||'—'}</td><td><select class="inp" data-ost="${o.id}" style="width:auto">${OC_ST.map(s=>`<option ${s===o.status?'selected':''}>${s}</option>`).join('')}</select></td><td class="num">${P.excluir(o.loja_id)?`<button class="btn sm" data-oc="${o.id}">Excluir</button>`:''}</td></tr>`}).join(''):'<tr><td><div class="empty">Nenhuma ocorrência para este filtro.</div></td></tr>';
-  $('#tOc').querySelectorAll('[data-oc]').forEach(b=>b.onclick=async()=>{if(!confirm('Excluir esta ocorrência?'))return;if(await dbw(sb.from('ocorrencias').delete().eq('id',b.dataset.oc),'Ocorrência excluída.')){await load(['ocorrencias']);rhOco()}});
+  $('#tOc').innerHTML=lst.length?`<tr><th>Data</th><th>Colaborador</th><th>Loja</th><th>Tipo</th><th>Motivo</th><th>Responsável</th><th>Status</th><th>Documentos</th><th></th></tr>`+lst.map(o=>{const p=cb[o.colaborador_id]||{}, ax=o.anexos||[];return `<tr><td>${fmtD(o.data)}</td><td><b>${esc(p.nome)}</b><div class="small muted">${esc(p.cargo)}</div></td><td>${esc(lojaNome(o.loja_id))}</td><td><span class="sem s-${OC_COR[o.tipo]||'neu'}" style="min-width:0">${esc(o.tipo)}</span></td><td style="white-space:normal;min-width:220px">${esc(o.motivo)}${o.obs?`<div class="small muted">${esc(o.obs)}</div>`:''}</td><td>${esc(o.responsavel)||'—'}</td><td><select class="inp" data-ost="${o.id}" style="width:auto">${OC_ST.map(s=>`<option ${s===o.status?'selected':''}>${s}</option>`).join('')}</select></td>
+      <td style="min-width:170px"><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">${ax.map((a,i)=>`<span style="display:inline-flex;gap:4px;align-items:center"><button class="btn sm" data-oca="${esc(a.path)}" title="${esc(a.nome)} · enviado em ${fmtD(a.enviado_em.slice(0,10))}${a.por?' por '+esc(a.por):''}">${/pdf/.test(a.tipo)?'PDF':'Foto'} · ${esc(a.nome.length>22?a.nome.slice(0,20)+'…':a.nome)}</button>${P.excluir(o.loja_id)?`<button class="btn sm" data-ocx="${o.id}|${i}" title="Remover documento">×</button>`:''}</span>`).join('')}${!ax.length&&OC_DOC.includes(o.tipo)?'<span class="sem s-warn" style="min-width:0">sem documento</span>':''}<label class="btn sm" style="cursor:pointer">Anexar<input type="file" data-ocu="${o.id}" accept="application/pdf,image/*" multiple style="display:none"></label></div></td>
+      <td class="num">${P.excluir(o.loja_id)?`<button class="btn sm" data-oc="${o.id}">Excluir</button>`:''}</td></tr>`}).join(''):'<tr><td><div class="empty">Nenhuma ocorrência para este filtro.</div></td></tr>';
+  $('#tOc').querySelectorAll('[data-oc]').forEach(b=>b.onclick=async()=>{const o=all.find(x=>x.id===+b.dataset.oc),ax=(o&&o.anexos)||[];if(!confirm('Excluir esta ocorrência'+(ax.length?` e ${ax.length} documento(s) anexado(s)`:'')+'?'))return;if(await dbw(sb.from('ocorrencias').delete().eq('id',b.dataset.oc),'Ocorrência excluída.')){if(ax.length)await sb.storage.from('rh-documentos').remove(ax.map(a=>a.path));await load(['ocorrencias']);rhOco()}});
+  $('#tOc').querySelectorAll('[data-oca]').forEach(b=>b.onclick=()=>ocAbrir(b.dataset.oca));
+  $('#tOc').querySelectorAll('[data-ocu]').forEach(inp=>inp.onchange=async()=>{const o=all.find(x=>x.id===+inp.dataset.ocu);const n=await ocEnviar(o,[...inp.files]);inp.value='';if(n){toast(n===1?'Documento anexado.':n+' documentos anexados.');await load(['ocorrencias']);rhOco()}});
+  $('#tOc').querySelectorAll('[data-ocx]').forEach(b=>b.onclick=async()=>{const [id,i]=b.dataset.ocx.split('|');const o=all.find(x=>x.id===+id),a=o.anexos[+i];if(!confirm(`Remover o documento "${a.nome}"?`))return;
+    if(await dbw(sb.from('ocorrencias').update({anexos:o.anexos.filter((_,k)=>k!==+i)}).eq('id',o.id),'Documento removido.')){await sb.storage.from('rh-documentos').remove([a.path]);await load(['ocorrencias']);rhOco()}});
   $('#tOc').querySelectorAll('[data-ost]').forEach(s=>s.onchange=async()=>{if(await dbw(sb.from('ocorrencias').update({status:s.value}).eq('id',s.dataset.ost),'Status atualizado.')){await load(['ocorrencias']);rhOco()}});
 }
 function initOcoPes(){
@@ -277,9 +309,14 @@ function initOco(){
   $('#ocFil').innerHTML='<option value="todos">Todos os tipos</option>'+OC_TIPOS.map(t=>`<option>${t}</option>`).join('');
   $('#ocFil').onchange=rhOco; $('#ocData').value=isoHoje();
   $('#ocSave').onclick=async()=>{const pid=+$('#ocPes').value;if(!pid){toast('Selecione o colaborador.');return}if(!$('#ocMot').value.trim()){toast('Descreva o motivo da ocorrência.');return}
-    const p=S.db.colaboradores.find(x=>x.id===pid);
-    if(await dbw(sb.from('ocorrencias').insert({colaborador_id:pid,loja_id:p.loja_id,tipo:$('#ocTipo').value,data:$('#ocData').value,status:$('#ocSt').value,motivo:$('#ocMot').value.trim(),responsavel:$('#ocResp').value||null,obs:$('#ocObs').value||null}),'Ocorrência registrada.')){$('#ocMot').value='';$('#ocObs').value='';await load(['ocorrencias']);rhOco()}};
-  $('#ocCsv').onclick=()=>{const cb=Object.fromEntries((S.db.colaboradores||[]).map(p=>[p.id,p]));csv('ocorrencias-rh-fat-buddha.csv',[['Data','Colaborador','Cargo','Loja','Tipo','Motivo','Responsável','Status','Observação']].concat((S.db.ocorrencias||[]).map(o=>{const p=cb[o.colaborador_id]||{};return [o.data,p.nome,p.cargo,lojaNome(o.loja_id),o.tipo,o.motivo,o.responsavel,o.status,o.obs]})))};
+    const p=S.db.colaboradores.find(x=>x.id===pid), files=[...$('#ocArq').files];
+    if(files.some(f=>f.size>MAX_DOC)){toast('Cada documento pode ter até 10 MB.');return}
+    busy(true);const {data:o,error}=await sb.from('ocorrencias').insert({colaborador_id:pid,loja_id:p.loja_id,tipo:$('#ocTipo').value,data:$('#ocData').value,status:$('#ocSt').value,motivo:$('#ocMot').value.trim(),responsavel:$('#ocResp').value||null,obs:$('#ocObs').value||null}).select().single();busy(false);
+    if(error){toast(error.message);return}
+    const n=files.length?await ocEnviar(o,files):0;
+    toast(files.length?(n===files.length?`Ocorrência registrada com ${n} documento(s).`:'Ocorrência registrada; confira os documentos que não subiram.'):OC_DOC.includes(o.tipo)?'Ocorrência registrada. Anexe a via assinada quando tiver.':'Ocorrência registrada.');
+    $('#ocMot').value='';$('#ocObs').value='';$('#ocArq').value='';await load(['ocorrencias']);rhOco()};
+  $('#ocCsv').onclick=()=>{const cb=Object.fromEntries((S.db.colaboradores||[]).map(p=>[p.id,p]));csv('ocorrencias-rh-fat-buddha.csv',[['Data','Colaborador','Cargo','Loja','Tipo','Motivo','Responsável','Status','Observação','Documentos']].concat((S.db.ocorrencias||[]).map(o=>{const p=cb[o.colaborador_id]||{};return [o.data,p.nome,p.cargo,lojaNome(o.loja_id),o.tipo,o.motivo,o.responsavel,o.status,o.obs,(o.anexos||[]).map(a=>a.nome).join(' | ')]})))};
 }
 
 /* ================= RH: folha salarial ================= */
