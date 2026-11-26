@@ -2,15 +2,13 @@
 let CM_TOL=1;
 function renderCMV(){
   CM_TOL=+(cfg('cmv_tol')??1)||1; try{const l=localStorage.getItem('fb_cmv_tol');if(l&&!P.gestor)CM_TOL=+l}catch(e){}
-  const reg=(S.db.cmv_contagens||[]), sems=uniq(reg.map(r=>r.semana)).sort().slice(-12), last=sems.at(-1);
+  const regAll=S.db.cmv_contagens||[], reg=regAll.filter(r=>r.semana<=fimMes(S.mes)), sems=uniq(reg.map(r=>r.semana)).sort().slice(-12), last=sems.at(-1);
   const lojas=LOJAS.map(l=>l.id).filter(id=>reg.some(r=>r.loja_id===id));
   const lw=reg.filter(r=>r.semana===last);
   const mc=METAS(null).find(m=>m.k==='cmv'), metaCmv=mc&&mc.meta!=null?mc.meta:21;
   const V=sum(lw,r=>r.vendas), Rr=sum(lw,cmvRealR), Tt=sum(lw,r=>r.vendas*r.cmv_teorico/100);
   const acima=lw.filter(r=>cmvReal(r)>metaCmv).length, fora=lw.filter(r=>cmvReal(r)-r.cmv_teorico>CM_TOL).length;
-  $('#cmvKpis').innerHTML=kpi('CMV real da rede',V?Rr/V*100:null,'pct1',last?`semana de ${semTxt(last)} · meta até ${nf1.format(metaCmv).replace(',0','')}%`:'nenhuma contagem lançada')+kpi('CMV teórico da rede',V?Tt/V*100:null,'pct1','pelas fichas técnicas')+kpi('Dispersão da rede',V?(Rr-Tt)/V*100:null,'pp','real − teórico, em p.p.')+
-    kpi('Perda estimada',V?Rr-Tt:null,'brl','na semana, acima do teórico')+kpi(`Lojas acima de ${nf1.format(metaCmv).replace(',0','')}%`,lw.length?acima:null,'int',`de ${lw.length} contadas`)+kpi('Lojas fora da tolerância',lw.length?fora:null,'int',`dispersão acima de ${nf1.format(CM_TOL)} p.p.`);
-  animateKpis($('#cmvKpis'));
+  renderCmvGrupo(reg,sems,lojas,metaCmv);
   $('#cmTol').value=CM_TOL;
   if(sems.length) mk('cCmv',{type:'line',data:{labels:sems.map(semTxt),datasets:lojas.map((id,i)=>({label:lojaNome(id),data:sems.map(s=>{const r=reg.find(x=>x.loja_id===id&&x.semana===s);return r?cmvReal(r):null}),borderColor:PAL[i%6],backgroundColor:PAL[i%6],tension:.3,pointRadius:3,borderWidth:2,spanGaps:true}))
     .concat([{label:`Meta ${nf1.format(metaCmv).replace(',0','')}%`,data:sems.map(()=>metaCmv),borderColor:'#ffffff',borderDash:[6,5],pointRadius:0,borderWidth:1.5},
@@ -31,11 +29,11 @@ function renderCMV(){
     :'<tr><td><div class="empty">Lance o consumo teórico e real dos itens críticos para ver a dispersão por item.</div></td></tr>';
   $('#tCmvItem').querySelectorAll('[data-civ]').forEach(b=>b.onclick=async()=>{busy(true);const {error}=await sb.rpc('revisar_divergencia',{p_tipo:'cmv',p_id:+b.dataset.civ});busy(false);if(error){toast(error.message);return}toast('Divergência revisada.');await load(['cmv_itens','alertas']);pintarSino();renderCMV()});
   $('#tCmvItem').querySelectorAll('[data-cid]').forEach(b=>b.onclick=async()=>{if(!confirm('Excluir este item?'))return;if(await dbw(sb.from('cmv_itens').delete().eq('id',b.dataset.cid),'Item excluído.')){await load(['cmv_itens']);renderCMV()}});
-  $('#tCmvReg').innerHTML=reg.length?`<tr><th>Semana</th><th>Loja</th><th class="num">Vendas</th><th class="num">EI</th><th class="num">Compras</th><th class="num">Transf. +/−</th><th class="num">Devol.</th><th class="num">EF</th><th class="num">CMV real</th><th>Responsável</th><th></th></tr>`+
-    reg.slice().sort((a,b)=>b.semana.localeCompare(a.semana)||a.loja_id.localeCompare(b.loja_id)).map(r=>`<tr><td>${semTxt(r.semana)}</td><td><b>${esc(lojaNome(r.loja_id))}</b></td><td class="num">${brl(r.vendas)}</td><td class="num">${brl(r.estoque_inicial)}</td><td class="num">${brl(r.compras)}</td><td class="num">${brl(r.transf_entrada)} / ${brl(r.transf_saida)}</td><td class="num">${brl(r.devolucoes)}</td><td class="num">${brl(r.estoque_final)}</td><td class="num">${nf1.format(cmvReal(r))}%</td><td>${esc(r.responsavel)||'—'}${r.obs?`<div class="small muted">${esc(r.obs)}</div>`:''}</td><td class="num">${P.editar(r.loja_id)?`<button class="btn sm" data-ce="${r.id}">Editar</button>`:''} ${P.excluir(r.loja_id)?`<button class="btn sm" data-cm="${r.id}">Excluir</button>`:''}</td></tr>`).join('')
+  $('#tCmvReg').innerHTML=regAll.length?`<tr><th>Semana</th><th>Loja</th><th class="num">Vendas</th><th class="num">EI</th><th class="num">Compras</th><th class="num">Transf. +/−</th><th class="num">Devol.</th><th class="num">EF</th><th class="num">CMV real</th><th>Responsável</th><th></th></tr>`+
+    regAll.slice().sort((a,b)=>b.semana.localeCompare(a.semana)||a.loja_id.localeCompare(b.loja_id)).map(r=>`<tr><td>${semTxt(r.semana)}</td><td><b>${esc(lojaNome(r.loja_id))}</b></td><td class="num">${brl(r.vendas)}</td><td class="num">${brl(r.estoque_inicial)}</td><td class="num">${brl(r.compras)}</td><td class="num">${brl(r.transf_entrada)} / ${brl(r.transf_saida)}</td><td class="num">${brl(r.devolucoes)}</td><td class="num">${brl(r.estoque_final)}</td><td class="num">${nf1.format(cmvReal(r))}%</td><td>${esc(r.responsavel)||'—'}${r.obs?`<div class="small muted">${esc(r.obs)}</div>`:''}</td><td class="num">${P.editar(r.loja_id)?`<button class="btn sm" data-ce="${r.id}">Editar</button>`:''} ${P.excluir(r.loja_id)?`<button class="btn sm" data-cm="${r.id}">Excluir</button>`:''}</td></tr>`).join('')
     :'<tr><td><div class="empty">Nenhuma contagem lançada.</div></td></tr>';
   $('#tCmvReg').querySelectorAll('[data-cm]').forEach(b=>b.onclick=async()=>{if(!confirm('Excluir esta contagem?'))return;if(await dbw(sb.from('cmv_contagens').delete().eq('id',b.dataset.cm),'Contagem excluída.')){await load(['cmv_contagens']);renderCMV()}});
-  $('#tCmvReg').querySelectorAll('[data-ce]').forEach(b=>b.onclick=()=>{const r=reg.find(x=>x.id==b.dataset.ce);
+  $('#tCmvReg').querySelectorAll('[data-ce]').forEach(b=>b.onclick=()=>{const r=regAll.find(x=>x.id==b.dataset.ce);
     [['#cmLoja','loja_id'],['#cmSem','semana'],['#cmVen','vendas'],['#cmTeo','cmv_teorico'],['#cmEi','estoque_inicial'],['#cmCo','compras'],['#cmTe','transf_entrada'],['#cmTs','transf_saida'],['#cmDev','devolucoes'],['#cmEf','estoque_final'],['#cmResp','responsavel'],['#cmObs','obs']].forEach(([s,k])=>$(s).value=r[k]??'');
     $('#cmSave').scrollIntoView({behavior:'smooth',block:'center'});toast('Contagem carregada. Ao salvar, ela é atualizada.')});
 }

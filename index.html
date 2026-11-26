@@ -185,7 +185,13 @@
     <section class="tab" id="tab-cmv">
       <div style="margin-bottom:16px"><div class="subnav" id="cmNav"><button data-s="sem" class="on">CMV semanal</button><button data-s="ctl">Controle diário</button><button data-s="per">Perdas e desperdício</button><button data-s="prod">Produção do dia</button></div></div>
       <div class="ccs on" id="cm-sem">
-      <div class="grid g6" id="cmvKpis"></div>
+      <div class="card cmg-hero" id="cmgHero"></div>
+      <div class="cmg-lojas mt" id="cmgLojas"></div>
+      <div class="grid g12 mt">
+        <div class="card"><h3>Destaques do grupo <small>semana mais recente</small></h3><div id="cmgDest"></div></div>
+        <div class="card"><h3>Mapa de calor do CMV real <small>lojas × semanas · cor pela distância da meta</small></h3><div class="tbl-wrap" id="cmgHeat"></div></div>
+      </div>
+      <div class="card mt hidden" id="cmgDreCard"><h3>CMV no fechamento oficial <small>por mês, do DRE · CMV ÷ faturamento</small></h3><div class="chart"><canvas id="cCmvDre"></canvas></div><p class="small muted mt" id="cmgDreNote"></p></div>
       <div class="card mt">
         <h3>Lançar contagem semanal <small>CMV real = estoque inicial + compras + transferências recebidas − transferências enviadas − devoluções − estoque final</small></h3>
         <div class="form-row" style="grid-template-columns:repeat(4,1fr)">
@@ -739,6 +745,7 @@
 <script src="js/v_loja.js"></script>
 <script src="js/v_conexoes.js"></script>
 <script src="js/v_cmvop.js"></script>
+<script src="js/v_cmvgrupo.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

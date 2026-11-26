@@ -137,7 +137,7 @@ function noData(id,msg){
 const yR = {grid:{color:C.grid},border:{display:false},ticks:{callback:v=>brlK(v)}};
 const xG = {grid:{display:false},border:{display:false}};
 const tipBrl = {callbacks:{label:c=>' '+c.dataset.label+': '+brl(c.parsed.y)}};
-const PAL = ['#e5303f','#f2b33d','#eedbca','#3fc58e','#b9aa9e','#c2410c'];
+const PAL = ['#d93a48','#c98f2c','#5a8fd8','#2c9f73','#b9aa9e','#c2410c']; // lojas: paleta validada (contraste, daltonismo) no fundo escuro
 const yPct = {grid:{color:C.grid},border:{display:false},ticks:{callback:v=>nf1.format(v)+'%'}};
 const tipPct = {callbacks:{label:c=>' '+c.dataset.label+': '+nf1.format(c.parsed.y)+'%'}};
 
