@@ -1,6 +1,6 @@
 // Fat Buddha · API de integração
 // POST /functions/v1/api-integracao/<recurso>   header: x-api-key: fbk_...
-// recursos: vendas, vendas_hora, rupturas, delivery, indicadores, cmv, ifood, pedidos, notas
+// recursos: vendas, vendas_hora, rupturas, delivery, indicadores, cmv, ifood, pedidos, notas, vendas_itens, perdas
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -10,7 +10,8 @@ const cors = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b, null, 2), { status: s, headers: { ...cors, "Content-Type": "application/json; charset=utf-8" } });
-const RECURSOS = ["vendas", "vendas_hora", "rupturas", "delivery", "indicadores", "cmv", "ifood", "pedidos", "notas"];
+const RECURSOS = ["vendas", "vendas_hora", "rupturas", "delivery", "indicadores", "cmv", "ifood", "pedidos", "notas", "vendas_itens", "perdas"];
+const MOTIVOS = ["Vencido", "Fora do padrão de qualidade", "Erro de preparo", "Queda ou acidente", "Temperatura fora da faixa", "Devolução de cliente", "Sobra de produção", "Outro"];
 const MAX = 2000;
 
 const norm = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
@@ -76,6 +77,8 @@ const DOC = {
     ifood: { chave_unica: "loja + data", loja: "código, nome ou o merchant id do iFood cadastrado na loja", campos: { data: "AAAA-MM-DD", loja: "", pedidos: "inteiro", faturamento: "R$", cancelados: "inteiro", valor_cancelado: "R$", online_min: "minutos com a loja aberta no app", previsto_min: "minutos previstos de funcionamento", nota: "0 a 5", avaliacoes: "inteiro", preparo_min: "min", entrega_min: "min", atrasados: "pedidos atrasados", comissao: "R$", taxas: "R$", promocoes: "R$ investidos pela loja", novos_clientes: "inteiro" } },
     pedidos: { chave_unica: "origem + id (reenviar com status cancelado cancela o pedido)", observacao: "Cada pedido atualiza na hora a venda do dia e da hora da loja (painel em tempo real). Um fechamento enviado em 'vendas' ou lançado à mão tem prioridade sobre a soma dos pedidos.", campos: { id: "identificador do pedido no seu sistema", loja: "código, nome ou código do PDV cadastrado na loja", data_hora: "AAAA-MM-DDTHH:MM:SS-03:00", canal: "salao ou delivery", plataforma: "ifood, rappi, site, balcão…", valor: "R$ do pedido", itens: "inteiro", status: "concluido ou cancelado", origem: "opcional (padrão: a chave)" } },
     notas: { chave_unica: "chave de acesso da NF-e (44 dígitos)", observacao: "Envie o XML da NF-e em {\"xml\": \"...\"} ou os campos em JSON. A loja é reconhecida pelo CNPJ do destinatário (cadastrado na loja); sem loja, a nota vai para a cozinha central. A categoria do DRE é aplicada pelas regras de fornecedor.", campos: { xml: "XML completo da NF-e (opcional)", chave: "44 dígitos", numero: "", serie: "", emissao: "AAAA-MM-DD", loja: "opcional", fornecedor_cnpj: "", fornecedor_nome: "", valor_total: "R$", valor_produtos: "", frete: "", desconto: "", outras: "", categoria: "cmv, cdel, man, mkt, cto, agua, energia, outros, ignorar (opcional)", itens: "[{codigo, descricao, ncm, cfop, unidade, quantidade, valor_unit, valor_total}]" } },
+    vendas_itens: { chave_unica: "loja + data + item", observacao: "Quantidade vendida de cada item no dia (do PDV). Preenche a coluna Venda do controle diário de bebidas, sobremesas e proteínas.", campos: { data: "AAAA-MM-DD", loja: "", item: "nome do item no PDV", codigo: "código do item no PDV (opcional)", quantidade: "número", valor: "R$ (opcional)" } },
+    perdas: { chave_unica: "nenhuma (cada envio é um registro)", campos: { data: "AAAA-MM-DD", loja: "", item: "texto", quantidade: "número > 0", unidade: "un, porção, kg, g, L", motivo: MOTIVOS.join(", "), custo_unit: "R$ (opcional)", valor: "R$ (opcional)", obs: "", responsavel: "" } },
     cmv: { chave_unica: "loja + semana (segunda-feira)", campos: { semana: "qualquer data da semana", loja: "", vendas: "R$", cmv_teorico: "%", estoque_inicial: "", compras: "", transf_entrada: "", transf_saida: "", devolucoes: "", estoque_final: "", responsavel: "" } },
   },
 };
@@ -189,6 +192,16 @@ Deno.serve(async (req) => {
             if (o.valor < 0) throw new Error("valor negativo");
             // data e hora são calculadas no banco (fuso de São Paulo); valores provisórios para a validação
             o.data = o.data_hora.slice(0, 10); o.hora = 0; break; }
+          case "vendas_itens": {
+            if (!r.item) throw new Error('campo "item" é obrigatório');
+            o = { loja_id: lojaDe(r.loja ?? r.loja_id), data: data(r.data), item: String(r.item).trim().slice(0, 150), codigo: r.codigo ? String(r.codigo).slice(0, 60) : null, quantidade: num(r.quantidade ?? r.qtd, "quantidade", true), valor: num(r.valor, "valor"), origem: "api" };
+            if (o.quantidade < 0) throw new Error("quantidade negativa"); break; }
+          case "perdas": {
+            if (!r.item) throw new Error('campo "item" é obrigatório');
+            const mt = MOTIVOS.find((m) => norm(m) === norm(r.motivo)) || (r.motivo ? null : "Outro");
+            if (!mt) throw new Error(`motivo inválido (use ${MOTIVOS.join(", ")})`);
+            o = { loja_id: lojaDe(r.loja ?? r.loja_id), data: data(r.data), item: String(r.item).slice(0, 150), quantidade: num(r.quantidade, "quantidade", true), unidade: String(r.unidade || "un").slice(0, 10), motivo: mt, custo_unit: num(r.custo_unit, "custo_unit"), valor: num(r.valor, "valor"), obs: r.obs ? String(r.obs).slice(0, 500) : null, responsavel: r.responsavel ? String(r.responsavel).slice(0, 120) : null, origem: "api" };
+            if (!(o.quantidade > 0)) throw new Error("quantidade deve ser maior que zero"); break; }
           case "cmv": o = { loja_id: lojaDe(r.loja ?? r.loja_id), semana: segunda(data(r.semana ?? r.data, "semana")), vendas: num(r.vendas, "vendas", true), cmv_teorico: num(r.cmv_teorico, "cmv_teorico", true), estoque_inicial: num(r.estoque_inicial, "estoque_inicial") ?? 0, compras: num(r.compras, "compras") ?? 0, transf_entrada: num(r.transf_entrada, "transf_entrada") ?? 0, transf_saida: num(r.transf_saida, "transf_saida") ?? 0, devolucoes: num(r.devolucoes, "devolucoes") ?? 0, estoque_final: num(r.estoque_final, "estoque_final") ?? 0, responsavel: r.responsavel ? String(r.responsavel).slice(0, 120) : "Integração" };
             if (o.vendas <= 0) throw new Error("vendas deve ser maior que zero"); break;
         }
@@ -198,7 +211,7 @@ Deno.serve(async (req) => {
 
     let gravados = 0;
     if (ok.length) {
-      const tab: Record<string, [string, string | null]> = { ifood: ["ifood_diario", "loja_id,data"], pedidos: ["pedidos_tempo_real", "origem,externo_id"], vendas: ["vendas_diarias", "loja_id,data"], vendas_hora: ["vendas_hora", "loja_id,data,hora"], rupturas: ["rupturas", null], delivery: ["delivery_checklists", null], indicadores: ["indicadores_mensais", "loja_id,mes"], cmv: ["cmv_contagens", "loja_id,semana"] };
+      const tab: Record<string, [string, string | null]> = { ifood: ["ifood_diario", "loja_id,data"], vendas_itens: ["vendas_itens", "loja_id,data,item"], perdas: ["perdas", null], pedidos: ["pedidos_tempo_real", "origem,externo_id"], vendas: ["vendas_diarias", "loja_id,data"], vendas_hora: ["vendas_hora", "loja_id,data,hora"], rupturas: ["rupturas", null], delivery: ["delivery_checklists", null], indicadores: ["indicadores_mensais", "loja_id,mes"], cmv: ["cmv_contagens", "loja_id,semana"] };
       const [t, oc] = tab[recurso];
       let rows = ok;
       if (oc) { const k = (o: any) => oc.split(",").map((c) => o[c]).join("|"); rows = [...new Map(ok.map((o) => [k(o), o])).values()]; }

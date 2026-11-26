@@ -401,3 +401,11 @@ tr.nf-pend td{background:rgba(242,179,61,.05)}
 
 .btn:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.3)}
 #ifAtencao{max-height:330px;overflow:auto}
+/* controle diário */
+#tCtl th,#tCtl td{padding:7px 5px}
+#tCtl th{font-size:10px;letter-spacing:.4px}
+#tCtl .ctl-in{width:54px!important}
+#tCtl td:first-child{min-width:150px}
+#tCtlDias a,#prLista a{color:var(--gold);text-decoration:none;font-weight:600}
+.pr-hoje{background:rgba(242,179,61,.06)}
+@media print{#cmNav,.prod-sec .btn{display:none}}

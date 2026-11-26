@@ -338,7 +338,7 @@ function exigirJustificativas(itens){
   return new Promise(res=>{
     modal(`<h3 style="color:#ffb0b6">Contagem bloqueada</h3>
       <p class="small muted" style="margin-bottom:10px">${bloq.length===1?'Este item tem':'Estes itens têm'} diferença acima do limite. Para liberar, escreva o motivo de cada divergência (pelo menos 10 caracteres). Os gestores recebem um alerta para revisar.</p>
-      ${bloq.map((x,k)=>`<div class="ct-modal"><div><b>${esc(x.item)}</b><span class="small muted"> · sistema ${nf1.format(x.esperado).replace(',0','')} · contado ${nf1.format(x.contado).replace(',0','')} · <b style="color:#ff9aa2">${x.contado-x.esperado>0?'+':''}${nf1.format(x.contado-x.esperado).replace(',0','')} ${esc(x.un||'')}</b> (limite ${nf0.format(x.limite)})</span></div>
+      ${bloq.map((x,k)=>`<div class="ct-modal"><div><b>${esc(x.item)}</b><span class="small muted"> · ${x.rotulo?esc(x.rotulo):`sistema ${nf1.format(x.esperado).replace(',0','')} · contado ${nf1.format(x.contado).replace(',0','')} · <b style="color:#ff9aa2">${x.contado-x.esperado>0?'+':''}${nf1.format(x.contado-x.esperado).replace(',0','')} ${esc(x.un||'')}</b> (limite ${nf0.format(x.limite)})`}</span></div>
         <textarea class="inp" data-k="${k}" rows="2" placeholder="Ex.: perda no porcionamento, erro de lançamento da transferência, recebimento sem nota…">${esc(x.justificativa||'')}</textarea></div>`).join('')}
       <div class="actions mt"><button class="btn" id="jjNo">Voltar</button><button class="btn pri" id="jjOk" disabled>Justificar e salvar</button></div>`,el=>{
       const ts=[...el.querySelectorAll('textarea')], ok=el.querySelector('#jjOk');
@@ -371,7 +371,7 @@ function initCont(){
 const CONEXOES = [
   {k:'ifood',n:'iFood',esc:['ifood','delivery','indicadores'],rec:'ifood',d:'Métricas diárias por loja: pedidos, faturamento, cancelamentos, tempo online, nota, preparo e custos. Alimenta a aba iFood e os indicadores de delivery das metas.',
    passos:['Cadastre o merchant id do iFood de cada loja em Configurações › Lojas.','Gere a chave abaixo e entregue ao integrador (ou ao parceiro que lê a API do iFood).','Sem integrador ainda? Importe o relatório diário em CSV na aba iFood.']},
-  {k:'pedidos',n:'Portal de vendas · tempo real',esc:['pedidos','vendas','vendas_hora'],rec:'pedidos',d:'Cada pedido enviado atualiza na hora a venda do dia e da hora da loja (cartão "Vendas em tempo real" na Visão geral e em Minha loja).',
+  {k:'pedidos',n:'Portal de vendas · tempo real',esc:['pedidos','vendas','vendas_hora','vendas_itens'],rec:'pedidos',d:'Cada pedido enviado atualiza na hora a venda do dia e da hora da loja (cartão "Vendas em tempo real" na Visão geral e em Minha loja).',
    passos:['Cadastre o código de cada loja no seu portal em Configurações › Lojas (ou use o código do portal Fat Buddha).','O outro portal envia um POST a cada pedido (ou em lotes a cada minuto).','No fim do dia, um fechamento em "vendas" tem prioridade sobre a soma dos pedidos.']},
   {k:'notas',n:'Notas fiscais',esc:['notas'],rec:'notas',d:'O sistema que recebe as NF-e envia o XML (ou os campos) de cada nota. O portal reconhece a loja, classifica no DRE pelas regras e sugere as compras do CMV.',
    passos:['Cadastre o CNPJ de cada loja em Configurações › Lojas.','Gere a chave e configure o envio do XML no sistema de notas.','Classifique os fornecedores uma vez na aba Notas fiscais; as próximas notas entram classificadas.']},

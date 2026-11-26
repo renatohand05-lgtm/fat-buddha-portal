@@ -50,6 +50,10 @@ function initCMV(){
     el.innerHTML=c?`<a href="#" style="color:var(--gold)">Notas de insumos: ${brl(c.v)} (${c.n}) · usar</a>`:'';
     const a=el.querySelector('a');if(a)a.onclick=e=>{e.preventDefault();$('#cmCo').value=Math.round(c.v*100)/100;prev()}};
   $('#cmLoja').addEventListener('change',sugNf);$('#cmSem').addEventListener('change',sugNf);sugNf();
+  const sugPer=async()=>{const c=await perdasSemana($('#cmLoja').value,$('#cmSem').value?semanaDe($('#cmSem').value):'');let el=$('#cmPerSug');
+    if(!el){el=document.createElement('div');el.id='cmPerSug';el.className='small';el.style.marginTop='4px';$('#cmObs').closest('label').appendChild(el)}
+    el.innerHTML=c?`<span style="color:var(--amber)">Perdas registradas na semana: ${c.n} (${brl(c.v)}${c.semValor?`, ${c.semValor} sem valor`:''}) · ver em Perdas e desperdício</span>`:''};
+  $('#cmLoja').addEventListener('change',sugPer);$('#cmSem').addEventListener('change',sugPer);sugPer();
   $('#cmTol').onchange=async()=>{const v=+$('#cmTol').value||1;
     if(P.gestor){if(await dbw(sb.from('config').upsert({chave:'cmv_tol',valor:v}),'Tolerância salva para todos.')){await load(['config']);renderCMV()}}
     else{try{localStorage.setItem('fb_cmv_tol',v)}catch(e){}CM_TOL=v;renderCMV()}};

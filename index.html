@@ -183,6 +183,8 @@
 
     <!-- ============ CMV POR LOJA ============ -->
     <section class="tab" id="tab-cmv">
+      <div style="margin-bottom:16px"><div class="subnav" id="cmNav"><button data-s="sem" class="on">CMV semanal</button><button data-s="ctl">Controle diário</button><button data-s="per">Perdas e desperdício</button><button data-s="prod">Produção do dia</button></div></div>
+      <div class="ccs on" id="cm-sem">
       <div class="grid g6" id="cmvKpis"></div>
       <div class="card mt">
         <h3>Lançar contagem semanal <small>CMV real = estoque inicial + compras + transferências recebidas − transferências enviadas − devoluções − estoque final</small></h3>
@@ -220,7 +222,72 @@
           </div></div>
         <div class="card"><h3>Lançamentos <small><button class="btn sm" id="cmCsv">Exportar CSV</button></small></h3><div class="tbl-wrap" style="max-height:420px;overflow:auto"><table id="tCmvReg"></table></div></div>
       </div>
-    </section>
+      </div>
+
+      <!-- controle diário: bebidas, sobremesas e proteínas -->
+      <div class="ccs" id="cm-ctl">
+        <div class="card" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;padding:12px 14px">
+          <label class="f">Loja<select class="inp" id="ctlLoja" style="min-width:170px"></select></label>
+          <label class="f">Data<input class="inp" type="date" id="ctlData"></label>
+          <div class="subnav" id="ctlLista" style="margin-left:4px"><button data-l="bebidas" class="on">Bebidas</button><button data-l="sobremesas">Sobremesas</button><button data-l="proteinas">Proteínas</button></div>
+          <span class="small muted" id="ctlInfo" style="margin-left:auto;max-width:420px"></span>
+        </div>
+        <div class="grid g4 mt" id="ctlKpis"></div>
+        <div class="card mt"><h3 id="ctlTit">Contagem do dia <small id="ctlSub"></small></h3>
+          <p class="small muted" style="margin-bottom:10px">Abertura: contagem antes de abrir a loja. Fechamento: contagem assim que fechar. Diferença = abertura + entradas − fechamento − venda do PDV − perdas registradas. Com a venda lançada, qualquer diferença acima da tolerância fica <b>bloqueada</b> até a justificativa do gerente.</p>
+          <div class="tbl-wrap" style="overflow:auto"><table id="tCtl"></table></div>
+          <div class="form-row mt" style="grid-template-columns:1fr 1fr auto auto;align-items:end">
+            <label class="f">Responsável pela abertura<input class="inp" id="ctlRespA" placeholder="Nome de quem contou de manhã"></label>
+            <label class="f">Responsável pelo fechamento<input class="inp" id="ctlRespF" placeholder="Nome de quem contou no fechamento"></label>
+            <button class="btn" id="ctlVendas" title="Preenche a coluna Venda com as vendas por item recebidas do PDV">Puxar vendas do PDV</button>
+            <button class="btn pri" id="ctlSalvar">Salvar contagem</button>
+          </div>
+        </div>
+        <div class="grid g21 mt">
+          <div class="card"><h3>Diferenças por item <small id="ctlMesSub"></small></h3><div class="chart"><canvas id="cCtlItens"></canvas></div></div>
+          <div class="card"><h3>Dias com diferença <small>revisão do gestor</small></h3><div class="tbl-wrap" style="max-height:320px;overflow:auto"><table id="tCtlDias"></table></div></div>
+        </div>
+        <div class="card mt only-gestor"><h3>Itens controlados <small>custo unitário para valorizar diferenças e perdas · código do PDV para puxar as vendas</small></h3>
+          <div class="tbl-wrap" style="max-height:420px;overflow:auto"><table id="tCtlItens"></table></div>
+          <div class="actions mt"><label class="f" style="flex-direction:row;align-items:center;gap:8px;margin-right:auto">Tolerância da diferença<div class="inwrap" style="width:110px"><input class="inp" type="number" min="0" step="1" id="ctlTol"><em>un.</em></div><span class="small muted">0 = qualquer diferença precisa de justificativa (regra do guia do gerente)</span></label><button class="btn" id="ctlNovoItem">Novo item</button></div>
+        </div>
+      </div>
+
+      <!-- perdas e desperdício -->
+      <div class="ccs" id="cm-per">
+        <div class="grid g4" id="perKpis"></div>
+        <div class="card mt only-op"><h3>Registrar perda <small>tudo que sair do padrão e for descartado</small></h3>
+          <div class="form-row" style="grid-template-columns:1fr 1fr 1.6fr .8fr .8fr 1.3fr">
+            <label class="f">Loja<select class="inp" id="perLoja"></select></label>
+            <label class="f">Data<input class="inp" type="date" id="perData"></label>
+            <label class="f">Item<input class="inp" id="perItem" list="perItens" placeholder="Ex.: Karaage, arroz cozido, Coca-Cola zero"><datalist id="perItens"></datalist></label>
+            <label class="f">Quantidade<input class="inp" type="number" min="0" step="0.01" id="perQtd"></label>
+            <label class="f">Unidade<select class="inp" id="perUn"><option>un</option><option>porção</option><option>kg</option><option>g</option><option>L</option></select></label>
+            <label class="f">Motivo<select class="inp" id="perMot"></select></label>
+            <label class="f">Custo unitário<div class="inwrap"><input class="inp" type="number" min="0" step="0.01" id="perCusto" placeholder="opcional"><em>R$</em></div></label>
+            <label class="f">Responsável<input class="inp" id="perResp"></label>
+            <label class="f" style="grid-column:span 4">Observação<input class="inp" id="perObs" placeholder="O que aconteceu e o que foi feito"></label>
+          </div>
+          <div class="actions mt"><button class="btn pri" id="perSalvar">Registrar perda</button></div>
+        </div>
+        <div class="grid g2 mt">
+          <div class="card"><h3>Perdas por motivo <small id="perMotSub"></small></h3><div class="chart"><canvas id="cPerMot"></canvas></div></div>
+          <div class="card"><h3>Itens que mais se perdem <small>quantidade de registros e valor</small></h3><div class="chart"><canvas id="cPerItens"></canvas></div></div>
+        </div>
+        <div class="card mt"><h3>Registros do mês <small><button class="btn sm" id="perCsv">Exportar CSV</button></small></h3><div class="tbl-wrap" style="max-height:460px;overflow:auto"><table id="tPer"></table></div></div>
+      </div>
+
+      <!-- produção do dia -->
+      <div class="ccs" id="cm-prod">
+        <div class="card" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;padding:12px 14px">
+          <label class="f">Loja<select class="inp" id="prLoja" style="min-width:170px"></select></label>
+          <label class="f">Dia<input class="inp" type="date" id="prData"></label>
+          <span class="small muted" id="prInfo"></span>
+          <div class="actions" style="margin:0 0 0 auto"><button class="btn sm only-gestor" id="prEditar">Editar padrão da semana</button><button class="btn sm only-gestor hidden" id="prCopiar">Copiar padrão de outra loja</button><button class="btn sm" id="prImprimir">Imprimir lista</button></div>
+        </div>
+        <div id="prLista" class="mt"></div>
+      </div>
+</section>
 
     <!-- ============ COZINHA CENTRAL ============ -->
     <section class="tab" id="tab-cc">
@@ -644,6 +711,7 @@
 <script src="js/v_integracao.js"></script>
 <script src="js/v_loja.js"></script>
 <script src="js/v_conexoes.js"></script>
+<script src="js/v_cmvop.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>
