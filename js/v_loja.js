@@ -48,7 +48,7 @@ function renderLoja(){
   else noData('cMl','Sem vendas nem meta no mês.');
   // semáforo
   $('#mlSemSub').textContent=mesLongo(S.mes);
-  $('#mlSem').innerHTML=ML.map(m=>{const x=v[m.k],st=status(m,x);return `<div title="${esc(s.src[m.k]||'sem dado no mês')}"><span>${m.n}<br><span class="small muted">${m.txt}</span></span><b><span class="sem s-${st}" style="min-width:0">${fmt(m.f,x)}</span></b></div>`}).join('');
+  $('#mlSem').innerHTML=ML.map(m=>{const x=v[m.k],st=status(m,x);return `<div title="${esc(s.src[m.k]||'sem dado no mês')}"><span>${m.n}<br><span class="small muted">${m.txt}${x==null?' · sem dado no mês':''}</span></span><b><span class="sem s-${st}" style="min-width:0">${fmt(m.f,x)}</span></b></div>`}).join('');
   // pendências
   const pa=(S.db.planos_acao||[]).filter(a=>a.loja_id===id&&!['Concluído','Cancelado'].includes(a.status)).sort((a,b)=>(atrasado(b)-atrasado(a))||(a.prazo||'9').localeCompare(b.prazo||'9'));
   $('#mlPa').innerHTML=pa.length?pa.slice(0,8).map(a=>`<div class="pa-row"><div><b>${esc(a.problema)}</b><br><span>${a.responsavel?esc(a.responsavel)+' · ':''}${a.prazo?'prazo '+fmtD(a.prazo):'sem prazo'}</span></div><span class="sem s-${atrasado(a)?'bad':a.status==='Em andamento'?'warn':'neu'}" style="min-width:0">${atrasado(a)?'Atrasada':a.status}</span></div>`).join('')+(pa.length>8?`<p class="small muted" style="margin-top:8px">+ ${pa.length-8} ações</p>`:''):'<div class="empty">Nenhuma ação em aberto.</div>';

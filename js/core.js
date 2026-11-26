@@ -333,11 +333,14 @@ function lojaStats(id,mes=S.mes){
     else if(diasDec>0&&(S.db.rupturas||[]).some(r=>r.data>=ini&&r.data<=fim)){ind.rupturas=0;src.rupturas='nenhuma ruptura registrada no mês'}}
   // CMV: contagens semanais do mês, ponderadas pelas vendas
   const cm=(S.db.cmv_contagens||[]).filter(r=>r.loja_id===id&&ymOf(r.semana)===mes);
+  // fechamento oficial do DRE (faturamento) vale como base quando existe
+  const fOf=IDX.dl.get(id+'|'+mes+'|fat'), baseFat=fOf&&+fOf.valor>0?+fOf.valor:fat, baseTxt=fOf?'faturamento do fechamento oficial':'vendas lançadas';
   if(cm.length){ind.cmv=sum(cm,cmvRealR)/sum(cm,r=>r.vendas)*100;src.cmv=`${cm.length} contage${cm.length>1?'ns':'m'} semanais`}
+  else{const dc=IDX.dl.get(id+'|'+mes+'|cmv');if(dc&&baseFat>0){ind.cmv=+dc.valor/baseFat*100;src.cmv=`CMV do DRE ÷ ${baseTxt}`}}
   // pessoal: folha lançada no DRE ou nos indicadores ÷ faturamento
   const fl=IDX.dl.get(id+'|'+mes+'|folha');
   const folhaR=fl?+fl.valor:(man.folha_valor!=null?+man.folha_valor:null);
-  if(folhaR!=null&&fat>0){ind.pessoal=folhaR/fat*100;src.pessoal=fl?'folha lançada no DRE':'folha lançada nos indicadores'}
+  if(folhaR!=null&&baseFat>0){ind.pessoal=folhaR/baseFat*100;src.pessoal=(fl?'folha lançada no DRE':'folha lançada nos indicadores')+' ÷ '+baseTxt}
   // comp: mesmo período do ano anterior (dias com venda lançada), senão o manual
   const py=addMes(mes,-12); let fPY=0,fCY=0,nPY=0;
   ds.forEach(d=>{const r=IDX.vd.get(id+'|'+d), rp=IDX.vd.get(id+'|'+py+d.slice(7));if(r&&rp){fCY+=+r.salao+ +r.delivery;fPY+=+rp.salao+ +rp.delivery;nPY++}});
