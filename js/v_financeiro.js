@@ -95,40 +95,6 @@ function dreRede(mes=S.mes){
   tot.mg=tot.fat?tot.res/tot.fat*100:null; tot.pe=tot.fat?fixRede/(1-(tot.imp+tot.cmv+tot.cdel+tot.man+tot.mkt)/tot.fat):null;
   return {cols,tot};
 }
-function renderDRE(){
-  const base=dreBase(), DEF=Object.assign({},base);
-  prmInputs($('#drePrm'),base,DEF,FIELDS_DRE.concat(FIELDS_DRE_EST),async()=>{if(await dbw(sb.from('config').upsert({chave:'dre',valor:base}),'Premissas salvas.')){await load(['config']);renderDRE()}},!P.gestor);
-  $('#dreMes').textContent=mesLongo(S.mes)+(OPER.some(l=>IDX.dl.has(l.id+'|'+S.mes+'|fat'))?' · fechamento oficial':'');
-  const exc=OPER.filter(l=>IDX.prem[l.id]&&Object.keys(IDX.prem[l.id]).length).map(l=>`${l.nome}: ${Object.entries(IDX.prem[l.id]).map(([k,v])=>({delivery:'custos de delivery',impostos:'impostos',manutencao:'manutenção',marketing:'marketing',cto:'CTO',agua:'água',energia:'energia',cmv:'CMV',pessoal:'folha'}[k]||k)+' '+(['cto','agua','energia'].includes(k)?brl(v):nf1.format(v).replace(',0','')+'%')).join(', ')}`);
-  $('#drePrmNote').innerHTML=(exc.length?'Exceções por loja: '+esc(exc.join(' · '))+'. ':'')+'CMV vem das contagens semanais do mês e a folha do lançamento do mês; sem esses dados, a linha usa a premissa e aparece como estimada. Valores realizados lançados abaixo substituem a estimativa, e o faturamento do fechamento oficial (marcado "oficial") substitui a soma das vendas.';
-  const {cols,tot}=dreRede();
-  if(!cols.length){$('#tDre').innerHTML='<tr><td><div class="empty">O DRE aparece quando houver vendas lançadas no mês.</div></td></tr>';$('#dreKpis').innerHTML=kpi('Resultado operacional da rede',null,'brlK','sem vendas no mês')+kpi('Faturamento da rede',null,'brlK',mesLongo(S.mes))+kpi('Lojas com resultado positivo',null,'int','')+kpi('Melhor margem',null,'pct1','');animateKpis($('#dreKpis'));noData('cDreRes');noData('cDreMix')}
-  else{
-    const all=cols.concat([{nome:'Rede',d:tot}]);
-    $('#tDre').innerHTML=dreTable(all);
-    const pos=cols.filter(c=>c.d.res>0).length, best=cols.slice().sort((a,b)=>b.d.mg-a.d.mg)[0];
-    $('#dreKpis').innerHTML=kpi('Resultado operacional da rede',tot.res,'brlK',`margem de ${nf1.format(tot.mg)}%`)+
-      kpi('Faturamento da rede',tot.fat,'brlK',mesLongo(S.mes))+
-      kpi('Lojas com resultado positivo',pos,'int',`de ${cols.length} com vendas no mês`,pos/cols.length*100)+
-      kpi('Melhor margem',best.d.mg,'pct1',best.nome);
-    animateKpis($('#dreKpis'));
-    mk('cDreRes',{type:'bar',data:{labels:cols.map(c=>c.nome),datasets:[{label:'Resultado',data:cols.map(c=>c.d.res),backgroundColor:cols.map(c=>c.d.res>=0?'rgba(63,197,142,.85)':'rgba(229,48,63,.85)'),borderRadius:10,maxBarThickness:70}]},
-      options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+brl(c.parsed.y)+' · '+nf1.format(cols[c.dataIndex].d.mg)+'%'}}},scales:{y:yR,x:xG}}});
-    const parts=[['CMV',tot.cmv],['Folha',tot.folha],['Custos de delivery',tot.cdel],['Impostos',tot.imp],['Marketing e outros',tot.mkt],['CTO, água e energia',tot.cto+tot.agua+tot.energia],['Manutenção',tot.man],['Resultado',Math.max(0,tot.res)]];
-    mk('cDreMix',{type:'doughnut',data:{labels:parts.map(p=>p[0]),datasets:[{data:parts.map(p=>p[1]/tot.fat*100),backgroundColor:['#e5303f','#f2b33d','#c2410c','#8a7c72','#eedbca','#6b4f45','#b9aa9e','#3fc58e'],borderWidth:0}]},
-      options:{cutout:'62%',plugins:{legend:{position:'right'},tooltip:{callbacks:{label:c=>' '+c.label+': R$ '+nf1.format(c.parsed)}}}}});
-  }
-  const lanc=(S.db.dre_lancamentos||[]).filter(r=>r.mes===S.mes).sort((a,b)=>a.loja_id.localeCompare(b.loja_id));
-  $('#tDreLanc').innerHTML=lanc.length?`<tr><th>Loja</th><th>Linha</th><th class="num">Valor</th><th>Observação</th><th></th></tr>`+lanc.map(r=>`<tr><td><b>${esc(lojaNome(r.loja_id))}</b></td><td>${NOME_LINHA[r.linha]}</td><td class="num">${brl(r.valor)}</td><td>${esc(r.obs)||'—'}</td><td class="num">${P.excluir(r.loja_id)?`<button class="btn sm" data-dl="${r.id}">Excluir</button>`:''}</td></tr>`).join(''):`<tr><td><div class="empty">Nenhum valor realizado lançado em ${mesLongo(S.mes)}.</div></td></tr>`;
-  $('#tDreLanc').querySelectorAll('[data-dl]').forEach(b=>b.onclick=async()=>{if(!confirm('Excluir este lançamento? A linha volta a usar a estimativa.'))return;if(await dbw(sb.from('dre_lancamentos').delete().eq('id',b.dataset.dl),'Lançamento excluído.')){await load(['dre_lancamentos']);renderDRE()}});
-}
-function initDRE(){
-  $('#drLoja').innerHTML=optLojas(lojasEditaveis(true));
-  $('#drSave').onclick=async()=>{const r={loja_id:$('#drLoja').value,mes:S.mes,linha:$('#drLinha').value,valor:num($('#drValor').value),obs:$('#drObs').value||null};
-    if(r.valor==null||r.valor<0){toast('Informe um valor válido.');return}
-    if(await dbw(sb.from('dre_lancamentos').upsert(r,{onConflict:'loja_id,mes,linha'}),`${NOME_LINHA[r.linha]} de ${mesTxt(S.mes)} salvo.`)){$('#drValor').value='';$('#drObs').value='';await load(['dre_lancamentos']);renderDRE()}};
-}
-
 /* ================= ORÇAMENTO ================= */
 const ORC_DEF0={faturamento:500000,mixDelivery:100,cmv:21,folha:19,impostos:10,delivery:28,deliveryBase:'delivery',manutencao:1.5,marketing:7,cto:12000,agua:1500,energia:4500,curva:[70,80,90,95,100,100]};
 const orcPadrao=()=>Object.assign({},ORC_DEF0,cfg('orcamento')||{});

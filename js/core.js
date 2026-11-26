@@ -14,7 +14,7 @@ const nf1 = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFracti
 const nf2 = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const ok_ = v => v!=null && isFinite(v);
 const brl = v => ok_(v)?'R$ ' + nf0.format(Math.round(v)):'—';
-const brlK = v => !ok_(v)?'—':Math.abs(v)>=999500 ? 'R$ '+nf1.format(v/1e6).replace(',0','')+' mi' : 'R$ '+nf0.format(Math.round(v/1000))+' mil';
+const brlK = v => !ok_(v)?'—':v<0?'−'+brlK(-v):Math.abs(v)>=999500 ? 'R$ '+nf1.format(v/1e6).replace(',0','')+' mi' : 'R$ '+nf0.format(Math.round(v/1000))+' mil';
 const fmt = (f,v) => v==null||isNaN(v)?'—':({brl:brlK(v),pct0:nf0.format(v)+'%',pct1:nf1.format(v)+'%',pctS:(v>0?'+':'')+nf1.format(v)+'%',min:nf1.format(v)+' min',nota:nf1.format(v),int:nf0.format(v)})[f];
 const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtD = d => d?new Date(d+'T12:00').toLocaleDateString('pt-BR'):'—';

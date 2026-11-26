@@ -397,26 +397,39 @@
 
     <!-- ============ DRE POR LOJA ============ -->
     <section class="tab" id="tab-dre">
-      <div class="grid g4" id="dreKpis"></div>
-      <div class="card mt">
-        <h3>Premissas do DRE <small>valem para todas as lojas, exceto onde indicado · salvas no portal (só administrador e consultor alteram)</small></h3>
-        <div class="prm" id="drePrm"></div><p class="small muted" style="margin-top:10px" id="drePrmNote"></p>
+      <div class="card dre-bar">
+        <div class="subnav" id="dreEsc"></div>
+        <div class="subnav" id="dreModo"><button data-m="mes" class="on">Mês</button><button data-m="ano">Acumulado no ano</button></div>
+        <div class="dre-bar-r"><span id="dreBadge"></span><b id="drePer"></b></div>
       </div>
-      <div class="card mt"><h3>DRE loja a loja <small>mês de referência: <span id="dreMes"></span> · <span class="est">est.</span> = linha estimada pela premissa (sem valor realizado)</small></h3><div class="tbl-wrap"><table class="dre" id="tDre"></table></div></div>
-      <div class="card mt only-edit"><h3>Lançar valor realizado <small>substitui a estimativa da linha no mês selecionado</small></h3>
-        <div class="form-row" style="grid-template-columns:1.2fr 1.5fr 1fr 2fr auto;align-items:end">
+      <div class="grid g5 mt" id="dreKpis"></div>
+      <div class="grid g21 mt">
+        <div class="card"><h3>Do faturamento ao resultado <small>quanto cada linha consome do que foi vendido</small></h3><div class="chart chart-lg"><canvas id="cDreCasc"></canvas></div></div>
+        <div class="card"><h3>Realizado x ideal <small>% do faturamento</small></h3><div id="dreIdeal"></div></div>
+      </div>
+      <div class="card mt"><h3 id="dreTabTit">DRE por loja <small id="dreTabSub"></small></h3><div class="tbl-wrap"><table class="dre dre2" id="tDre"></table></div><p class="small muted mt" id="dreNota"></p></div>
+      <div class="card mt"><h3>DRE mês a mês <small id="dreMmSub"></small></h3><div class="tbl-wrap"><table class="dre dre2 dre-mm" id="tDreMm"></table></div></div>
+      <div class="grid g2 mt">
+        <div class="card"><h3>Faturamento por mês</h3><div class="chart"><canvas id="cDreFat"></canvas></div></div>
+        <div class="card"><h3>Margem operacional por mês <small>tracejado = ideal</small></h3><div class="chart"><canvas id="cDreMg"></canvas></div></div>
+      </div>
+      <details class="card mt dre-fold">
+        <summary><b>Premissas e metas ideais</b><span class="small muted">premissas entram só em linhas sem valor realizado · metas ideais colorem o DRE</span></summary>
+        <h4 class="mt">Metas ideais (% do faturamento)</h4><div class="prm" id="dreIdealPrm"></div>
+        <h4 class="mt">Premissas para estimativa</h4><div class="prm" id="drePrm"></div><p class="small muted" style="margin-top:10px" id="drePrmNote"></p>
+      </details>
+      <details class="card mt dre-fold only-edit">
+        <summary><b>Lançar ou corrigir valores realizados</b><span class="small muted" id="dreLancN"></span></summary>
+        <div class="form-row mt" style="grid-template-columns:1.2fr 1.6fr 1fr 2fr auto;align-items:end">
           <label class="f">Loja<select class="inp" id="drLoja"></select></label>
-          <label class="f">Linha<select class="inp" id="drLinha"><option value="fat">Faturamento (fechamento oficial)</option><option value="imp">Impostos</option><option value="cmv">CMV</option><option value="folha">Folha de pagamento</option><option value="cdel">Custos de delivery</option><option value="man">Manutenção</option><option value="mkt">Marketing, royalties, escritório e fundo</option><option value="cto">CTO</option><option value="agua">Água</option><option value="energia">Energia</option></select></label>
+          <label class="f">Linha<select class="inp" id="drLinha"><option value="fat">Faturamento (fechamento oficial)</option><option value="imp">Impostos</option><option value="cmv">CMV (alimentos, bebidas e descartáveis)</option><option value="folha">Pessoal (folha)</option><option value="cdel">Custos financeiros e delivery</option><option value="man">Manutenção</option><option value="mkt">Despesas administrativas e comerciais</option><option value="cto">Ocupação (aluguel / CTO)</option><option value="agua">Água</option><option value="energia">Energia</option></select></label>
           <label class="f">Valor<div class="inwrap"><input class="inp" type="number" step="0.01" id="drValor"><em>R$</em></div></label>
           <label class="f">Observação<input class="inp" id="drObs" placeholder="Nota fiscal, competência..."></label>
           <button class="btn pri" id="drSave">Salvar</button>
         </div>
-        <div class="tbl-wrap mt"><table id="tDreLanc"></table></div>
-      </div>
-      <div class="grid g2 mt">
-        <div class="card"><h3>Resultado operacional por loja</h3><div class="chart"><canvas id="cDreRes"></canvas></div></div>
-        <div class="card"><h3>Para onde vai cada R$ 100 vendidos <small>rede</small></h3><div class="chart"><canvas id="cDreMix"></canvas></div></div>
-      </div>
+        <p class="small muted mt">O valor vale para o mês escolhido no topo da página e substitui a estimativa da linha.</p>
+        <div class="tbl-wrap mt" style="max-height:460px;overflow:auto"><table id="tDreLanc"></table></div>
+      </details>
     </section>
 
     <!-- ============ ORÇAMENTO DE INAUGURAÇÕES ============ -->
@@ -746,6 +759,7 @@
 <script src="js/v_conexoes.js"></script>
 <script src="js/v_cmvop.js"></script>
 <script src="js/v_cmvgrupo.js"></script>
+<script src="js/v_dre.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>
