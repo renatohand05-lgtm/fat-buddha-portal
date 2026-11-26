@@ -124,3 +124,7 @@ select cron.schedule('google-notas', '2 1,9,18 * * *', $c$
     headers := jsonb_build_object('Content-Type','application/json','x-cron-secret',(select valor from public.cron_tokens where chave='google')),
     body := '{"acao":"atualizar"}'::jsonb)
 $c$);
+
+-- fonte 'estimada': nota de data passada reconstruída a partir da distribuição de estrelas e das datas das avaliações no Maps
+alter table public.google_notas drop constraint if exists google_notas_fonte_check;
+alter table public.google_notas add constraint google_notas_fonte_check check (fonte in ('google','manual','estimada'));

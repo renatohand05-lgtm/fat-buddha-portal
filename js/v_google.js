@@ -20,7 +20,7 @@ function ggSpark(pts,cor,meta,w=260,h=60){
     <line x1="0" x2="${w}" y1="${Y(meta).toFixed(1)}" y2="${Y(meta).toFixed(1)}" stroke="rgba(255,236,220,.3)" stroke-width="1" stroke-dasharray="3 3"/>
     <path d="${d}" fill="none" stroke="${cor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
     <circle cx="${X(u.data).toFixed(1)}" cy="${Y(+u.nota).toFixed(1)}" r="4" fill="${cor}" stroke="#1d1715" stroke-width="2"/>
-    ${pts.map(p=>`<circle cx="${X(p.data).toFixed(1)}" cy="${Y(+p.nota).toFixed(1)}" r="9" fill="transparent"><title>${fmtD(p.data)} · nota ${nf1g(+p.nota)} · ${nf0.format(p.total)} avaliações${p.fonte==='manual'?' (manual)':''}</title></circle>`).join('')}
+    ${pts.map(p=>`<circle cx="${X(p.data).toFixed(1)}" cy="${Y(+p.nota).toFixed(1)}" r="9" fill="transparent"><title>${fmtD(p.data)} · nota ${nf1g(+p.nota)} · ${nf0.format(p.total)} avaliações${p.fonte==='manual'?' (manual)':p.fonte==='estimada'?' (estimada)':''}</title></circle>`).join('')}
   </svg>`;
 }
 const ggQuando=r=>r.relativo||(r.publicado_em?fmtD(r.publicado_em.slice(0,10)):'');
@@ -42,8 +42,8 @@ function ggLojas(){
 // ---------- comparação de períodos (dumbbell: anterior → atual) ----------
 const ggIsoD=d=>d.toISOString().slice(0,10);
 function ggSemana(iso){const d=new Date(iso+'T12:00');const w=(d.getDay()+6)%7;d.setDate(d.getDate()-w);return ggIsoD(d)} // segunda-feira da semana
-// referência: hoje; só usa o mês do topo quando ele é anterior e tem nota registrada (o portal pode abrir no último mês com vendas)
-function ggRefData(){const h=isoHoje();if(S.mes<ymOf(h)&&(S.db.google_notas||[]).some(r=>ymOf(r.data)===S.mes))return fimMes(S.mes);return h}
+// referência: hoje; só usa o mês do topo quando a pessoa escolheu um mês anterior que tem nota (o portal abre no último mês com vendas)
+function ggRefData(){const h=isoHoje();if(S.mesEscolhido&&S.mes<ymOf(h)&&(S.db.google_notas||[]).some(r=>ymOf(r.data)===S.mes))return fimMes(S.mes);return h}
 function ggUltimo(serie,ini,fim){let r=null;for(const x of serie){if(x.data>=ini&&x.data<=fim)r=x}return r}
 function ggPeriodos(tipo){
   const ref=ggRefData();
@@ -69,11 +69,12 @@ function ggComparar(L,meta){
       return `<div class="gg-db-r ${forte?'forte':''}"><span class="gg-db-l">${cor?`<span class="cmg-dot" style="--cor:${cor}"></span>`:''}${esc(nome)}</span>
         <span class="gg-db-tr"><em style="left:${X(meta)}%" title="meta ${nf1g(meta)}"></em>${na!=null&&nb!=null?`<i class="gg-db-ln" style="left:${Math.min(X(na),X(nb))}%;width:${Math.abs(X(na)-X(nb))}%;background:${cor||'#f7eee6'}"></i>`:''}
           ${nb!=null?`<b class="gg-db-p ant" style="left:${X(nb)}%" title="${esc(P_.nAnt)}: ${nf1g(nb)}"></b>`:''}${na!=null?`<b class="gg-db-p" style="left:${X(na)}%;background:${cor||'#f7eee6'}" title="${esc(P_.nAtual)}: ${nf1g(na)}"></b>`:''}</span>
-        <span class="gg-db-v">${nb!=null?nf1g(nb):'—'} → <b>${na!=null?nf1g(na):'—'}</b></span>
+        <span class="gg-db-v">${nb!=null?nf1g(nb)+(b&&b.fonte==='estimada'?'<sup title="estimada">*</sup>':''):'—'} → <b>${na!=null?nf1g(na):'—'}</b></span>
         <span class="gg-db-d"><span class="cmg-delta ${st}">${d==null?(nb==null?'sem anterior':'sem atual'):(d>0?'+':'')+nf1.format(d===0?0:d)}</span>${dt!=null?`<small>${dt>=0?'+':''}${nf0.format(dt)} aval.</small>`:''}</span></div>`};
     $(el).innerHTML=`<div class="gg-db-head"><span></span><span class="gg-db-sc"><span>${nf1g(lo)}</span><span>5,0</span></span><span>nota</span><span>variação</span></div>`
       +(rows.length>1?linha('Rede',null,ra,rb,true):'')+rows.map(r=>linha(r.x.l.nome,ggCor(r.x.l.id),r.a,r.b)).join('')
       +`<div class="gg-db-leg"><span><b class="gg-db-p ant"></b>${esc(P_.tAnt)}</span><span><b class="gg-db-p"></b>${esc(P_.tAtual)}</span><span><i class="dash"></i>meta ${nf1g(meta)}</span></div>`
+      +(rows.some(r=>(r.b&&r.b.fonte==='estimada')||(r.a&&r.a.fonte==='estimada'))?`<p class="small muted" style="margin-top:8px">* Nota estimada: reconstruída a partir da distribuição de estrelas e das datas das avaliações no Google Maps (o Google não guarda a nota de dias anteriores).</p>`:'')
       +(rows.some(r=>!r.b)?`<p class="small muted" style="margin-top:8px">A comparação completa aparece quando houver nota registrada também ${tipo==='sem'?'na semana anterior':'no mês anterior'}. A partir de agora o histórico é gravado todo dia.</p>`:'');
   });
 }

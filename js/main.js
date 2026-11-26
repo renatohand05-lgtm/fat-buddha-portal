@@ -39,7 +39,7 @@ function mesesOpcoes(){
 }
 function initMes(){
   $('#pMonth').innerHTML=mesesOpcoes().map(m=>`<option value="${m}" ${m===S.mes?'selected':''}>${mesLongo(m)}</option>`).join('');
-  $('#pMonth').onchange=()=>{S.mes=$('#pMonth').value;CACHE={};$('#vIni').value='';$('#vFim').value='';$('#mvMes').value=S.mes;go(S.tab)};
+  $('#pMonth').onchange=()=>{S.mes=$('#pMonth').value;S.mesEscolhido=true;CACHE={};$('#vIni').value='';$('#vFim').value='';$('#mvMes').value=S.mes;go(S.tab)};
 }
 async function entrar(){
   const {data:{user}}=await sb.auth.getUser(); if(!user) return mostrarLogin();
