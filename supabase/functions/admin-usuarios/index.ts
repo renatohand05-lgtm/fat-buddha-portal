@@ -7,6 +7,7 @@ const cors = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const PAPEIS = ["admin", "consultor", "diretoria", "regional", "gerente", "colaborador"];
+const TOTAL = ["admin", "diretoria"];
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
 
 Deno.serve(async (req) => {
@@ -18,7 +19,7 @@ Deno.serve(async (req) => {
     const { data: u, error: ue } = await admin.auth.getUser(token);
     if (ue || !u.user) return json({ error: "Sessão inválida." }, 401);
     const { data: me } = await admin.from("perfis").select("papel,ativo").eq("user_id", u.user.id).single();
-    if (!me || me.papel !== "admin" || !me.ativo) return json({ error: "Apenas o administrador gerencia usuários." }, 403);
+    if (!me || !TOTAL.includes(me.papel) || !me.ativo) return json({ error: "Apenas o administrador ou a diretoria gerencia usuários." }, 403);
 
     const body = await req.json();
     const acao = body.acao;
@@ -55,7 +56,7 @@ Deno.serve(async (req) => {
       const { user_id, nome, papel, ativo, lojas, senha } = body;
       if (!user_id) return json({ error: "Usuário não informado." }, 400);
       if (papel && !PAPEIS.includes(papel)) return json({ error: "Perfil inválido." }, 400);
-      if (user_id === u.user.id && (papel !== "admin" || ativo === false)) return json({ error: "Você não pode retirar o seu próprio acesso de administrador." }, 400);
+      if (user_id === u.user.id && ((papel !== undefined && !TOTAL.includes(papel)) || ativo === false)) return json({ error: "Você não pode retirar o seu próprio acesso total." }, 400);
       const upd: Record<string, unknown> = {};
       if (nome !== undefined) upd.nome = nome;
       if (papel !== undefined) upd.papel = papel;

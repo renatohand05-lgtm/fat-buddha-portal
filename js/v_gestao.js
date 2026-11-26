@@ -79,7 +79,7 @@ function renderRelatorios(){
 /* ================= CONFIGURAÇÕES ================= */
 let cfSub='lojas';
 const PAPEL_TXT={admin:'Administrador do portal',consultor:'Consultor',diretoria:'Diretoria',regional:'Gerente regional',gerente:'Gerente de loja',colaborador:'Colaborador autorizado'};
-const PAPEL_DESC={admin:'Acesso total, usuários, permissões, metas e configurações.',consultor:'Todas as lojas: lançamentos, metas, premissas, relatórios e planos de ação.',diretoria:'Visão consolidada de todas as lojas, somente leitura (pode simular orçamento).',regional:'Lojas atribuídas: lançamentos, checklists, RH, planos de ação e exclusões.',gerente:'Própria loja: lançamentos, checklists, RH e planos de ação (sem excluir).',colaborador:'Própria loja: registrar rupturas e checklist de delivery.'};
+const PAPEL_DESC={admin:'Acesso total, usuários, permissões, metas e configurações.',consultor:'Todas as lojas: lançamentos, metas, premissas, relatórios e planos de ação.',diretoria:'Acesso total, igual ao administrador: todas as lojas, lançamentos, aprovações, RH e salários, usuários e configurações.',regional:'Lojas atribuídas: lançamentos, checklists, RH, planos de ação e exclusões.',gerente:'Própria loja: lançamentos, checklists, RH e planos de ação (sem excluir).',colaborador:'Própria loja: registrar rupturas e checklist de delivery.'};
 function renderConfig(){
   $$('#cfNav button').forEach(b=>{b.classList.toggle('on',b.dataset.s===cfSub);b.classList.toggle('hidden',(b.dataset.s==='users'||b.dataset.s==='integ')&&!P.admin)});
   $$('#tab-config .ccs').forEach(s=>s.classList.toggle('on',s.id==='cf-'+cfSub));

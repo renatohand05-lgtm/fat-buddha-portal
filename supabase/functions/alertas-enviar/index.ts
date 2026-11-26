@@ -1,5 +1,5 @@
 // Fat Buddha · envio de alertas por e-mail (resumo por destinatário)
-// Disparo: agendado (cabeçalho x-cron-secret) ou pelo administrador no portal ({"acao":"teste"} | {"acao":"status"}).
+// Disparo: agendado (cabeçalho x-cron-secret) ou pelo administrador/diretoria no portal ({"acao":"teste"} | {"acao":"status"}).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     const { data: u } = await sb.auth.getUser(token);
     if (!u?.user) return json({ erro: "Não autorizado." }, 401);
     const { data: me } = await sb.from("perfis").select("papel,ativo,email,nome").eq("user_id", u.user.id).single();
-    if (!me || me.papel !== "admin" || !me.ativo) return json({ erro: "Apenas o administrador." }, 403);
+    if (!me || !["admin", "diretoria"].includes(me.papel) || !me.ativo) return json({ erro: "Apenas o administrador ou a diretoria." }, 403);
     adminEmail = me.email; adminNome = me.nome || "";
   }
   const { data: cfg } = await sb.from("config").select("valor").eq("chave", "alertas_email").maybeSingle();
@@ -60,9 +60,9 @@ Deno.serve(async (req) => {
   const { data: pl } = await sb.from("perfil_lojas").select("user_id,loja_id");
   let enviados = 0; const falhas: string[] = [];
   for (const p of ps || []) {
-    if (!p.email || !["admin", "consultor", "regional", "gerente"].includes(p.papel)) continue;
+    if (!p.email || !["admin", "consultor", "diretoria", "regional", "gerente"].includes(p.papel)) continue;
     const minhas = (pl || []).filter((x) => x.user_id === p.user_id).map((x) => x.loja_id);
-    const itens = al.filter((a) => ["admin", "consultor"].includes(p.papel) || minhas.includes(a.loja_id));
+    const itens = al.filter((a) => ["admin", "consultor", "diretoria"].includes(p.papel) || minhas.includes(a.loja_id));
     if (!itens.length) continue;
     const crit = itens.filter((a) => a.nivel === "critico").length;
     const err = await enviar(p.email, `Fat Buddha · ${itens.length} alerta${itens.length > 1 ? "s" : ""}${crit ? ` (${crit} crítico${crit > 1 ? "s" : ""})` : ""}`, html(p.nome || "", itens, lojas));

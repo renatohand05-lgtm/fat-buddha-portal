@@ -192,8 +192,8 @@ let LOJAS=[], OPER=[], LBYID={};
 const lojaNome = id => (LBYID[id]||{}).nome||id;
 const P = {
   get papel(){return S.perfil&&S.perfil.ativo?S.perfil.papel:null},
-  get admin(){return this.papel==='admin'},
-  get gestor(){return ['admin','consultor'].includes(this.papel)},
+  get admin(){return ['admin','diretoria'].includes(this.papel)},
+  get gestor(){return ['admin','consultor','diretoria'].includes(this.papel)},
   get veTudo(){return ['admin','consultor','diretoria'].includes(this.papel)},
   editar(l){return this.gestor||(['regional','gerente'].includes(this.papel)&&S.minhas.includes(l))},
   operar(l){return this.editar(l)||(this.papel==='colaborador'&&S.minhas.includes(l))},
@@ -202,7 +202,7 @@ const P = {
   get veFolha(){return this.veTudo},
   aprovaVaga(l){return this.gestor||(!!l&&this.papel==='regional'&&S.minhas.includes(l))},
   veOco(l){return this.gestor||(['regional','gerente'].includes(this.papel)&&S.minhas.includes(l))},
-  get editaCC(){return ['admin','consultor','regional'].includes(this.papel)},
+  get editaCC(){return ['admin','consultor','diretoria','regional'].includes(this.papel)},
 };
 const lojasEditaveis = (soOper) => LOJAS.filter(l=>P.editar(l.id)&&(!soOper||l.status==='operando'));
 const lojasOperaveis = () => LOJAS.filter(l=>P.operar(l.id));
