@@ -15,7 +15,9 @@ function rhIds(){const v=$('#rhLoja').value;return v==='todas'?LOJAS.map(l=>l.id
 function renderRH(){
   $$('#rhNav button').forEach(b=>b.classList.toggle('on',b.dataset.s===rhSub));
   $$('.rhs').forEach(s=>s.classList.toggle('on',s.id==='rh-'+rhSub));
-  ({quadro:rhQuadro,mov:rhMov,oco:rhOco,perf:rhPerf,nine:rhNine,suc:rhSuc})[rhSub]();
+  if(rhSub==='folha'&&!P.veFolha)rhSub='quadro';
+  $('#rhLoja').style.display=rhSub==='folha'?'none':'';
+  ({quadro:rhQuadro,mov:rhMov,oco:rhOco,perf:rhPerf,nine:rhNine,suc:rhSuc,folha:rhFolha})[rhSub]();
 }
 const quadroPrev = (id,c) => {const q=(S.db.quadro_previsto||[]).find(x=>x.loja_id===id&&x.cargo===c);return q?q.previsto:0};
 const quadroAtivo = (id,c) => people().filter(p=>p.loja_id===id&&p.cargo===c).length;
@@ -26,7 +28,7 @@ function rhQuadro(){
   const sm=k=>sum(lr,r=>r[k]);
   const lastT=lr.length?(sm('admissoes')+sm('desligamentos'))/2/sm('headcount')*100:null;
   const lastA=lr.length?sm('faltas')/sm('dias_previstos')*100:null;
-  const casa=ps.length?sum(ps,p=>mesesCasa(p.admissao))/ps.length:null;
+  const cs=ps.map(p=>mesesCasa(p.admissao)).filter(x=>x!=null), casa=cs.length?sum(cs)/cs.length:null;
   const tal=ps.filter(p=>p.desempenho===3&&p.potencial===3).length;
   $('#rhKpis').innerHTML=kpi('Colaboradores ativos',at,'int',`de ${prev} previstos`,prev?at/prev*100:null)+kpi('Vagas abertas',Math.max(0,prev-at),'int','para completar o quadro')+
     kpi('Turnover',lastT,'pct1',lm?mesTxt(lm)+' · seleção atual':'sem lançamento ainda')+
@@ -36,10 +38,10 @@ function rhQuadro(){
   $('#tQuadro').innerHTML=`<tr><th>Cargo</th>${ids.map(id=>`<th class="num">${esc(lojaNome(id))}</th>`).join('')}<th class="num">Total</th></tr>`+
     CARGOS.map(c=>{let tp=0,ta=0;return `<tr><td><b>${c}</b></td>${ids.map(id=>{const q={previsto:quadroPrev(id,c),ativo:quadroAtivo(id,c)};tp+=q.previsto;ta+=q.ativo;return `<td class="num"><span class="sem s-${q.ativo>=q.previsto?'ok':q.ativo>=q.previsto*.8?'warn':'bad'}">${q.ativo}/${q.previsto}</span></td>`}).join('')}<td class="num"><b>${ta}/${tp}</b></td></tr>`}).join('');
   $('#tCasa').innerHTML=ps.length?`<tr><th>Cargo</th><th class="num">Pessoas</th><th class="num">Tempo médio de casa</th><th class="num">Até 6 meses</th><th class="num">6 a 12 meses</th><th class="num">Mais de 1 ano</th></tr>`+
-    CARGOS.map(c=>{const g=ps.filter(p=>p.cargo===c);if(!g.length)return '';const m=g.map(p=>mesesCasa(p.admissao));return `<tr><td><b>${c}</b></td><td class="num">${g.length}</td><td class="num">${casaTxt(Math.round(sum(m)/g.length))}</td><td class="num">${m.filter(x=>x<6).length}</td><td class="num">${m.filter(x=>x>=6&&x<12).length}</td><td class="num">${m.filter(x=>x>=12).length}</td></tr>`}).join(''):'<tr><td><div class="empty">Nenhum colaborador cadastrado nesta seleção.</div></td></tr>';
+    CARGOS.map(c=>{const g=ps.filter(p=>p.cargo===c);if(!g.length)return '';const m=g.map(p=>mesesCasa(p.admissao)).filter(x=>x!=null);return `<tr><td><b>${c}</b></td><td class="num">${g.length}${m.length<g.length?` <span class="small muted">(${g.length-m.length} sem data)</span>`:''}</td><td class="num">${m.length?casaTxt(Math.round(sum(m)/m.length)):'—'}</td><td class="num">${m.filter(x=>x<6).length}</td><td class="num">${m.filter(x=>x>=6&&x<12).length}</td><td class="num">${m.filter(x=>x>=12).length}</td></tr>`}).join(''):'<tr><td><div class="empty">Nenhum colaborador cadastrado nesta seleção.</div></td></tr>';
   const fil=$('#coFil').value, all=(S.db.colaboradores||[]).filter(p=>ids.includes(p.loja_id)&&(fil==='todos'||(fil==='ativos'?ativo(p):!ativo(p))));
   $('#tCol').innerHTML=all.length?`<tr><th>Nome</th><th>Cargo</th><th>Loja</th><th>Admissão</th><th>Tempo de casa</th><th>Situação</th><th></th></tr>`+
-    all.sort((a,b)=>CARGOS.indexOf(a.cargo)-CARGOS.indexOf(b.cargo)||a.nome.localeCompare(b.nome)).map(p=>`<tr><td><b>${esc(p.nome)}</b></td><td>${esc(p.cargo)}</td><td>${esc(lojaNome(p.loja_id))}</td><td>${fmtD(p.admissao)}</td><td>${casaTxt(mesesCasa(p.admissao,p.desligamento&&!ativo(p)?p.desligamento:null))}</td><td>${ativo(p)?'<span class="sem s-ok" style="min-width:0">Ativo</span>':`<span class="sem s-neu" style="min-width:0">Desligado em ${fmtD(p.desligamento)}</span>`}</td><td class="num">${P.editar(p.loja_id)?`<button class="btn sm" data-coe="${p.id}">Editar</button>`:''}</td></tr>`).join('')
+    all.sort((a,b)=>CARGOS.indexOf(a.cargo)-CARGOS.indexOf(b.cargo)||a.nome.localeCompare(b.nome)).map(p=>`<tr><td><b>${esc(p.nome)}</b>${p.contrato?` <span class="tag">${p.contrato}</span>`:''}</td><td>${esc(p.cargo)}${p.cargo_folha&&p.cargo_folha!==p.cargo?`<br><span class="small muted">${esc(p.cargo_folha)}</span>`:''}</td><td>${esc(lojaNome(p.loja_id))}</td><td>${p.admissao?fmtD(p.admissao):'<span class="muted">sem data</span>'}</td><td>${casaTxt(mesesCasa(p.admissao,p.desligamento&&!ativo(p)?p.desligamento:null))}</td><td>${ativo(p)?'<span class="sem s-ok" style="min-width:0">Ativo</span>':`<span class="sem s-neu" style="min-width:0">Desligado em ${fmtD(p.desligamento)}</span>`}</td><td class="num">${P.editar(p.loja_id)?`<button class="btn sm" data-coe="${p.id}">Editar</button>`:''}</td></tr>`).join('')
     :'<tr><td><div class="empty">Nenhum colaborador nesta seleção.</div></td></tr>';
   $('#tCol').querySelectorAll('[data-coe]').forEach(b=>b.onclick=()=>editarColab(+b.dataset.coe));
 }
@@ -48,18 +50,28 @@ function editarColab(id){
   modal(`<h3>Editar colaborador <small><button class="btn sm" id="mX">Fechar</button></small></h3>
     <div class="form-row" style="grid-template-columns:1fr 1fr">
       <label class="f">Nome<input class="inp" id="mNome" value="${esc(p.nome)}"></label>
-      <label class="f">Cargo<select class="inp" id="mCargo">${CARGOS.map(c=>`<option ${c===p.cargo?'selected':''}>${c}</option>`).join('')}</select></label>
-      <label class="f">Loja<select class="inp" id="mLoja">${optLojas(lojasEditaveis(),p.loja_id)}</select></label>
-      <label class="f">Admissão<input class="inp" type="date" id="mAdm" value="${p.admissao}"></label>
+      <label class="f">Unidade<select class="inp" id="mLoja">${optLojas(lojasEditaveis(),p.loja_id)}${P.gestor?Object.entries(SETORES).map(([k,v])=>`<option value="m:${k}" ${!p.loja_id&&p.setor===k?'selected':''}>${v}</option>`).join(''):''}</select></label>
+      <label class="f">Cargo no portal<select class="inp" id="mCargo"></select></label>
+      <label class="f">Cargo na folha<input class="inp" id="mCf" value="${esc(p.cargo_folha||'')}" placeholder="como está na folha de pagamento"></label>
+      <label class="f">Contrato<select class="inp" id="mCt"><option value="">—</option>${['CLT','PJ'].map(c=>`<option ${c===p.contrato?'selected':''}>${c}</option>`).join('')}</select></label>
+      <label class="f">Admissão<input class="inp" type="date" id="mAdm" value="${p.admissao||''}"></label>
+      <label class="f">Fim da experiência<input class="inp" type="date" id="mExp" value="${p.fim_experiencia||''}"></label>
       <label class="f">Data de desligamento<input class="inp" type="date" id="mDes" value="${p.desligamento||''}"></label>
     </div>
     <p class="small muted mt">Ao informar a data de desligamento o colaborador sai do quadro ativo; o histórico é mantido. Para registrar o desligamento no turnover, lance o mês em "Turnover e absenteísmo".</p>
     <div class="actions mt">${P.gestor?'<button class="btn" id="mDel">Excluir cadastro</button>':''}<button class="btn pri" id="mOk">Salvar</button></div>`,el=>{
     el.querySelector('#mX').onclick=fecharModal;
-    el.querySelector('#mOk').onclick=async()=>{const u={nome:el.querySelector('#mNome').value.trim(),cargo:el.querySelector('#mCargo').value,loja_id:el.querySelector('#mLoja').value,admissao:el.querySelector('#mAdm').value,desligamento:el.querySelector('#mDes').value||null};
-      if(!u.nome||!u.admissao){toast('Nome e admissão são obrigatórios.');return}
-      if(u.desligamento&&u.desligamento<u.admissao){toast('O desligamento não pode ser antes da admissão.');return}
-      if(await dbw(sb.from('colaboradores').update(u).eq('id',id),'Colaborador atualizado.')){fecharModal();await load(['colaboradores','ninebox_historico']);renderRH()}};
+    const lj=el.querySelector('#mLoja'), cg=el.querySelector('#mCargo');
+    const cargos=()=>{const m=lj.value.startsWith('m:'), cur=cg.value||p.cargo;
+      cg.innerHTML=m?`<option>${esc(el.querySelector('#mCf').value.trim()||p.cargo)}</option>`:CARGOS.map(c=>`<option ${c===cur?'selected':''}>${c}</option>`).join('');cg.disabled=m};
+    lj.onchange=cargos; el.querySelector('#mCf').oninput=()=>{if(lj.value.startsWith('m:'))cargos()}; cargos();
+    el.querySelector('#mOk').onclick=async()=>{const lv=lj.value, m=lv.startsWith('m:'), cf=el.querySelector('#mCf').value.trim()||null;
+      const u={nome:el.querySelector('#mNome').value.trim(),setor:m?lv.slice(2):'loja',loja_id:m?null:lv,cargo:m?(cf||p.cargo):cg.value,cargo_folha:cf,contrato:el.querySelector('#mCt').value||null,
+        admissao:el.querySelector('#mAdm').value||null,fim_experiencia:el.querySelector('#mExp').value||null,desligamento:el.querySelector('#mDes').value||null};
+      if(!u.nome){toast('O nome é obrigatório.');return}
+      if(u.desligamento&&u.admissao&&u.desligamento<u.admissao){toast('O desligamento não pode ser antes da admissão.');return}
+      if(u.fim_experiencia&&u.admissao&&u.fim_experiencia<u.admissao){toast('O fim da experiência não pode ser antes da admissão.');return}
+      if(await dbw(sb.from('colaboradores').update(u).eq('id',id),'Colaborador atualizado.')){fecharModal();await load(['colaboradores','colaboradores_folha','ninebox_historico','alertas']);renderRH()}};
     const d=el.querySelector('#mDel'); if(d) d.onclick=async()=>{if(!confirm('Excluir o cadastro apaga também as ocorrências e o histórico de nine box desta pessoa. Para quem saiu da empresa, prefira informar a data de desligamento. Excluir mesmo assim?'))return;
       if(await dbw(sb.from('colaboradores').delete().eq('id',id),'Cadastro excluído.')){fecharModal();await load(['colaboradores','ocorrencias','ninebox_historico']);renderRH()}};
   });
@@ -125,17 +137,17 @@ function rhNine(){
   $('#tNbHist').innerHTML=hist.length?`<tr><th>Quando</th><th>Colaborador</th><th>Loja</th><th>Antes</th><th>Depois</th></tr>`+hist.map(x=>{const c=cb[x.colaborador_id];return `<tr><td>${new Date(x.em).toLocaleString('pt-BR')}</td><td><b>${esc(c.nome)}</b></td><td>${esc(lojaNome(c.loja_id))}</td><td>${NB[x.ant_desempenho+'-'+x.ant_potencial][0]}</td><td><b style="color:${NB[x.desempenho+'-'+x.potencial][2]}">${NB[x.desempenho+'-'+x.potencial][0]}</b></td></tr>`}).join(''):'<tr><td><div class="empty">Nenhuma alteração registrada ainda.</div></td></tr>';
 }
 const TRILHAS=[
-  {n:'Trilha de cozinha',c:['Auxiliar de cozinha','Chefe de cozinha','Gerente de loja','Supervisor Regional']},
-  {n:'Trilha de salão e delivery',c:['Atendente','Líder de delivery','Gerente de loja','Supervisor Regional']}];
+  {n:'Trilha de cozinha',c:['Auxiliar de cozinha','Cozinheiro','Líder de turno','Gerente de loja','Supervisor Regional']},
+  {n:'Trilha de expedição',c:['Expedidor','Líder de turno','Gerente de loja','Supervisor Regional']}];
 const REQ={
-  'Auxiliar de cozinha':{min:12,txt:'12 meses no cargo, domínio das fichas técnicas e boas práticas, treinamento de liderança de praça.'},
-  'Atendente':{min:6,txt:'6 meses no cargo, conhecimento das plataformas e da expedição, treinamento de conferência e embalagem.'},
-  'Chefe de cozinha':{min:12,txt:'12 meses no cargo, CMV e rupturas na meta, treinamento de gestão (DRE, escalas e estoque).'},
-  'Líder de delivery':{min:12,txt:'12 meses no cargo, preparo, cancelamentos e nota iFood na meta, treinamento de gestão.'},
+  'Auxiliar de cozinha':{min:6,txt:'6 meses no cargo, domínio das fichas técnicas e boas práticas, treinamento de praça (nível A).'},
+  'Cozinheiro':{min:12,txt:'12 meses no cargo (nível A → B), CMV e rupturas na meta, treinamento de liderança de turno.'},
+  'Expedidor':{min:9,txt:'9 meses no cargo (I → II), plataformas, conferência e embalagem sem erro, preparo e cancelamentos na meta.'},
+  'Líder de turno':{min:12,txt:'12 meses no cargo, turno com preparo, cancelamentos e nota iFood na meta, treinamento de gestão (DRE, escalas e estoque).'},
   'Gerente de loja':{min:18,txt:'18 meses no cargo, loja acima de R$ 500 mil, indicadores na meta e nine box "Talento".'},
   'Supervisor Regional':{min:null,txt:'Cargo previsto na estrutura de 10 lojas (2 supervisores, 5 lojas cada).'}};
 const prontos=c=>{const r=REQ[c];if(!r||r.min==null)return [];return people().filter(p=>rhIds().includes(p.loja_id)&&p.cargo===c&&p.potencial===3&&p.desempenho>=2&&mesesCasa(p.admissao)>=r.min)};
-const FEED={'Gerente de loja':['Chefe de cozinha','Líder de delivery'],'Chefe de cozinha':['Auxiliar de cozinha'],'Líder de delivery':['Atendente']};
+const FEED={'Gerente de loja':['Líder de turno'],'Líder de turno':['Cozinheiro','Expedidor'],'Cozinheiro':['Auxiliar de cozinha']};
 function prontidao(p){return p.desempenho===3&&p.potencial===3?['Pronto agora','s-ok']:p.potencial===3?['6 a 12 meses','s-warn']:p.potencial===2&&p.desempenho===3?['12 a 24 meses','s-neu']:null}
 function sucessaoRows(){
   const ps=people(), rows=[];
@@ -147,7 +159,7 @@ function sucessaoRows(){
   return rows;
 }
 function rhSuc(){
-  $('#trilhas').innerHTML=TRILHAS.map(t=>`<div class="trilha"><div class="tr-n">${t.n}</div><div class="tr-steps">${t.c.map((c,i)=>{const pr=prontos(c);const n=c==='Supervisor Regional'?0:people().filter(p=>rhIds().includes(p.loja_id)&&p.cargo===c).length;
+  $('#trilhas').innerHTML=TRILHAS.map(t=>`<div class="trilha"><div class="tr-n">${t.n}</div><div class="tr-steps" style="--cols:${t.c.map(()=>'1fr').join(' 24px ')}">${t.c.map((c,i)=>{const pr=prontos(c);const n=c==='Supervisor Regional'?0:people().filter(p=>rhIds().includes(p.loja_id)&&p.cargo===c).length;
     return `${i?'<div class="tr-arr">→</div>':''}<div class="tr-step"><b>${c}</b><span class="small muted">${n?n+' pessoa'+(n>1?'s':''):'—'}</span><p>${REQ[c].txt}</p>${REQ[c].min!=null?`<div class="tr-ok ${pr.length?'':'zero'}">${pr.length} pronto${pr.length===1?'':'s'} para subir${pr.length?': '+pr.map(p=>esc(p.nome)).join(', '):''}</div>`:''}</div>`}).join('')}</div></div>`).join('');
   const rows=sucessaoRows();
   $('#tSuc').innerHTML=`<tr><th>Loja</th><th>Cargo-chave</th><th>Titular</th><th>Nine box do titular</th><th>Sucessor indicado</th><th>Prontidão</th><th>Risco</th></tr>`+
@@ -163,12 +175,16 @@ function initRH(){
   $$('#rhNav button').forEach(b=>b.onclick=()=>{rhSub=b.dataset.s;renderRH()});
   $('#nbCsv').onclick=()=>csv('nine-box-fat-buddha.csv',[['Nome','Cargo','Loja','Admissão','Desempenho','Potencial','Quadrante']].concat(people().filter(p=>rhIds().includes(p.loja_id)).map(p=>[p.nome,p.cargo,lojaNome(p.loja_id),p.admissao,LV[p.desempenho],LV[p.potencial],NB[p.desempenho+'-'+p.potencial][0]])));
   // colaboradores
-  $('#coCargo').innerHTML=CARGOS.map(c=>`<option>${c}</option>`).join(''); $('#coLoja').innerHTML=optLojas(lojasEditaveis()); $('#coAdm').value=isoHoje();
+  $('#coCargo').innerHTML=CARGOS.map(c=>`<option>${c}</option>`).join(''); $('#coLoja').innerHTML=optLojas(lojasEditaveis())+(P.gestor?Object.entries(SETORES).map(([k,v])=>`<option value="m:${k}">${v}</option>`).join(''):''); $('#coAdm').value=isoHoje();
+  $('#coLoja').onchange=()=>{$('#coCargo').disabled=$('#coLoja').value.startsWith('m:')};
+  initFolha();
   $('#coFil').onchange=rhQuadro;
-  $('#coSave').onclick=async()=>{const r={nome:$('#coNome').value.trim(),cargo:$('#coCargo').value,loja_id:$('#coLoja').value,admissao:$('#coAdm').value,desempenho:+$('#coDes').value,potencial:+$('#coPot').value};
-    if(!r.nome||!r.admissao||!r.loja_id){toast('Informe nome, loja e admissão.');return}
+  $('#coSave').onclick=async()=>{const lv=$('#coLoja').value, m=lv.startsWith('m:'), cf=$('#coCf').value.trim()||null;
+    const r={nome:$('#coNome').value.trim(),setor:m?lv.slice(2):'loja',loja_id:m?null:lv,cargo:m?cf:$('#coCargo').value,cargo_folha:cf,contrato:$('#coCt').value||null,admissao:$('#coAdm').value,desempenho:+$('#coDes').value,potencial:+$('#coPot').value};
+    if(!r.nome||!r.admissao||!lv){toast('Informe nome, unidade e admissão.');return}
+    if(m&&!cf){toast('Para a matriz, informe o cargo na folha.');return}
     if((S.db.colaboradores||[]).some(p=>ativo(p)&&p.nome.toLowerCase()===r.nome.toLowerCase()&&p.loja_id===r.loja_id)&&!confirm('Já existe um colaborador ativo com este nome nesta loja. Cadastrar mesmo assim?'))return;
-    if(await dbw(sb.from('colaboradores').insert(r),'Colaborador cadastrado.')){$('#coNome').value='';await load(['colaboradores','ninebox_historico']);initOcoPes();rhQuadro()}};
+    if(await dbw(sb.from('colaboradores').insert(r),'Colaborador cadastrado.')){$('#coNome').value='';$('#coCf').value='';await load(['colaboradores','ninebox_historico']);initOcoPes();rhQuadro()}};
   $('#coCsv').onclick=()=>csv('colaboradores-fat-buddha.csv',[['Nome','Cargo','Loja','Admissão','Desligamento','Desempenho','Potencial']].concat((S.db.colaboradores||[]).filter(p=>rhIds().includes(p.loja_id)).map(p=>[p.nome,p.cargo,lojaNome(p.loja_id),p.admissao,p.desligamento,LV[p.desempenho],LV[p.potencial]])));
   // performance
   $('#ldLoja').innerHTML=optLojas(lojasEditaveis(true));
@@ -250,7 +266,7 @@ function rhOco(){
   $('#tOc').querySelectorAll('[data-ost]').forEach(s=>s.onchange=async()=>{if(await dbw(sb.from('ocorrencias').update({status:s.value}).eq('id',s.dataset.ost),'Status atualizado.')){await load(['ocorrencias']);rhOco()}});
 }
 function initOcoPes(){
-  const ps=people().filter(p=>P.veOco(p.loja_id)).sort((a,b)=>a.loja_id.localeCompare(b.loja_id)||a.nome.localeCompare(b.nome));
+  const ps=people().filter(p=>p.loja_id&&P.veOco(p.loja_id)).sort((a,b)=>a.loja_id.localeCompare(b.loja_id)||a.nome.localeCompare(b.nome));
   $('#ocPes').innerHTML=LOJAS.filter(l=>ps.some(p=>p.loja_id===l.id)).map(l=>`<optgroup label="${esc(l.nome)}">${ps.filter(p=>p.loja_id===l.id).map(p=>`<option value="${p.id}">${esc(p.nome)} — ${esc(p.cargo)}</option>`).join('')}</optgroup>`).join('')||'<option value="">Cadastre colaboradores no quadro de pessoal</option>';
 }
 function initOco(){
@@ -262,4 +278,80 @@ function initOco(){
     const p=S.db.colaboradores.find(x=>x.id===pid);
     if(await dbw(sb.from('ocorrencias').insert({colaborador_id:pid,loja_id:p.loja_id,tipo:$('#ocTipo').value,data:$('#ocData').value,status:$('#ocSt').value,motivo:$('#ocMot').value.trim(),responsavel:$('#ocResp').value||null,obs:$('#ocObs').value||null}),'Ocorrência registrada.')){$('#ocMot').value='';$('#ocObs').value='';await load(['ocorrencias']);rhOco()}};
   $('#ocCsv').onclick=()=>{const cb=Object.fromEntries((S.db.colaboradores||[]).map(p=>[p.id,p]));csv('ocorrencias-rh-fat-buddha.csv',[['Data','Colaborador','Cargo','Loja','Tipo','Motivo','Responsável','Status','Observação']].concat((S.db.ocorrencias||[]).map(o=>{const p=cb[o.colaborador_id]||{};return [o.data,p.nome,p.cargo,lojaNome(o.loja_id),o.tipo,o.motivo,o.responsavel,o.status,o.obs]})))};
+}
+
+/* ================= RH: folha salarial ================= */
+const uniKey = p => p.loja_id||('m:'+p.setor);
+const uniOrdem = () => LOJAS.map(l=>l.id).concat(Object.keys(SETORES).map(k=>'m:'+k));
+const uniNomeK = k => k.startsWith('m:')?SETORES[k.slice(2)]:lojaNome(k);
+const folhaDe = id => (S.db.colaboradores_folha||[]).find(f=>f.colaborador_id===id)||null;
+const custoF = f => f?(+f.salario||0)+(+f.vt||0)+(+f.plano||0):0;
+const diasAte = d => Math.round((new Date(d+'T12:00')-new Date(isoHoje()+'T12:00'))/864e5);
+function folhaSel(){
+  const u=$('#foUni').value, ct=$('#foCt').value, q=normTxt($('#foBusca').value);
+  return people().filter(p=>(u==='todas'||uniKey(p)===u)&&(ct==='todos'||p.contrato===ct)&&(!q||normTxt(p.nome+' '+(p.cargo_folha||p.cargo)).includes(q)));
+}
+function rhFolha(){
+  const ps=folhaSel(), fs=ps.map(p=>folhaDe(p.id)), ord=uniOrdem();
+  const sal=sum(fs,f=>f&&f.salario), vt=sum(fs,f=>f&&f.vt), tot=sum(fs,custoF), comSal=fs.filter(f=>f&&f.salario!=null).length;
+  const clt=ps.filter(p=>p.contrato==='CLT').length, pj=ps.filter(p=>p.contrato==='PJ').length;
+  const exp=ps.filter(p=>p.fim_experiencia&&p.contrato!=='PJ'&&diasAte(p.fim_experiencia)>=0&&diasAte(p.fim_experiencia)<=30).sort((a,b)=>a.fim_experiencia.localeCompare(b.fim_experiencia));
+  $('#foKpis').innerHTML=kpi('Pessoas ativas',ps.length,'int',`${clt} CLT · ${pj} PJ`)+kpi('Salários do mês',ps.length?sal:null,'brlK',comSal<ps.length?`${ps.length-comSal} sem salário lançado`:'soma dos salários base')+
+    kpi('Vale-transporte e deslocamento',ps.length?vt:null,'brlK','valor mensal')+kpi('Salário + benefícios',ps.length?tot:null,'brlK','salário, VT e plano, sem encargos')+
+    kpi('Salário médio',comSal?sal/comSal:null,'brl',`${comSal} pessoa${comSal===1?'':'s'}`)+kpi('Fim de experiência em 30 dias',exp.length,'int',exp.length?exp.slice(0,2).map(p=>p.nome.split(' ')[0]+' '+fmtD(p.fim_experiencia).slice(0,5)).join(' · '):'nenhum contrato vencendo');
+  animateKpis($('#foKpis'));
+  // por unidade
+  const g={}; ps.forEach(p=>{const k=uniKey(p),f=folhaDe(p.id);g[k]=g[k]||{n:0,clt:0,pj:0,sal:0,salC:0,salP:0,vt:0,mg:0,tot:0};const x=g[k];x.n++;x[p.contrato==='PJ'?'pj':'clt']++;
+    const s_=+(f&&f.salario)||0;x.sal+=s_;x[p.contrato==='PJ'?'salP':'salC']+=s_;x.vt+=+(f&&f.vt)||0;x.mg+=+(f&&f.margem)||0;x.tot+=custoF(f)});
+  const ks=ord.filter(k=>g[k]), T=ks.reduce((a,k)=>{for(const c in g[k])a[c]=(a[c]||0)+g[k][c];return a},{});
+  const brl2=v=>'R$ '+nf2.format(v||0);
+  $('#tFoUni').innerHTML=ks.length?`<tr><th>Unidade</th><th class="num">Pessoas</th><th class="num">CLT</th><th class="num">PJ</th><th class="num">Salários</th><th class="num">VT</th><th class="num">Margem</th><th class="num">Salário + benefícios</th><th class="num">% do total</th></tr>`+
+    ks.map(k=>{const x=g[k];return `<tr><td><b>${esc(uniNomeK(k))}</b></td><td class="num">${x.n}</td><td class="num">${x.clt}</td><td class="num">${x.pj}</td><td class="num">${brl2(x.sal)}</td><td class="num">${brl2(x.vt)}</td><td class="num">${brl2(x.mg)}</td><td class="num"><b>${brl2(x.tot)}</b></td><td class="num">${T.tot?nf1.format(x.tot/T.tot*100)+'%':'—'}</td></tr>`}).join('')+
+    `<tr style="background:rgba(255,255,255,.04)"><td><b>Total</b></td><td class="num"><b>${T.n}</b></td><td class="num">${T.clt}</td><td class="num">${T.pj}</td><td class="num"><b>${brl2(T.sal)}</b></td><td class="num">${brl2(T.vt)}</td><td class="num">${brl2(T.mg)}</td><td class="num"><b>${brl2(T.tot)}</b></td><td class="num">100%</td></tr>`
+    :'<tr><td><div class="empty">Ninguém nesta seleção.</div></td></tr>';
+  if(ks.length) mk('cFolha',{type:'bar',data:{labels:ks.map(uniNomeK),datasets:[{label:'CLT',data:ks.map(k=>g[k].salC),backgroundColor:C.red,borderRadius:6,stack:'s'},{label:'PJ',data:ks.map(k=>g[k].salP),backgroundColor:C.gold,borderRadius:6,stack:'s'}]},
+    options:{plugins:{tooltip:tipBrl},scales:{x:{...xG,stacked:true},y:{...yR,stacked:true}}}}); else noData('cFolha');
+  // atenção
+  const semAdm=ps.filter(p=>!p.admissao), semSal=ps.filter(p=>{const f=folhaDe(p.id);return !f||f.salario==null});
+  const li=(t,arr,f)=>arr.length?`<div class="mt"><b>${t}</b> <span class="small muted">(${arr.length})</span><ul class="fo-list">${arr.map(f).join('')}</ul></div>`:'';
+  $('#foAtencao').innerHTML=(li('Fim de experiência nos próximos 30 dias',exp,p=>{const d=diasAte(p.fim_experiencia);return `<li><span class="sem s-${d<=3?'bad':d<=15?'warn':'neu'}" style="min-width:0">${d===0?'hoje':d===1?'amanhã':'em '+d+' dias'}</span> ${esc(p.nome)} · <span class="muted">${esc(p.cargo_folha||p.cargo)} · ${esc(unidadeNome(p))} · ${fmtD(p.fim_experiencia)}</span></li>`})+
+    li('Sem data de admissão',semAdm,p=>`<li>${esc(p.nome)} · <span class="muted">${esc(unidadeNome(p))}</span></li>`)+li('Sem salário lançado',semSal,p=>`<li>${esc(p.nome)} · <span class="muted">${esc(unidadeNome(p))}</span></li>`))||'<div class="empty">Nada pendente nesta seleção.</div>';
+  // pessoas
+  const rows=ps.slice().sort((a,b)=>ord.indexOf(uniKey(a))-ord.indexOf(uniKey(b))||(+((folhaDe(b.id)||{}).salario)||0)-(+((folhaDe(a.id)||{}).salario)||0)||a.nome.localeCompare(b.nome));
+  $('#tFolha').innerHTML=rows.length?`<tr><th>Nome</th><th>Cargo na folha</th><th>Unidade</th><th>Contrato</th><th>Admissão</th><th>Fim da experiência</th><th class="num">Salário</th><th class="num">VT</th><th>Tipo de VT</th><th class="num">Margem</th><th></th></tr>`+
+    rows.map(p=>{const f=folhaDe(p.id)||{},d=p.fim_experiencia?diasAte(p.fim_experiencia):null;return `<tr><td><b>${esc(p.nome)}</b></td><td>${esc(p.cargo_folha||p.cargo)}</td><td>${esc(unidadeNome(p))}</td><td>${p.contrato?`<span class="tag">${p.contrato}</span>`:'—'}</td><td>${p.admissao?fmtD(p.admissao):'<span class="sem s-warn" style="min-width:0">sem data</span>'}</td>
+      <td>${p.fim_experiencia?(d>=0&&d<=30&&p.contrato!=='PJ'?`<span class="sem s-${d<=3?'bad':'warn'}" style="min-width:0">${fmtD(p.fim_experiencia)}</span>`:`<span class="muted">${fmtD(p.fim_experiencia)}</span>`):'—'}</td>
+      <td class="num">${f.salario!=null?brl2(f.salario):'—'}</td><td class="num">${f.vt!=null?brl2(f.vt):'—'}</td><td class="small">${esc(f.tipo_vt||'—')}</td><td class="num">${f.margem!=null?brl2(f.margem):'—'}</td>
+      <td class="num">${P.gestor?`<button class="btn sm" data-foe="${p.id}">Editar</button>`:''}</td></tr>`}).join('')
+    :'<tr><td><div class="empty">Ninguém nesta seleção.</div></td></tr>';
+  $('#tFolha').querySelectorAll('[data-foe]').forEach(b=>b.onclick=()=>editarFolha(+b.dataset.foe));
+}
+function editarFolha(id){
+  const p=S.db.colaboradores.find(x=>x.id===id), f=folhaDe(id)||{};
+  const v=x=>x==null?'':String(x).replace('.',',');
+  modal(`<h3>Folha · ${esc(p.nome)} <small><button class="btn sm" id="mX">Fechar</button></small></h3>
+    <p class="small muted">${esc(p.cargo_folha||p.cargo)} · ${esc(unidadeNome(p))}${p.contrato?' · '+p.contrato:''}</p>
+    <div class="form-row mt" style="grid-template-columns:1fr 1fr 1fr">
+      <label class="f">Salário (R$)<input class="inp" id="fSal" inputmode="decimal" value="${v(f.salario)}"></label>
+      <label class="f">Vale-transporte (R$)<input class="inp" id="fVt" inputmode="decimal" value="${v(f.vt)}"></label>
+      <label class="f">Tipo de VT<input class="inp" id="fTvt" list="foTvt" value="${esc(f.tipo_vt||'')}"></label>
+      <label class="f">Plano (R$)<input class="inp" id="fPl" inputmode="decimal" value="${v(f.plano)}"></label>
+      <label class="f">Margem (R$)<input class="inp" id="fMg" inputmode="decimal" value="${v(f.margem)}"></label>
+    </div>
+    <datalist id="foTvt">${uniq((S.db.colaboradores_folha||[]).map(x=>x.tipo_vt).filter(Boolean)).map(t=>`<option value="${esc(t)}">`).join('')}</datalist>
+    <p class="small muted mt">Cada alteração fica no histórico de alterações. Chave PIX e conta bancária não ficam no portal.</p>
+    <div class="actions mt"><button class="btn" id="fCad">Editar cadastro</button><button class="btn pri" id="fOk">Salvar</button></div>`,el=>{
+    el.querySelector('#mX').onclick=fecharModal;
+    el.querySelector('#fCad').onclick=()=>{fecharModal();editarColab(id)};
+    el.querySelector('#fOk').onclick=async()=>{const r={colaborador_id:id,competencia:ymOf(isoHoje()),tipo_vt:el.querySelector('#fTvt').value.trim()||null};
+      for(const [k,i] of [['salario','#fSal'],['vt','#fVt'],['plano','#fPl'],['margem','#fMg']]){const t=el.querySelector(i).value.trim();if(t===''){r[k]=null;continue}const n=numBR(t);if(n==null||isNaN(n)||n<0){toast('Valor inválido em '+el.querySelector(i).parentElement.firstChild.textContent+'.');return}r[k]=n}
+      if(await dbw(sb.from('colaboradores_folha').upsert(r,{onConflict:'colaborador_id'}),'Folha atualizada.')){fecharModal();await load(['colaboradores_folha']);rhFolha()}};
+  });
+}
+function initFolha(){
+  const b=$('#rhNav [data-s="folha"]'); if(b) b.style.display=P.veFolha?'':'none';
+  if(!P.veFolha) return;
+  $('#foUni').innerHTML='<option value="todas">Todas as unidades</option>'+uniOrdem().map(k=>`<option value="${k}">${esc(uniNomeK(k))}</option>`).join('');
+  ['#foUni','#foCt'].forEach(s=>$(s).onchange=rhFolha); $('#foBusca').oninput=rhFolha;
+  $('#foCsv').onclick=()=>csv('folha-fat-buddha.csv',[['Unidade','Nome','Contrato','Cargo na folha','Cargo no portal','Admissão','Fim da experiência','Salário','VT','Tipo de VT','Plano','Margem']].concat(folhaSel().map(p=>{const f=folhaDe(p.id)||{};return [unidadeNome(p),p.nome,p.contrato,p.cargo_folha,p.cargo,p.admissao,p.fim_experiencia,f.salario,f.vt,f.tipo_vt,f.plano,f.margem]})));
 }

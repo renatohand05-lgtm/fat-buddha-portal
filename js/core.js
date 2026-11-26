@@ -147,7 +147,7 @@ const TABLES = {
   lojas:{order:'ordem'}, config:{}, metas:{order:'vigente_desde'}, metas_vendas:{}, dre_premissas_loja:{},
   vendas_diarias:{order:'data'}, vendas_hora:{order:'data',lazy:true}, indicadores_mensais:{}, cmv_contagens:{order:'semana'}, cmv_itens:{order:'semana'},
   estoque_cc:{order:'item'}, rupturas:{order:'data'}, dre_lancamentos:{}, orc_cenarios:{order:'created_at'}, expansao:{order:'ordem'},
-  colaboradores:{order:'nome'}, quadro_previsto:{}, lideranca:{}, rh_movimentos:{order:'mes'}, ocorrencias:{order:'data'},
+  colaboradores:{order:'nome'}, colaboradores_folha:{}, quadro_previsto:{}, lideranca:{}, rh_movimentos:{order:'mes'}, ocorrencias:{order:'data'},
   avaliacoes_gerentes:{order:'periodo'}, visitas_qualidade:{order:'data'}, delivery_checklists:{order:'data'}, planos_acao:{order:'created_at'},
   ninebox_historico:{order:'em'}, alertas:{order:'criado_em'}, alertas_lidos:{},
   ifood_diario:{order:'data'}, notas_fiscais:{order:'emissao'}, itens_controle:{order:'ordem'}, producao_padrao:{order:'ordem'}, nf_regras:{}, contagens_estoque:{order:'created_at'}
@@ -199,6 +199,7 @@ const P = {
   operar(l){return this.editar(l)||(this.papel==='colaborador'&&S.minhas.includes(l))},
   excluir(l){return this.gestor||(this.papel==='regional'&&S.minhas.includes(l))},
   get veRH(){return !!this.papel&&this.papel!=='colaborador'},
+  get veFolha(){return this.veTudo},
   veOco(l){return this.gestor||(['regional','gerente'].includes(this.papel)&&S.minhas.includes(l))},
   get editaCC(){return ['admin','consultor','regional'].includes(this.papel)},
 };
@@ -385,12 +386,14 @@ function lojaDre(id,mes=S.mes){
 }
 
 /* ---------------- RH ---------------- */
-const CARGOS=['Gerente de loja','Chefe de cozinha','Líder de delivery','Auxiliar de cozinha','Atendente'];
+const CARGOS=['Gerente de loja','Líder de turno','Cozinheiro','Auxiliar de cozinha','Expedidor','Estoque e apoio'];
+const SETORES={escritorio:'Matriz · Escritório',producao:'Matriz · Produção'};
+const unidadeNome = p => p.loja_id?lojaNome(p.loja_id):(SETORES[p.setor]||'Matriz');
 const LV=['','Baixo','Médio','Alto'];
 const ativo = p => !p.desligamento || p.desligamento>isoHoje();
 const people = () => (S.db.colaboradores||[]).filter(ativo);
-const mesesCasa = (adm,ref) => {const a=new Date(adm+'T12:00'), h=ref?new Date(ref+'T12:00'):new Date(); return Math.max(0,(h.getFullYear()-a.getFullYear())*12+h.getMonth()-a.getMonth())};
-const casaTxt = m => m<12?`${m} ${m===1?'mês':'meses'}`:`${nf1.format(m/12).replace(',0','')} ${m<24?'ano':'anos'}`;
+const mesesCasa = (adm,ref) => {if(!adm)return null;const a=new Date(adm+'T12:00'), h=ref?new Date(ref+'T12:00'):new Date(); return Math.max(0,(h.getFullYear()-a.getFullYear())*12+h.getMonth()-a.getMonth())};
+const casaTxt = m => m==null||isNaN(m)?'—':m<12?`${m} ${m===1?'mês':'meses'}`:`${nf1.format(m/12).replace(',0','')} ${m<24?'ano':'anos'}`;
 
 /* ---------------- relatório (impressão / PDF) ---------------- */
 function relatorio(titulo,blocos,opts={}){

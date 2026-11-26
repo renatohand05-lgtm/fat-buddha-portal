@@ -76,16 +76,17 @@ function renderLoja(){
 }
 
 /* ================= ALERTAS ================= */
-const AL_ICO={temperatura:'Temperatura',cmv:'CMV',plano:'Plano de ação',ruptura:'Rupturas',contagem:'Contagem'};
+const AL_ICO={temperatura:'Temperatura',cmv:'CMV',plano:'Plano de ação',ruptura:'Rupturas',contagem:'Contagem',rh:'RH'};
 function alertasVisiveis(){return (S.db.alertas||[]).slice().sort((a,b)=>(a.resolvido-b.resolvido)||((a.nivel==='critico'?0:1)-(b.nivel==='critico'?0:1))||b.criado_em.localeCompare(a.criado_em))}
 const lidos = () => new Set((S.db.alertas_lidos||[]).map(x=>x.alerta_id));
-function alertaHtml(a){const lido=lidos().has(a.id);return `<div class="alert al-item ${lido?'lido':''}" data-al="${a.id}"><span class="dot" style="background:${a.resolvido?'var(--green)':a.nivel==='critico'?'var(--bad)':'var(--amber)'}"></span><div><b>${esc(a.loja_id?lojaNome(a.loja_id):'Cozinha central')} · ${esc(a.titulo)}</b><br><span>${esc(a.detalhe||'')}</span><div class="when">${AL_ICO[a.tipo]} · ${new Date(a.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${a.resolvido?' · resolvido':''}${lido?' · lido':''}</div></div></div>`}
+function alertaHtml(a){const lido=lidos().has(a.id);return `<div class="alert al-item ${lido?'lido':''}" data-al="${a.id}"><span class="dot" style="background:${a.resolvido?'var(--green)':a.nivel==='critico'?'var(--bad)':'var(--amber)'}"></span><div><b>${esc(a.loja_id?lojaNome(a.loja_id):a.tipo==='rh'?'Matriz':'Cozinha central')} · ${esc(a.titulo)}</b><br><span>${esc(a.detalhe||'')}</span><div class="when">${AL_ICO[a.tipo]} · ${new Date(a.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${a.resolvido?' · resolvido':''}${lido?' · lido':''}</div></div></div>`}
 async function marcarLido(ids){ids=ids.filter(i=>!lidos().has(i));if(!ids.length)return;const {error}=await sb.from('alertas_lidos').insert(ids.map(i=>({user_id:S.user.id,alerta_id:i})));if(!error){await load(['alertas_lidos']);pintarSino()}}
 function ligarAlertas(root){root.querySelectorAll('[data-al]').forEach(el=>el.onclick=async()=>{const a=(S.db.alertas||[]).find(x=>x.id==el.dataset.al);await marcarLido([a.id]);fecharModal();
   if(a.aba==='planos'){go('planos');setTimeout(()=>{$('#paLoja').value=a.loja_id;$('#paSt').value='atrasados';renderPlanos()},100)}
   else if(a.aba==='cc'){ccSub=a.tipo==='contagem'?'cont':'rup';go('cc')}
   else if(a.aba==='cmv'&&(a.chave||'').startsWith('ctl|')){const [,l,d]=a.chave.split('|');cmSub='ctl';CTL_RASC={};go('cmv');$('#ctlLoja').value=l;$('#ctlData').value=d;renderControle()}
-  else if(a.aba==='cmv'){cmSub='sem';go('cmv')} else if(a.aba) go(a.aba)})}
+  else if(a.aba==='cmv'){cmSub='sem';go('cmv')}
+  else if(a.aba==='rh'){rhSub=P.veFolha?'folha':'quadro';go('rh')} else if(a.aba) go(a.aba)})}
 function pintarSino(){
   const b=$('#bell'); if(P.papel==='colaborador'){b.classList.add('hidden');return}
   const L=lidos(), n=alertasVisiveis().filter(a=>!a.resolvido&&!L.has(a.id)).length;

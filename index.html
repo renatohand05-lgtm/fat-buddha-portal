@@ -441,7 +441,7 @@
     <section class="tab" id="tab-rh">
       <div class="card" style="display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px;padding:12px 14px">
         <div class="subnav" id="rhNav">
-          <button data-s="quadro" class="on">Quadro de pessoal</button><button data-s="mov">Turnover e absenteísmo</button><button data-s="oco">Ocorrências e advertências</button><button data-s="perf">Performance de gerentes</button><button data-s="nine">Nine box</button><button data-s="suc">Sucessão e carreira</button>
+          <button data-s="quadro" class="on">Quadro de pessoal</button><button data-s="mov">Turnover e absenteísmo</button><button data-s="oco">Ocorrências e advertências</button><button data-s="perf">Performance de gerentes</button><button data-s="nine">Nine box</button><button data-s="suc">Sucessão e carreira</button><button data-s="folha">Folha salarial</button>
         </div>
         <select class="inp" id="rhLoja" style="max-width:240px"></select>
       </div>
@@ -451,10 +451,12 @@
         <div class="card mt"><h3>Quadro de pessoal <small>ativos / previstos por cargo</small></h3><div class="tbl-wrap"><table id="tQuadro"></table></div></div>
         <div class="card mt"><h3>Tempo de casa por cargo</h3><div class="tbl-wrap"><table id="tCasa"></table></div></div>
         <div class="card mt only-edit"><h3>Cadastrar colaborador</h3>
-          <div class="form-row" style="grid-template-columns:2fr 1.4fr 1.2fr 1fr 1fr 1fr auto;align-items:end">
-            <label class="f">Nome<input class="inp" id="coNome" placeholder="Nome e inicial do sobrenome"></label>
-            <label class="f">Cargo<select class="inp" id="coCargo"></select></label>
-            <label class="f">Loja<select class="inp" id="coLoja"></select></label>
+          <div class="form-row" style="grid-template-columns:2fr 1.2fr 1.4fr 1.6fr .8fr 1fr .9fr .9fr auto;align-items:end">
+            <label class="f">Nome<input class="inp" id="coNome" placeholder="Nome completo"></label>
+            <label class="f">Unidade<select class="inp" id="coLoja"></select></label>
+            <label class="f">Cargo no portal<select class="inp" id="coCargo"></select></label>
+            <label class="f">Cargo na folha<input class="inp" id="coCf" placeholder="Ex.: Cozinheiro nível A diurno"></label>
+            <label class="f">Contrato<select class="inp" id="coCt"><option value="">—</option><option>CLT</option><option>PJ</option></select></label>
             <label class="f">Admissão<input class="inp" type="date" id="coAdm"></label>
             <label class="f">Desempenho<select class="inp" id="coDes"><option value="1">Baixo</option><option value="2" selected>Médio</option><option value="3">Alto</option></select></label>
             <label class="f">Potencial<select class="inp" id="coPot"><option value="1">Baixo</option><option value="2" selected>Médio</option><option value="3">Alto</option></select></label>
@@ -462,6 +464,22 @@
           </div>
         </div>
         <div class="card mt"><h3>Colaboradores <small><select class="inp" id="coFil" style="display:inline-block;width:auto;padding:5px 10px;margin-right:6px"><option value="ativos">Ativos</option><option value="deslig">Desligados</option><option value="todos">Todos</option></select><button class="btn sm" id="coCsv">Exportar CSV</button></small></h3><div class="tbl-wrap" style="max-height:480px;overflow:auto"><table id="tCol"></table></div></div>
+      </div>
+
+      <div class="rhs" id="rh-folha">
+        <div class="card"><div class="form-row" style="grid-template-columns:1.4fr 1fr 2fr auto;align-items:end">
+          <label class="f">Unidade<select class="inp" id="foUni"></select></label>
+          <label class="f">Contrato<select class="inp" id="foCt"><option value="todos">CLT e PJ</option><option>CLT</option><option>PJ</option></select></label>
+          <label class="f">Buscar<input class="inp" id="foBusca" placeholder="Nome ou cargo"></label>
+          <button class="btn" id="foCsv">Exportar CSV</button>
+        </div><p class="small muted mt">Valores visíveis só para administrador, consultor e diretoria. Chave PIX e conta bancária não ficam no portal.</p></div>
+        <div class="grid g6 mt" id="foKpis"></div>
+        <div class="grid g2 mt">
+          <div class="card"><h3>Salários por unidade <small>CLT e PJ</small></h3><div class="chart"><canvas id="cFolha"></canvas></div></div>
+          <div class="card"><h3>Atenção</h3><div id="foAtencao"></div></div>
+        </div>
+        <div class="card mt"><h3>Folha por unidade</h3><div class="tbl-wrap"><table id="tFoUni"></table></div></div>
+        <div class="card mt"><h3>Pessoas</h3><div class="tbl-wrap" style="max-height:560px;overflow:auto"><table id="tFolha"></table></div></div>
       </div>
 
       <div class="rhs" id="rh-mov">
