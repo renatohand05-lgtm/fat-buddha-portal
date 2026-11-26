@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
         })).filter((r: any) => r.id && r.nota);
         // as avaliações são renovadas a cada atualização: fica só o que o Google mostra hoje
         const ids = revs.map((r: any) => r.id);
-        let del = sb.from("google_reviews").delete().eq("loja_id", l.id);
+        let del = sb.from("google_reviews").delete().eq("loja_id", l.id).like("id", "places/%"); // não apaga as lidas do Maps à mão
         if (ids.length) del = del.not("id", "in", `(${ids.map((i: string) => `"${i}"`).join(",")})`);
         await del;
         if (revs.length) await sb.from("google_reviews").upsert(revs, { onConflict: "id", ignoreDuplicates: false });
