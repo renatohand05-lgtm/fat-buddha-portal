@@ -545,3 +545,20 @@ b.neg,em.neg,.cmg-stat b.neg{color:#ff9aa2}b.pos,.cmg-stat b.pos{color:#7fe3b8}e
 .gg-guia{margin-top:12px;border:1px solid var(--line);border-radius:12px;padding:12px 16px;background:rgba(0,0,0,.15);font-size:13px}
 .gg-guia ol{margin:8px 0 0 18px;display:flex;flex-direction:column;gap:6px;color:var(--muted)}.gg-guia ol b,.gg-guia ol i{color:var(--text)}
 .gg-guia a{color:var(--text)}
+
+/* ---------- Qualidade · Vistoria de operações ---------- */
+.vo-turno button{padding:7px 12px}
+.vo-turno button.on{background:rgba(229,48,63,.28);color:#fff}
+.f>span{font-size:12px;color:var(--muted);font-weight:600}
+.vo-pa{font-size:10.5px;background:rgba(242,179,61,.16);color:#f7cf7a}
+.vo-item .seg button.on[data-v="nao"]{background:rgba(242,179,61,.25);color:#f7cf7a}
+.vo-item.no .seg{box-shadow:none}
+.vo-dt{display:flex;align-items:center;gap:6px}.vo-dt .inp{width:150px;padding:6px 8px}
+.vo-cont{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.vo-res{align-self:start;position:sticky;top:12px}
+.vo-fg{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.vo-fg .fotos{display:flex;gap:8px;flex-wrap:wrap}
+.vo-ults{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:14px}
+.vo-ult{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:rgba(0,0,0,.12)}
+.vo-ult .cmg-dot{flex:0 0 10px}
+@media print{.qs:not(.on){display:none!important}.vo-res{position:static}}

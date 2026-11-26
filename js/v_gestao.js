@@ -1,5 +1,5 @@
 /* ================= PLANOS DE AÇÃO ================= */
-const ORIG={visita:'Visita de qualidade',delivery:'Checklist de delivery',indicador:'Indicador fora da meta',manual:'Manual',google:'Avaliação do Google'};
+const ORIG={visita:'Visita de qualidade',vistoria:'Vistoria de operações',delivery:'Checklist de delivery',indicador:'Indicador fora da meta',manual:'Manual',google:'Avaliação do Google'};
 const atrasado = a => !['Concluído','Cancelado'].includes(a.status) && a.prazo && a.prazo<isoHoje();
 function renderPlanos(){
   const all=S.db.planos_acao||[], hoje=isoHoje();
@@ -12,12 +12,12 @@ function renderPlanos(){
     kpi('Aguardando verificação',base.filter(a=>a.status==='Concluído'&&!a.verificado).length,'int','concluídas sem verificação')+kpi('Prioridade alta abertas',base.filter(a=>aberto(a)&&a.prioridade==='Alta').length,'int','');
   animateKpis($('#paKpis'));
   $('#tPaLoja').innerHTML=`<tr><th>Loja</th><th class="num">Abertas</th><th class="num">Atrasadas</th><th class="num">Concluídas</th></tr>`+LOJAS.map(l=>{const a=all.filter(x=>x.loja_id===l.id);return `<tr><td><b>${esc(l.nome)}</b></td><td class="num">${a.filter(aberto).length}</td><td class="num">${a.filter(atrasado).length?`<span class="sem s-bad" style="min-width:0">${a.filter(atrasado).length}</span>`:'0'}</td><td class="num">${a.filter(x=>x.status==='Concluído').length}</td></tr>`}).join('');
-  const lst=base.filter(a=>(or==='todos'||a.origem===or)&&(st==='todos'||(st==='abertos'?aberto(a):st==='atrasados'?atrasado(a):a.status===st)))
+  const lst=base.filter(a=>(or==='todos'||(or==='semanal'?a.pa_semanal:a.origem===or))&&(st==='todos'||(st==='abertos'?aberto(a):st==='atrasados'?atrasado(a):a.status===st)))
     .sort((a,b)=>(atrasado(b)-atrasado(a))||({Alta:0,'Média':1,Baixa:2}[a.prioridade]-{Alta:0,'Média':1,Baixa:2}[b.prioridade])||(a.prazo||'9').localeCompare(b.prazo||'9'));
   $('#paCount').textContent=`${lst.length} ação(ões)`;
   const ed=a=>P.editar(a.loja_id);
   $('#tPa').innerHTML=lst.length?`<tr><th>Loja</th><th>Origem</th><th>Problema</th><th>Ação</th><th>Responsável</th><th>Prazo</th><th>Prioridade</th><th>Status</th><th>Evidência</th><th></th></tr>`+lst.map(a=>{const e=ed(a),d=e?'':'disabled';return `<tr ${atrasado(a)?'style="background:rgba(255,92,104,.07)"':''}>
-    <td><b>${esc(lojaNome(a.loja_id))}</b></td><td><span class="tag">${ORIG[a.origem]}</span><div class="small muted">${fmtD(a.created_at.slice(0,10))}</div></td>
+    <td><b>${esc(lojaNome(a.loja_id))}</b></td><td><span class="tag">${ORIG[a.origem]}</span>${a.pa_semanal?' <span class="tag" style="background:rgba(242,179,61,.18);color:#f7cf7a">P.A. semanal</span>':''}<div class="small muted">${fmtD(a.created_at.slice(0,10))}</div></td>
     <td style="white-space:normal;min-width:200px"><b>${esc(a.problema)}</b>${a.secao?`<div class="small muted">${esc(a.secao)}</div>`:''}${a.obs?`<div class="small muted">${esc(a.obs)}</div>`:''}</td>
     <td style="min-width:200px"><input class="inp" data-pa="${a.id}" data-f="acao" value="${esc(a.acao)}" placeholder="O que será feito" ${d}></td>
     <td style="min-width:130px"><input class="inp" data-pa="${a.id}" data-f="responsavel" value="${esc(a.responsavel)}" placeholder="Quem" ${d}></td>

@@ -587,7 +587,7 @@
     <!-- ============ CHECKLIST QUALIDADE ============ -->
     <section class="tab" id="tab-qualidade">
       <div class="card" style="display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px;padding:12px 14px">
-        <div class="subnav" id="qNav"><button data-s="visita" class="on">Visita de qualidade</button><button data-s="google">Notas do Google</button></div>
+        <div class="subnav" id="qNav"><button data-s="visita" class="on">Visita de qualidade</button><button data-s="oper">Vistoria de operações</button><button data-s="google">Notas do Google</button></div>
       </div>
       <div class="qs on" id="qs-visita">
       <div class="card">
@@ -610,6 +610,43 @@
         <div class="actions mt"><button class="btn" id="qClear">Limpar</button><button class="btn" onclick="window.print()">Imprimir</button><button class="btn pri only-edit" id="qSave">Salvar visita</button></div>
       </div>
       <div class="card mt"><h3>Histórico de visitas <small><button class="btn sm" id="qCsv">Exportar CSV</button></small></h3><div id="qHist"></div></div>
+      </div>
+
+      <div class="qs" id="qs-oper">
+        <div class="card"><h3>Vistoria diária da loja <small>Conforme ou Ajustar em cada item · itens "P.A. semanal" entram também no plano semanal da loja</small></h3>
+          <div class="form-row" style="grid-template-columns:1.2fr 1fr .8fr 1.3fr">
+            <label class="f">Loja<select class="inp" id="voLoja"></select></label>
+            <label class="f">Data<input class="inp" type="date" id="voData"></label>
+            <label class="f">Horário<input class="inp" type="time" id="voHora"></label>
+            <div class="f"><span>Turno observado</span><div class="seg vo-turno" id="voTurno"></div></div>
+          </div>
+          <div class="form-row mt" style="grid-template-columns:1.2fr 1.2fr .9fr .9fr">
+            <label class="f">Responsável pela vistoria<input class="inp" id="voResp" placeholder="Quem está vistoriando"></label>
+            <label class="f">Líder / gerente presente<input class="inp" id="voLider" placeholder="Nome"></label>
+            <label class="f">Pessoas na cozinha<input class="inp" type="number" min="0" id="voPc"></label>
+            <label class="f">Pessoas na expedição / atendimento<input class="inp" type="number" min="0" id="voPe"></label>
+          </div>
+        </div>
+        <div class="grid g12 mt">
+          <div class="card vo-res"><h3>Resultado da vistoria</h3>
+            <div class="score"><div class="ring" id="voRing"></div><div class="secbars" id="voBars"></div></div>
+            <div class="vo-cont" id="voCont"></div>
+            <p class="small muted" style="margin-top:12px">Conformidade = itens "Conforme" ÷ itens avaliados (sem contar N/A).</p>
+          </div>
+          <div class="card"><h3>Checklist da vistoria <small><button class="btn sm" id="voOpenAll">Abrir/fechar tudo</button></small></h3><div id="voSecs"></div></div>
+        </div>
+        <div class="grid g2 mt">
+          <div class="card"><h3>Leitura da vistoria <small><button class="btn sm" id="voPreencher">Trazer itens a ajustar</button></small></h3>
+            <label class="f">O que está bom<textarea class="inp" id="voBom" rows="4" placeholder="Pontos positivos observados"></textarea></label>
+            <label class="f mt">O que precisa ajustar<textarea class="inp" id="voAj" rows="4" placeholder="Principais ajustes"></textarea></label>
+            <div class="mt"><div class="small muted" style="margin-bottom:6px">Fotos gerais da vistoria</div><div class="vo-fg"><div class="fotos" id="voFg"></div><label class="btn sm fbtn"><span id="voFgIc"></span>Adicionar fotos<input type="file" accept="image/*" capture="environment" multiple hidden id="voFgIn"></label></div></div>
+          </div>
+          <div class="card"><h3>Retorno da vistoria anterior <small id="voRetSub"></small></h3><div id="voRet"></div></div>
+        </div>
+        <div class="card mt"><h3>Plano de ação <small>gerado a partir dos itens marcados como "Ajustar"</small><span style="margin-left:auto"><button class="btn sm" id="voAddAc">Adicionar ação</button></span></h3><div id="voPlano"></div>
+          <div class="actions mt"><label class="f" style="flex-direction:row;align-items:center;gap:8px;margin-right:auto"><input type="checkbox" id="voCiente"> Líder / gerente da loja ciente da vistoria e do plano</label><button class="btn" id="voClear">Limpar</button><button class="btn" onclick="window.print()">Imprimir</button><button class="btn pri only-edit" id="voSave">Salvar vistoria</button></div>
+        </div>
+        <div class="card mt"><h3>Histórico de vistorias <small><button class="btn sm" id="voCsv">Exportar CSV</button></small></h3><div class="vo-ults" id="voUlt"></div><div id="voHist"></div></div>
       </div>
 
       <div class="qs" id="qs-google">
@@ -652,7 +689,7 @@
         <b>Filtrar</b>
         <select class="inp" id="paLoja" style="max-width:200px"></select>
         <select class="inp" id="paSt" style="max-width:200px"><option value="abertos">Em aberto</option><option value="atrasados">Atrasados</option><option value="todos">Todos</option><option>Pendente</option><option>Em andamento</option><option>Concluído</option><option>Cancelado</option></select>
-        <select class="inp" id="paOr" style="max-width:200px"><option value="todos">Todas as origens</option><option value="visita">Visita de qualidade</option><option value="delivery">Checklist de delivery</option><option value="indicador">Indicador fora da meta</option><option value="manual">Manual</option></select>
+        <select class="inp" id="paOr" style="max-width:200px"><option value="todos">Todas as origens</option><option value="visita">Visita de qualidade</option><option value="vistoria">Vistoria de operações</option><option value="semanal">Só P.A. semanal</option><option value="google">Avaliação do Google</option><option value="delivery">Checklist de delivery</option><option value="indicador">Indicador fora da meta</option><option value="manual">Manual</option></select>
         <span style="margin-left:auto"><button class="btn sm" id="paCsv">Exportar CSV</button></span>
       </div>
       <div class="card mt only-edit"><h3>Nova ação</h3>
@@ -777,6 +814,7 @@
 <script src="js/v_cmvgrupo.js"></script>
 <script src="js/v_dre.js"></script>
 <script src="js/v_google.js"></script>
+<script src="js/v_vistoria.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

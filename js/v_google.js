@@ -29,6 +29,7 @@ function renderQualidade(){
   $$('#qNav button').forEach(b=>b.classList.toggle('on',b.dataset.s===qSub));
   $$('#tab-qualidade .qs').forEach(s=>s.classList.toggle('on',s.id==='qs-'+qSub));
   if(qSub==='google'){renderGoogle();return}
+  if(qSub==='oper'){renderRetornoOper();renderOperHist();return}
   buildQual();renderQualHist();
 }
 
