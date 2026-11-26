@@ -47,11 +47,11 @@ function renderGoogle(){
   const com=L.filter(x=>x.nota!=null);
   // status da integração
   const ult=cfg('google_ultima'), semChave=GG_ST&&!GG_ST.chave;
-  $('#ggStatus').innerHTML=`<span class="gg-live ${semChave?'off':''}"></span><div><b>${semChave?'Atualização automática aguardando a chave do Google':'Atualização automática todo dia às 7h'}</b><div class="small muted">${ult&&ult.em?`última busca ${new Date(ult.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${ult.por==='agendamento'?'automática':'pelo portal'}`:'nenhuma busca no Google ainda'}${semChave&&P.gestor?' · enquanto isso, a nota pode ser lançada à mão na configuração':''}</div></div>`;
+  $('#ggStatus').innerHTML=`<span class="gg-live ${semChave?'off':''}"></span><div><b>${semChave?'Atualização automática aguardando a chave do Google':'Atualização automática todo dia às 6h, 15h e 22h'}</b><div class="small muted">${ult&&ult.em?`última busca ${new Date(ult.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${ult.por==='agendamento'?'automática':'pelo portal'}`:'nenhuma busca no Google ainda'}${semChave&&P.gestor?' · enquanto isso, a nota pode ser lançada à mão na configuração':''}</div></div>`;
   $('#ggAtualizar').style.display=P.gestor?'':'none';
   // destaque da rede
   if(!com.length){
-    $('#ggHero').innerHTML=`<div class="gg-empty"><div class="gg-empty-ic">${ggStars(0,30)}</div><div><b>Nenhuma nota do Google ainda</b><p class="small muted">${P.gestor?'Abra a configuração no fim da página: cadastre a chave do Google para a busca automática, ou lance a nota de cada loja à mão.':'Assim que a gestão ligar a integração, a nota de cada loja aparece aqui e é atualizada todo dia.'}</p></div></div>`;
+    $('#ggHero').innerHTML=`<div class="gg-empty"><div class="gg-empty-ic">${ggStars(0,30)}</div><div><b>Nenhuma nota do Google ainda</b><p class="small muted">${P.gestor?'Abra a configuração no fim da página: cadastre a chave do Google para a busca automática, ou lance a nota de cada loja à mão.':'Assim que a gestão ligar a integração, a nota de cada loja aparece aqui e é atualizada todo dia às 6h, 15h e 22h.'}</p></div></div>`;
   } else {
     const tot=sum(com,x=>x.total), rede=tot?sum(com,x=>x.nota*x.total)/tot:sum(com,x=>x.nota)/com.length;
     const ant=com.filter(x=>x.dN!=null), redeAnt=ant.length&&sum(ant,x=>x.total-x.dT)?sum(ant,x=>(x.nota-x.dN)*(x.total-x.dT))/sum(ant,x=>x.total-x.dT):null;
@@ -84,7 +84,7 @@ function renderGoogle(){
     mk('cGgEvo',{type:'line',data:{labels:datas.map(d=>fmtD(d).slice(0,5)),datasets:L.filter(x=>x.s.length).map(x=>({label:x.l.nome,data:datas.map(d=>{const r=x.s.find(p=>p.data===d);return r?+r.nota:null}),borderColor:ggCor(x.l.id),backgroundColor:ggCor(x.l.id),borderWidth:2,pointRadius:3,pointHoverRadius:6,tension:.25,spanGaps:true}))
       .concat([{label:`Meta ${nf1g(meta)}`,data:datas.map(()=>meta),borderColor:'rgba(255,236,220,.45)',borderDash:[6,5],pointRadius:0,borderWidth:1.5}])},
       options:{interaction:{mode:'index',intersect:false},plugins:{tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+(c.parsed.y==null?'—':nf1.format(c.parsed.y))}}},scales:{y:{grid:{color:C.grid},border:{display:false},suggestedMin:Math.max(1,Math.min(meta,...datas.length?(S.db.google_notas||[]).filter(r=>r.data>=d90).map(r=>+r.nota):[meta])-.3),suggestedMax:5,ticks:{callback:v=>nf1.format(v)}},x:xG}}});
-  } else noData('cGgEvo','A evolução aparece a partir da segunda atualização (a busca roda todo dia).');
+  } else noData('cGgEvo','A evolução aparece a partir da segunda atualização (a busca roda todo dia às 6h, 15h e 22h).');
   // avaliações
   $('#ggRvLoja').innerHTML='<option value="">Todas as lojas</option>'+ls.map(l=>`<option value="${l.id}" ${GG_F.loja===l.id?'selected':''}>${esc(l.nome)}</option>`).join('');
   $$('#ggRvF button').forEach(b=>b.classList.toggle('on',b.dataset.f===GG_F.f));

@@ -114,11 +114,11 @@ begin
   end if;
 end $$;
 
--- agendamento: todo dia às 7h05 (Brasília) a função busca as notas no Google
+-- agendamento: todo dia às 6h, 15h e 22h (Brasília = UTC-3; o pg_cron roda em UTC)
 insert into public.cron_tokens (chave, valor) values ('google', encode(extensions.gen_random_bytes(24), 'hex'))
 on conflict (chave) do nothing;
 select cron.unschedule('google-notas') where exists (select 1 from cron.job where jobname = 'google-notas');
-select cron.schedule('google-notas', '5 10 * * *', $c$
+select cron.schedule('google-notas', '2 1,9,18 * * *', $c$
   select net.http_post(
     url := 'https://akcbpjlsfarcfzmtkdle.supabase.co/functions/v1/google-notas',
     headers := jsonb_build_object('Content-Type','application/json','x-cron-secret',(select valor from public.cron_tokens where chave='google')),
