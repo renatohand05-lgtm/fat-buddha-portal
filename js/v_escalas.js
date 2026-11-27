@@ -94,6 +94,11 @@ function esCols(e,ls){
   return ES_DIAS.filter(k=>!k.startsWith('dom')||+k.slice(3)<=n).map(k=>({k,dom:k.startsWith('dom'),l:k.startsWith('dom')?(doms[+k.slice(3)-1]?`Dom ${String(doms[+k.slice(3)-1]).padStart(2,'0')}`:`Dom ${k.slice(3)}`):ES_DL[k]}))}
 const esMins=(u,setor)=>((cfg('escala_minimos')||{})[u]||{})[setor]||null;
 const esFree=l=>/Freelancer|Vaga|definir/.test(l.vinculo);
+const esVaga=l=>l.vaga_id?(S.db.vagas||[]).find(v=>v.id===l.vaga_id):null;
+function esVagaTag(l){if(l.vinculo!=='Vaga aberta')return '';const v=esVaga(l);
+  if(!v)return '<span class="es-vg none" title="Sem vaga no RH">sem vaga no RH</span>';
+  const t={solicitada:['aguardando aprovação','warn'],aprovada:['vaga aberta no RH','open'],em_selecao:['em seleção','open'],preenchida:['contratado · coloque o nome','ok'],cancelada:['vaga cancelada','none']}[v.status]||[v.status,'none'];
+  return `<span class="es-vg ${t[1]}" title="${esc(v.cargo_folha||v.cargo)} · ${v.preenchidas}/${v.quantidade} preenchida(s)${v.prazo?' · prazo '+fmtD(v.prazo):''}">${t[0]}</span>`}
 
 // semana k = seg..sáb + domingo k (o padrão de segunda a sábado se repete toda semana)
 function esSemanas(l,cols){return cols.filter(c=>c.dom).map(c=>{const ks=c.w?cols.filter(x=>x.w===c.w).map(x=>x.k):['seg','ter','qua','qui','sex','sab',c.k],ts=ks.map(k=>esTurno((l.dias||{})[k]));
@@ -197,7 +202,7 @@ function rhEscalas(){
   <div class="card es-hero mt">
     <div class="es-hero-l"><div class="cmg-eyebrow">Escala · ${esc(uniNome)}</div>
       <div class="es-hero-t">${esc(e.nome)} <span class="es-tipo ${e.tipo}">${ES_TIPO[e.tipo]}</span></div>
-      <div class="es-hero-m"><span><b>${clt.length}</b> colaboradores</span><span><b>${fr.length}</b> freelancers</span>${vg.length?`<span class="es-warn-t"><b>${vg.length}</b> ${vg.length>1?'posições':'posição'} sem pessoa</span>`:''}<span>carga média <b>${esHoras(hMed)}</b>/semana</span>${c4?`<span>rodízio <b>5x2</b> · 4 semanas · ciclo atual de <b>${fmtD(esBase(e))}</b> a <b>${fmtD(esAddD(esBase(e),27))}</b></span>`:''}</div></div>
+      <div class="es-hero-m"><span><b>${clt.length}</b> colaboradores</span><span><b>${fr.length}</b> freelancers</span>${vg.length?`<span class="es-warn-t"><b>${vg.length}</b> ${vg.length>1?'posições':'posição'} sem pessoa</span>${(()=>{const vs=[...new Set(vg.map(esVaga).filter(v=>v&&['solicitada','aprovada','em_selecao'].includes(v.status)))];return vs.length?`<button class="es-lk" id="esIrVg">${sum(vs,v=>v.quantidade-v.preenchidas)} em vagas abertas no RH →</button>`:''})()}`:''}<span>carga média <b>${esHoras(hMed)}</b>/semana</span>${c4?`<span>rodízio <b>5x2</b> · 4 semanas · ciclo atual de <b>${fmtD(esBase(e))}</b> a <b>${fmtD(esAddD(esBase(e),27))}</b></span>`:''}</div></div>
     <button class="es-saude ${saude}" id="esIrAt"><span class="es-saude-i">${saude==='ok'?'✓':'!'}</span><span><b>${pend?`${pend} ${pend>1?'pontos':'ponto'} de atenção`:'Escala em dia'}</b><small>${pend?`${ruins.length?ruins.length+' fora da regra':''}${ruins.length&&av.length?' · ':''}${av.length?av.length+' para revisar':''}`:`${okr.length} regras conferidas`}</small></span></button>
   </div>
 
@@ -228,6 +233,7 @@ function rhEscalas(){
   esLigar(e,todas,cols);
   $$('#esCorpo [data-dia]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();ES.dia=b.dataset.dia;rhEscalas()});
   $$('#esCorpo [data-pol]').forEach(b=>b.onclick=()=>{ES.uni=b.dataset.pol;ES.id=null;ES.quem=null;ES.edit=false;ES.sujo={};rhEscalas()});
+  const iv=$('#esIrVg');if(iv)iv.onclick=()=>{rhSub='vagas';const r=$('#rhLoja');if(r&&[...r.options].some(o=>o.value===e.unidade))r.value=e.unidade;renderRH()};
   $('#esIrAt').onclick=()=>$("#esAtn").scrollIntoView({behavior:'smooth',block:'start'});
 }
 const esRegraHtml=r=>`<div class="es-rg ${r.nivel}"><span class="es-rg-i">${r.nivel==='ok'?'✓':r.nivel==='bad'?'✕':'!'}</span><div><b>${esc(r.regra)}</b><div class="small muted">${esc(r.det)}</div></div></div>`;
@@ -302,7 +308,7 @@ function esGradeHtml(e,ls,cols){
     const fun=l.funcao||(c?(c.cargo_folha||c.cargo):'')||'';
     return `<tr class="${esFree(l)?'fr':''}">
       <td class="es-nm">${ed?`<input class="inp es-in" data-f="nome" data-l="${l.id}" value="${esc(d.nome??l.nome)}"><div class="es-mini"><select class="inp" data-f="setor" data-l="${l.id}">${ES_SETORES.map(o=>`<option ${(d.setor??l.setor)===o?'selected':''}>${o}</option>`).join('')}</select><select class="inp" data-f="vinculo" data-l="${l.id}">${ES_VINC.map(o=>`<option ${(d.vinculo??l.vinculo)===o?'selected':''}>${o}</option>`).join('')}</select><input class="inp" data-f="funcao" data-l="${l.id}" value="${esc(d.funcao??l.funcao??'')}" placeholder="${esc(fun||'Função')}"><select class="inp" data-f="colaborador_id" data-l="${l.id}" title="Cadastro no RH"><option value="">sem cadastro no RH</option>${esRhOpts(e.unidade,d.colaborador_id??l.colaborador_id)}</select></div>`
-        :`<b>${esc(l.nome)}</b>${c?` <span class="es-rh" title="Cadastro no RH: ${esc(c.nome)}">RH</span>`:''}<div class="small muted">${esc(c4&&l.posicao?l.posicao.replace(/^.*· /,''):fun)}${c4&&fun&&l.posicao&&!l.posicao.includes(fun)?' · '+esc(fun):''}${l.vinculo!=='CLT'?` · <span class="es-vn">${esc(l.vinculo)}</span>`:''}</div>${c4?`<div class="es-hr">${esc(esHorario(l))}</div>`:''}`}</td>
+        :`<b>${esc(l.nome)}</b>${c?` <span class="es-rh" title="Cadastro no RH: ${esc(c.nome)}">RH</span>`:''}<div class="small muted">${esc(c4&&l.posicao?l.posicao.replace(/^.*· /,''):fun)}${c4&&fun&&l.posicao&&!l.posicao.includes(fun)?' · '+esc(fun):''}${l.vinculo!=='CLT'?` · <span class="es-vn">${esc(l.vinculo)}</span>`:''}</div>${c4?`<div class="es-hr">${esc(esHorario(l))}</div>`:''}${esVagaTag(l)}`}</td>
       ${cols.map(cc=>`<td class="${cc.dom?'dom':''} ${cc.d==='seg'?'w0':''} ${!ed&&cc.k===ES.dia?'sel':''}">${ed?`<input class="inp es-ci" list="esTurnos" data-d="${cc.k}" data-l="${l.id}" value="${esc(dias[cc.k]||'')}">`:esChip(dias[cc.k],c4)}</td>`).join('')}
       <td class="num ${mx>44*60+15&&l.vinculo==='CLT'?'es-h44':''}" title="${w.map(x=>`${x.c.l}: ${esHoras(x.min)}`).join(' · ')}">${hm?esHoras(hm):'—'}</td>
       ${ed?`<td><button class="btn sm" data-del="${l.id}" title="Remover da escala">×</button></td>`:''}</tr>`}).join('')}).join('')}</table></div>`;
@@ -330,7 +336,7 @@ function esLigar(e,todas,cols){
   C.querySelectorAll('[data-l][data-f]').forEach(el=>el.onchange=el.oninput=()=>{const id=+el.dataset.l;(ES.sujo[id]=ES.sujo[id]||{})[el.dataset.f]=el.value});
   C.querySelectorAll('[data-d]').forEach(el=>{el.onchange=()=>{const id=+el.dataset.l,s=(ES.sujo[id]=ES.sujo[id]||{});s.dias=s.dias||{};s.dias[el.dataset.d]=el.value.trim();el.classList.add('mud')}});
   C.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{const l=todas.find(x=>x.id==b.dataset.del);if(!confirm(`Remover ${l.nome} desta escala?`))return;
-    if(await dbw(sb.from('escala_linhas').delete().eq('id',l.id),'Removido da escala.')){delete ES.sujo[l.id];await load(['escala_linhas']);rhEscalas()}});
+    if(await dbw(sb.from('escala_linhas').delete().eq('id',l.id),'Removido da escala.')){delete ES.sujo[l.id];await load(['escala_linhas','vagas','quadro_previsto','alertas']);rhEscalas()}});
   $('#esAddL').onclick=()=>esNovaLinha(e,todas);
   $('#esPropE').onclick=()=>esPropriedades(e);
   $('#esSalvar').onclick=()=>esSalvar(e,todas);
@@ -350,7 +356,7 @@ async function esSalvar(e,todas){
     if(o.nome!=null&&!o.nome.trim()){toast('O nome não pode ficar vazio.');continue}
     if(Object.keys(o).length){const {error}=await sb.from('escala_linhas').update(o).eq('id',l.id);if(error){ok=false;toast('Erro ao salvar '+l.nome+': '+error.message)}}}
   await sb.from('escalas').update({updated_at:new Date().toISOString()}).eq('id',e.id);
-  busy(false);if(ok)toast('Escala salva.');ES.sujo={};ES.edit=false;await load(['escalas','escala_linhas']);rhEscalas();
+  busy(false);if(ok)toast('Escala salva.');ES.sujo={};ES.edit=false;await load(['escalas','escala_linhas','vagas','quadro_previsto','alertas']);rhEscalas();
 }
 
 function esNovaLinha(e,todas){
@@ -368,7 +374,7 @@ function esNovaLinha(e,todas){
     b.querySelector('#enOk').onclick=async()=>{const nome=b.querySelector('#enN').value.trim();if(!nome){toast('Informe o nome.');return}
       const h=b.querySelector('#enH').value.trim(),f=b.querySelector('#enF').value,dias={};if(h)(esC4(e)?[1,2,3,4]:['']).forEach(w=>['seg','ter','qua','qui','sex','sab'].forEach(d=>dias[(w?'w'+w:'')+d]=d===f?'FOLGA':h));
       const ord=Math.max(-1,...todas.map(l=>l.ordem))+1;
-      if(await dbw(sb.from('escala_linhas').insert({escala_id:e.id,nome,setor:b.querySelector('#enS').value,vinculo:b.querySelector('#enV').value,colaborador_id:+b.querySelector('#enC').value||null,ordem:ord,dias}),'Pessoa adicionada.')){fecharModal();await load(['escala_linhas']);rhEscalas()}}});
+      if(await dbw(sb.from('escala_linhas').insert({escala_id:e.id,nome,setor:b.querySelector('#enS').value,vinculo:b.querySelector('#enV').value,colaborador_id:+b.querySelector('#enC').value||null,ordem:ord,dias}),'Pessoa adicionada.')){fecharModal();await load(['escala_linhas','vagas','quadro_previsto','alertas']);rhEscalas()}}});
 }
 
 function esPropriedades(e){
@@ -380,9 +386,9 @@ function esPropriedades(e){
     <label class="f mt">Observação<input class="inp" id="epO" value="${esc(e.obs||'')}"></label>
     <div class="actions mt">${P.excluir(e.unidade)||P.gestor?'<button class="btn" id="epDel" style="margin-right:auto">Excluir escala</button>':''}<button class="btn" onclick="fecharModal()">Cancelar</button><button class="btn pri" id="epOk">Salvar</button></div>`,b=>{
     b.querySelector('#epOk').onclick=async()=>{const n=b.querySelector('#epN').value.trim();if(!n){toast('Informe o nome.');return}
-      if(await dbw(sb.from('escalas').update({nome:n,mes:b.querySelector('#epM').value||null,tipo:b.querySelector('#epT').value,obs:b.querySelector('#epO').value.trim()||null,...(esC4(e)&&b.querySelector('#epI').value?{inicio:b.querySelector('#epI').value}:{})}).eq('id',e.id),'Escala atualizada.')){fecharModal();await load(['escalas']);rhEscalas()}};
+      if(await dbw(sb.from('escalas').update({nome:n,mes:b.querySelector('#epM').value||null,tipo:b.querySelector('#epT').value,obs:b.querySelector('#epO').value.trim()||null,...(esC4(e)&&b.querySelector('#epI').value?{inicio:b.querySelector('#epI').value}:{})}).eq('id',e.id),'Escala atualizada.')){fecharModal();await load(['escalas','vagas','quadro_previsto','alertas']);rhEscalas()}};
     const d=b.querySelector('#epDel');if(d)d.onclick=async()=>{if(!confirm(`Excluir a escala "${e.nome}" com todas as pessoas? Não dá para desfazer.`))return;
-      if(await dbw(sb.from('escalas').delete().eq('id',e.id),'Escala excluída.')){fecharModal();ES.id=null;await load(['escalas','escala_linhas']);rhEscalas()}}});
+      if(await dbw(sb.from('escalas').delete().eq('id',e.id),'Escala excluída.')){fecharModal();ES.id=null;await load(['escalas','escala_linhas','vagas','quadro_previsto','alertas']);rhEscalas()}}});
 }
 
 function esNova(){
@@ -403,8 +409,8 @@ function esNova(){
       const base=+b.querySelector('#nwB').value,be=es.find(x=>x.id===base);
       // de semana padrão para o rodízio: seg..sáb vale para as 4 semanas e o domingo N vira o domingo da semana N
       const conv=d=>{if(!be||esC4(be)===(mo==='ciclo4'))return d;const o={};if(mo==='ciclo4'){[1,2,3,4].forEach(w=>{['seg','ter','qua','qui','sex','sab'].forEach(k=>{if(d[k])o['w'+w+k]=d[k]});if(d['dom'+w])o['w'+w+'dom']=d['dom'+w]})}else{['seg','ter','qua','qui','sex','sab'].forEach(k=>{if(d['w1'+k])o[k]=d['w1'+k]});[1,2,3,4].forEach(w=>{if(d['w'+w+'dom'])o['dom'+w]=d['w'+w+'dom']})}return o};
-      if(base){const ls=esLinhas(base).map(l=>({escala_id:r.id,setor:l.setor,nome:l.nome,funcao:l.funcao,vinculo:l.vinculo,colaborador_id:l.colaborador_id,ordem:l.ordem,grupo:l.grupo||null,posicao:l.posicao||null,dias:conv(l.dias||{})}));if(ls.length)await dbw(sb.from('escala_linhas').insert(ls))}
-      fecharModal();toast('Escala criada.');ES.id=r.id;ES.edit=!!0;await load(['escalas','escala_linhas']);rhEscalas()}});
+      if(base){const ls=esLinhas(base).map(l=>({escala_id:r.id,setor:l.setor,nome:l.nome,funcao:l.funcao,vinculo:l.vinculo,colaborador_id:l.colaborador_id,ordem:l.ordem,grupo:l.grupo||null,posicao:l.posicao||null,vaga_id:l.vaga_id||null,dias:conv(l.dias||{})}));if(ls.length)await dbw(sb.from('escala_linhas').insert(ls))}
+      fecharModal();toast('Escala criada.');ES.id=r.id;ES.edit=!!0;await load(['escalas','escala_linhas','vagas','quadro_previsto','alertas']);rhEscalas()}});
 }
 
 // ---------- 5x2 obrigatória ----------
