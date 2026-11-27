@@ -172,6 +172,14 @@ async function saveOper(){
     conforme:sc.S,ajustar:sc.N,score:sc.score==null?null:Math.round(sc.score*10)/10,leitura_bom:$('#voBom').value.trim()||null,leitura_ajustar:$('#voAj').value.trim()||null,
     retorno:retorno.length?retorno:null,lider_ciente:$('#voCiente').checked};
   const r=await dbw(sb.from('vistorias_operacao').insert(row).select('id').single()); if(!r)return;
+  {const RS={sim:'Conforme',nao:'Ajustar',na:'N/A'},lin=[],dst=[];
+    CK_OPER.forEach(sec=>sec.i.forEach(it=>{const q=VO.r[it.k]||{};lin.push([data,row.hora||'',lojaNome(loja),row.turno||'',row.responsavel,row.lider||'',row.score,sec.s,it.n,RS[q.v]||'',q.o||'',(q.f||[]).length||'']);if(q.v==='nao')dst.push(`${it.n}${q.o?' · '+q.o:''}`)}));
+    VO.extra.filter(x=>(x.problema||'').trim()).forEach(x=>{lin.push([data,row.hora||'',lojaNome(loja),row.turno||'',row.responsavel,row.lider||'',row.score,'Outros pontos',x.problema.trim(),'Ajustar',x.acao||'','']);dst.push(x.problema.trim())});
+    retorno.forEach(x=>lin.push([data,row.hora||'',lojaNome(loja),row.turno||'',row.responsavel,row.lider||'',row.score,'Retorno da vistoria anterior',x.problema,x.resolvido==='sim'?'Resolvido':x.resolvido==='nao'?'Não resolvido':'',x.obs||'','']));
+    filaDrive({tipo:'vistoria_operacao',loja_id:loja,ref:`vo|${r.id}`,mes:ymOf(data),aba:'Vistoria de operações',titulo:`Vistoria de operações · ${lojaNome(loja)} · ${fmtD(data)}${row.score!=null?' · nota '+nf1.format(row.score):''}`,
+      colunas:['Data','Hora','Loja','Turno','Responsável','Líder','Nota','Seção','Item','Resposta','Observação','Fotos'],linhas:lin,tabela:false,
+      resumo:{'Nota':row.score==null?'—':nf1.format(row.score),'Conforme':sc.S,'Ajustar':sc.N,'Pessoas cozinha':row.pessoas_cozinha??'—','Pessoas expedição':row.pessoas_expedicao??'—'},
+      destaques:dst.concat(row.leitura_ajustar?[`Leitura do que ajustar: ${row.leitura_ajustar}`]:[])});}
   const ST={Pendente:'Pendente',Feito:'Concluído'};
   const acoes=[];CK_OPER.forEach(sec=>sec.i.forEach(it=>{const q=VO.r[it.k]||{};if(q.v!=='nao')return;const a=VO.ac[it.k]||{};
     acoes.push({loja_id:loja,origem:'vistoria',origem_id:r.id,problema:it.n,secao:sec.s,acao:a.acao||null,responsavel:a.resp||null,prazo:a.prazo||null,prioridade:a.pri||(it.pa?'Alta':'Média'),status:ST[a.st]||'Pendente',pa_semanal:!!it.pa,

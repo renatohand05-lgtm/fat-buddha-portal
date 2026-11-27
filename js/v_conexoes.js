@@ -353,6 +353,13 @@ async function salvarContagem(itens){
   busy(true);const {data,error}=await sb.rpc('registrar_contagem',{p_itens:lista.map(x=>({id:x.id,contado:x.contado,justificativa:x.justificativa||null}))});busy(false);
   if(error){toast(error.message.replace(/^BLOQUEIO: /,'Bloqueado: '));return false}
   const nd=lista.filter(x=>Math.abs(x.contado-x.esperado)>x.limite).length;
+  const hj=isoHoje(),hr=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'});
+  filaDrive({tipo:'contagem_cc',loja_id:null,ref:`cc|${hj}|${Date.now()}`,mes:ymOf(hj),aba:'Contagem cozinha central',
+    titulo:`Contagem da cozinha central · ${fmtD(hj)} ${hr} · ${lista.length} ite${lista.length===1?'m':'ns'}`,
+    colunas:['Data','Hora','Item','Unidade','Sistema','Contado','Diferença','Limite','Justificativa'],
+    linhas:lista.map(x=>[hj,hr,x.item,x.un||'',+x.esperado,+x.contado,Math.round((x.contado-x.esperado)*1000)/1000,+x.limite,x.justificativa||'']),
+    resumo:{'Itens contados':lista.length,'Divergências':nd},
+    destaques:lista.filter(x=>Math.abs(x.contado-x.esperado)>x.limite).map(x=>`${x.item}: sistema ${x.esperado}, contado ${x.contado} ${x.un||''}${x.justificativa?' · motivo: '+x.justificativa:''}`)});
   toast(`Contagem salva: ${data} ite${data===1?'m':'ns'}${nd?` · ${nd} divergência${nd>1?'s':''} enviada${nd>1?'s':''} para revisão`:''}.`);
   await load(['estoque_cc','contagens_estoque','alertas']);pintarSino();return true;
 }
@@ -378,6 +385,7 @@ const CONEXOES = [
 ];
 async function cfConexoes(){
   const el=$('#conexoes'); if(!el) return;
+  cfDrive();
   const [{data:ks},{data:lg}]=await Promise.all([sb.from('api_chaves').select('id,nome,escopos,ativo,ultimo_uso'),sb.from('api_logs').select('recurso,status,registros,em').in('recurso',['ifood','pedidos','notas','vendas']).order('em',{ascending:false}).limit(300)]);
   el.innerHTML=CONEXOES.map(c=>{const chaves=(ks||[]).filter(k=>k.ativo&&k.escopos.includes(c.rec));const ult=(lg||[]).find(l=>l.recurso===c.rec&&l.status<300);
     const on=!!ult&&Date.now()-new Date(ult.em)<3*864e5;
@@ -398,4 +406,38 @@ async function cfConexoes(){
         <div class="actions mt"><button class="btn" id="ckCopy">Copiar chave</button><button class="btn pri" id="ckOk">Pronto</button></div>`,m=>{m.querySelector('#ckCopy').onclick=()=>navigator.clipboard.writeText(k).then(()=>toast('Chave copiada.'));m.querySelector('#ckOk').onclick=fecharModal});
       listarChaves();cfConexoes();
     }});
+}
+
+/* ---------------- Drive e e-mail das contagens e checklists ---------------- */
+const DRV_TIPOS='Controle diário das lojas, contagem da cozinha central, CMV semanal e por item, visitas de qualidade, checklist de delivery e vistoria de operações';
+async function cfDrive(){
+  const el=$('#cxDrive'); if(!el) return;
+  if(!(P.admin||P.papel==='diretoria')){el.innerHTML='';return}
+  const {data:st,error}=await sb.functions.invoke('drive-enviar',{body:{acao:'status'}});
+  if(error||!st){el.innerHTML='';return}
+  const c=st.config||{}, lig=!!c.url&&c.ativo!==false, ok=lig&&st.ultimo&&!st.erro;
+  const chip=!c.url?['neu','aguardando o script do Google']:c.ativo===false?['neu','desligado']:st.erro?['bad','com erro']:st.ultimo?['ok','enviando']:['warn','ligado · sem envio ainda'];
+  el.innerHTML=`<div class="card conx"><h3>Drive e e-mail das contagens <small><span class="sem s-${chip[0]}" style="min-width:0">${chip[1]}</span></small></h3>
+    <p class="small muted">Cada contagem ou checklist salvo no portal entra numa planilha no Drive de ${esc((c.para||[]).join(', ')||'—')} (uma aba por tipo e por mês) e gera um e-mail com o resultado. Vale para: ${DRV_TIPOS}. O que for salvo antes de ligar fica guardado e é enviado assim que o script estiver no ar.</p>
+    <div class="metas-list mt"><div><span>Aguardando envio</span><b>${st.pendentes}</b></div><div><span>Último envio</span><b>${st.ultimo?`${new Date(st.ultimo.enviado_em).toLocaleString('pt-BR')} · ${esc(st.ultimo.titulo)}${st.ultimo.planilha_url?` · <a href="${esc(st.ultimo.planilha_url)}" target="_blank" rel="noopener">abrir planilha</a>`:''}`:'—'}</b></div>${st.erro?`<div><span>Último erro</span><b style="color:#ff9aa2">${esc(st.erro.erro)}</b></div>`:''}</div>
+    <details class="mt" ${c.url?'':'open'}><summary class="small" style="cursor:pointer;font-weight:650">Como ligar na conta do Lucas (5 minutos, uma vez)</summary>
+      <ol class="small conx-p" style="margin-top:8px">
+        <li>Entre em <b>script.google.com</b> com a conta do Lucas e clique em <b>Novo projeto</b>.</li>
+        <li>Apague o código que aparece, clique em <b>Copiar o script</b> aqui embaixo e cole lá. Salve (Ctrl+S).</li>
+        <li>Em cima, escolha a função <b>autorizar</b> e clique em <b>Executar</b>. Aceite as permissões (Drive, Planilhas e envio de e-mail). A pasta "Fat Buddha · Portal Operacional" e a planilha são criadas no Drive dele.</li>
+        <li><b>Implantar › Nova implantação</b> › tipo <b>App da Web</b> › Executar como: <b>Eu</b> · Quem pode acessar: <b>Qualquer pessoa</b> › Implantar.</li>
+        <li>Copie o <b>URL do app da Web</b> (termina em /exec), cole no campo abaixo, clique em <b>Salvar</b> e depois em <b>Enviar teste</b>.</li></ol></details>
+    <div class="form-row mt" style="grid-template-columns:2fr 1fr"><label class="f">URL do app da Web (Google)<input class="inp" id="drvUrl" value="${esc(c.url||'')}" placeholder="https://script.google.com/macros/s/…/exec"></label>
+      <label class="f">Enviar e-mail para<input class="inp" id="drvPara" value="${esc((c.para||[]).join(', '))}" placeholder="lucas@fatbuddha.com.br"></label></div>
+    <div class="actions mt"><button class="btn sm" id="drvScript">Copiar o script</button><button class="btn sm" id="drvBaixar">Baixar o script</button>
+      ${c.url?`<button class="btn sm" id="drvTeste">Enviar teste</button>`:''}${st.pendentes&&c.url?`<button class="btn sm" id="drvRe">Enviar a fila agora (${st.pendentes})</button>`:''}
+      ${c.url?`<button class="btn sm" id="drvOnOff">${c.ativo===false?'Ligar envio':'Pausar envio'}</button>`:''}<button class="btn pri sm" id="drvSalvar">Salvar</button></div></div>`;
+  const inv=async b=>{busy(true);const r=await sb.functions.invoke('drive-enviar',{body:b});busy(false);if(r.error){toast('Não foi possível falar com o servidor.');return null}return r.data};
+  const pegar=async()=>{const r=await inv({acao:'script'});return r&&r.script};
+  $('#drvScript').onclick=async()=>{const t=await pegar();if(t)navigator.clipboard.writeText(t).then(()=>toast('Script copiado. Cole no script.google.com.'),()=>toast('Não deu para copiar; use "Baixar o script".'))};
+  $('#drvBaixar').onclick=async()=>{const t=await pegar();if(!t)return;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/plain'}));a.download='fat-buddha-drive.gs';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)};
+  $('#drvSalvar').onclick=async()=>{const r=await inv({acao:'salvar',url:$('#drvUrl').value.trim(),para:$('#drvPara').value});if(!r)return;if(!r.ok){toast(r.erro||'Não foi possível salvar.');return}toast('Configuração salva.');cfDrive()};
+  const t=$('#drvTeste');if(t)t.onclick=async()=>{const r=await inv({acao:'teste'});if(!r)return;if(r.ok){toast(`Funcionando: planilha criada e e-mail de teste enviado.${r.cota!=null?` Cota de e-mails hoje: ${r.cota}.`:''}`);cfDrive()}else toast('O Google respondeu com erro: '+(r.erro||r.mensagem||'verifique o URL e o acesso "Qualquer pessoa".'))};
+  const re=$('#drvRe');if(re)re.onclick=async()=>{const r=await inv({acao:'reenviar'});if(r)toast(r.ok?`${r.enviados} enviado(s)${r.falhas?`, ${r.falhas} com erro`:''}.`:(r.mensagem||'Não enviado.'));cfDrive()};
+  const oo=$('#drvOnOff');if(oo)oo.onclick=async()=>{const r=await inv({acao:'salvar',url:c.url,para:c.para,ativo:c.ativo===false});if(r&&r.ok){toast(c.ativo===false?'Envio ligado.':'Envio pausado.');cfDrive()}};
 }

@@ -117,6 +117,12 @@ async function saveQual(){
   const vis={loja_id:loja,data,avaliador:$('#qAval').value||null,gerente:$('#qGer').value||null,score:Math.round(sc.score*10)/10,sim:sc.S,nao:sc.N,secoes:sc.per.map(p=>p.s+p.n?p.s/(p.s+p.n)*100:null),respostas:JSON.parse(JSON.stringify(Q))};
   const r=await dbw(sb.from('visitas_qualidade').insert(vis).select('id').single()); if(!r)return;
   const acoes=[];CK_QUAL.forEach((sec,si)=>sec.i.forEach((it,ii)=>{const q=Q[qKey(si,ii)]||{};if(q.v==='nao'){const a=q.a||{};acoes.push({loja_id:loja,origem:'visita',origem_id:r.id,problema:itTxt(it)+(q.t!=null?` — medido ${fmtT(q.t)}`:''),secao:sec.s,acao:a.acao||null,responsavel:a.resp||null,prazo:a.prazo||null,prioridade:a.pri||(itObj(it).tipo==='temp'?'Alta':'Média'),status:ST_MAP[a.st]||'Pendente',obs:[q.o,(q.f||[]).length?`${q.f.length} foto(s) na visita`:''].filter(Boolean).join(' · ')||null})}}));
+  {const RS={sim:'Sim',nao:'Não',na:'N/A'},lin=[],dst=[];
+    CK_QUAL.forEach((sec,si)=>sec.i.forEach((it,ii)=>{const q=Q[qKey(si,ii)]||{};lin.push([data,lojaNome(loja),vis.avaliador||'',vis.gerente||'',vis.score,sec.s,itTxt(it),RS[q.v]||'',q.t!=null?q.t:'',q.o||'',(q.f||[]).length||'']);
+      if(q.v==='nao')dst.push(`${itTxt(it)}${q.t!=null?' · medido '+fmtT(q.t):''}${q.o?' · '+q.o:''}`)}));
+    filaDrive({tipo:'visita_qualidade',loja_id:loja,ref:`vq|${r.id}`,mes:ymOf(data),aba:'Visitas de qualidade',titulo:`Visita de qualidade · ${lojaNome(loja)} · ${fmtD(data)} · nota ${nf1.format(vis.score)}`,
+      colunas:['Data','Loja','Avaliador','Gerente','Nota da visita','Seção','Item','Resposta','Temperatura','Observação','Fotos'],linhas:lin,tabela:false,
+      resumo:{'Nota':nf1.format(vis.score),'Sim':sc.S,'Não':sc.N,'Ações criadas':acoes.length},destaques:dst});}
   if(acoes.length&&!await dbw(sb.from('planos_acao').insert(acoes))){toast('Visita salva, mas o plano de ação não foi gerado.')}
   else toast(`Visita salva${acoes.length?` e ${acoes.length} ação(ões) criada(s) em Planos de ação`:''}.`);
   Q={}; buildQual(); await load(['visitas_qualidade','planos_acao']); renderQualHist();
@@ -155,6 +161,14 @@ async function saveDel(){
   if(!Object.values(D.m).some(v=>v!=null)){toast('Preencha pelo menos um indicador antes de salvar.');return}
   const loja=$('#dLoja').value, data=$('#dData').value; if(!loja||!data){toast('Informe loja e data.');return}
   const r=await dbw(sb.from('delivery_checklists').insert({loja_id:loja,data,periodo:$('#dPer').value,responsavel:$('#dResp').value||null,metas:D.m,acomp:D.a,rotina:D.r,obs:$('#dObs').value||null}).select('id').single()); if(!r)return;
+  {const per=$('#dPer').value,resp=$('#dResp').value||'',lin=[],dst=[],SL={ok:'Na meta',warn:'Atenção',bad:'Fora',neu:'Sem meta'};
+    CK_DEL_METAS.forEach(m0=>{const m=delMeta(m0,loja),v=D.m[m.k];const st=v==null?'':status(m,v);lin.push([data,lojaNome(loja),per,resp,'Indicadores',m.n,v??'',m.txt.replace(/^meta: /,''),SL[st]||'',$('#dObs').value||'']);if(st==='bad')dst.push(`${m.n}: ${nf1.format(v)}${m.u==='%'?'%':m.u==='min'?' min':''} (${m.txt})`)});
+    CK_DEL_ACOMP.forEach(m=>lin.push([data,lojaNome(loja),per,resp,'Acompanhamento',m.n+(m.u?` (${m.u})`:''),D.a[m.k]??'','','','']));
+    CK_DEL_ROT.forEach((t,i)=>{const v=D.r[i];lin.push([data,lojaNome(loja),per,resp,'Rotina',t,({sim:'Sim',nao:'Não',na:'N/A'})[v]||'','','','']);if(v==='nao')dst.push(`Rotina: ${t}`)});
+    const pr=CK_DEL_METAS.filter(m=>D.m[m.k]!=null),ok=pr.filter(m=>status(delMeta(m,loja),D.m[m.k])==='ok').length;
+    filaDrive({tipo:'checklist_delivery',loja_id:loja,ref:`dl|${r.id}`,mes:ymOf(data),aba:'Checklist de delivery',titulo:`Checklist de delivery · ${lojaNome(loja)} · ${fmtD(data)} · ${per}`,
+      colunas:['Data','Loja','Período','Responsável','Bloco','Item','Valor','Meta','Status','Observações'],linhas:lin,tabela:false,
+      resumo:{'Indicadores na meta':`${ok} de ${pr.length}`,'Rotina ok':Object.values(D.r).filter(v=>v==='sim').length,'Rotina com falha':Object.values(D.r).filter(v=>v==='nao').length},destaques:dst});}
   let n=0;
   if($('#dPlano').checked&&P.editar(loja)){
     const acoes=[];

@@ -174,6 +174,19 @@ async function load(ts){
   indexar(); busy(false);
 }
 /* grava e devolve erro amigável */
+// envia uma contagem/checklist salvo para a planilha do Drive e o e-mail do Lucas (fila no banco; a função drive-enviar entrega)
+// o={tipo,loja_id,ref,mes,titulo,aba,colunas,linhas,resumo,destaques,tabela}
+async function filaDrive(o){
+  try{
+    o=Object.assign({autor:(S.perfil&&(S.perfil.nome||S.perfil.email))||null,created_by:S.user?S.user.id:undefined},o);
+    if(!o.created_by)delete o.created_by;
+    o.linhas=(o.linhas||[]).map(l=>l.map(v=>v===undefined?null:v));
+    const {error}=await sb.from('envios_drive').insert(o);
+    if(error){console.warn('Drive:',error.message);return}
+    sb.functions.invoke('drive-enviar',{body:{acao:'enviar'}}).catch(()=>{});
+  }catch(e){console.warn('Drive:',e)}
+}
+const agoraBR=()=>new Date().toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'});
 async function dbw(promise,okMsg){
   busy(true);
   const {data,error}=await promise; busy(false);

@@ -58,13 +58,25 @@ function initCMV(){
   $('#cmSave').onclick=async()=>{const r=vals();if(!r.semana||!r.vendas||!$('#cmTeo').value){toast('Preencha semana, vendas e CMV teórico.');return}
     if(r.vendas<=0){toast('Vendas precisam ser maiores que zero.');return}
     const re=cmvReal(r); if(re<0||re>100){if(!confirm(`O CMV real calculado é ${nf1.format(re)}%. Confere os valores? Salvar mesmo assim?`))return}
-    if(await dbw(sb.from('cmv_contagens').upsert(r,{onConflict:'loja_id,semana'}),'Contagem salva.')){['#cmVen','#cmEi','#cmCo','#cmEf','#cmObs'].forEach(s=>$(s).value='');['#cmTe','#cmTs','#cmDev'].forEach(s=>$(s).value=0);prev();await load(['cmv_contagens']);renderCMV()}};
+    if(await dbw(sb.from('cmv_contagens').upsert(r,{onConflict:'loja_id,semana'}),'Contagem salva.')){
+      const re2=cmvReal(r),dp=re2-r.cmv_teorico;
+      filaDrive({tipo:'cmv_semanal',loja_id:r.loja_id,ref:`cmv|${r.loja_id}|${r.semana}`,mes:ymOf(r.semana),aba:'CMV semanal',
+        titulo:`Contagem do CMV · ${lojaNome(r.loja_id)} · semana de ${fmtD(r.semana)}`,
+        colunas:['Semana','Loja','Vendas','Estoque inicial','Compras','Transf. recebidas','Transf. enviadas','Devoluções','Estoque final','CMV R$','CMV real %','CMV teórico %','Dispersão p.p.','Responsável','Observações'],
+        linhas:[[r.semana,lojaNome(r.loja_id),r.vendas,r.estoque_inicial,r.compras,r.transf_entrada,r.transf_saida,r.devolucoes,r.estoque_final,Math.round(cmvRealR(r)*100)/100,Math.round(re2*10)/10,r.cmv_teorico,Math.round(dp*10)/10,r.responsavel||'',r.obs||'']],
+        resumo:{'CMV real':nf1.format(re2)+'%','CMV teórico':nf1.format(r.cmv_teorico)+'%','Dispersão':(dp>0?'+':'')+nf1.format(dp)+' p.p.'},
+        destaques:dp>0?[`CMV real ${nf1.format(dp)} p.p. acima do teórico`]:[]});['#cmVen','#cmEi','#cmCo','#cmEf','#cmObs'].forEach(s=>$(s).value='');['#cmTe','#cmTs','#cmDev'].forEach(s=>$(s).value=0);prev();await load(['cmv_contagens']);renderCMV()}};
   $('#ciSave').onclick=async()=>{const r={loja_id:$('#ciLoja').value,semana:semanaDe($('#ciSem').value),item:$('#ciItem').value.trim(),teorico:+$('#ciTeo').value,real:+$('#ciReal').value};
     if(!r.item||!r.teorico||!$('#ciReal').value){toast('Informe item, consumo teórico e real.');return}
     const lim=limGlobal();
     if(Math.abs(r.real-r.teorico)>lim){const j=await exigirJustificativas([{item:r.item,un:'un.',esperado:r.teorico,contado:r.real,limite:lim,justificativa:''}]);if(!j)return;r.justificativa=j[0].justificativa}
     else r.justificativa=null;
-    if(await dbw(sb.from('cmv_itens').upsert(r,{onConflict:'loja_id,semana,item'}),'Item salvo.')){['#ciItem','#ciTeo','#ciReal'].forEach(s=>$(s).value='');await load(['cmv_itens']);renderCMV()}};
+    if(await dbw(sb.from('cmv_itens').upsert(r,{onConflict:'loja_id,semana,item'}),'Item salvo.')){
+      filaDrive({tipo:'cmv_item',loja_id:r.loja_id,ref:`cmvit|${r.loja_id}|${r.semana}|${r.item}`,mes:ymOf(r.semana),aba:'CMV por item',
+        titulo:`Consumo do item ${r.item} · ${lojaNome(r.loja_id)} · semana de ${fmtD(r.semana)}`,
+        colunas:['Semana','Loja','Item','Consumo teórico','Consumo real','Diferença','Justificativa'],
+        linhas:[[r.semana,lojaNome(r.loja_id),r.item,r.teorico,r.real,Math.round((r.real-r.teorico)*1000)/1000,r.justificativa||'']],
+        resumo:{'Teórico':r.teorico,'Real':r.real,'Diferença':Math.round((r.real-r.teorico)*1000)/1000},destaques:r.justificativa?[`Motivo: ${r.justificativa}`]:[]});['#ciItem','#ciTeo','#ciReal'].forEach(s=>$(s).value='');await load(['cmv_itens']);renderCMV()}};
   $('#cmCsv').onclick=()=>csv('cmv-semanal-fat-buddha.csv',[['Semana','Loja','Vendas','Estoque inicial','Compras','Transferências recebidas','Transferências enviadas','Devoluções','Estoque final','CMV R$','CMV real %','CMV teórico %','Dispersão p.p.','Responsável','Observações']].concat((S.db.cmv_contagens||[]).map(r=>[r.semana,lojaNome(r.loja_id),r.vendas,r.estoque_inicial,r.compras,r.transf_entrada,r.transf_saida,r.devolucoes,r.estoque_final,cmvRealR(r).toFixed(2),cmvReal(r).toFixed(1),r.cmv_teorico,(cmvReal(r)-r.cmv_teorico).toFixed(1),r.responsavel,r.obs])));
 }
 

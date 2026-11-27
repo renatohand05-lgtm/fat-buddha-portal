@@ -94,8 +94,16 @@ async function renderControle(){
       const j=await exigirJustificativas(pend.map(o=>({item:o._item,un:'',esperado:0,contado:o._dif,limite:tol,justificativa:o.justificativa||'',rotulo:`diferença de ${o._dif>0?'+':''}${fq(o._dif)} entre o estoque contado e a venda do PDV (tolerância ${fq(tol)})`})));
       if(!j) return; j.forEach((x,k)=>{pend[k].justificativa=x.justificativa;CTL_RASC[pend[k].item_id]=Object.assign(CTL_RASC[pend[k].item_id]||{},{justificativa:x.justificativa})});
     }
+    const snap=linhas.map(o=>{const i=itens.find(x=>x.id===o.item_id),c=calc(i);return [data,lojaNome(loja),L.n,i.item,i.unidade||'',c.ti,c.ent,c.tf,c.ven,c.per,c.dif,o.justificativa||'',o.resp_abertura||'',o.resp_fechamento||'']});
     linhas.forEach(o=>{delete o._item;delete o._dif});
-    if(await dbw(sb.from('controle_diario').upsert(linhas,{onConflict:'loja_id,data,item_id'}),`${L.n}: contagem salva (${linhas.length} itens).`)){CTL_RASC={};await load(['alertas']);pintarSino();renderControle()}
+    if(await dbw(sb.from('controle_diario').upsert(linhas,{onConflict:'loja_id,data,item_id'}),`${L.n}: contagem salva (${linhas.length} itens).`)){
+      const fora=snap.filter(r=>r[10]!=null&&Math.abs(r[10])>tol), dif=snap.filter(r=>r[10]);
+      filaDrive({tipo:'controle_diario',loja_id:loja,ref:`ctl|${loja}|${data}|${ctlLista}`,mes:ymOf(data),aba:'Controle diário',
+        titulo:`Controle diário · ${L.n} · ${lojaNome(loja)} · ${fmtD(data)}`,
+        colunas:['Data','Loja','Lista','Item','Unidade','Abertura','Entradas','Fechamento','Venda','Perdas','Diferença','Justificativa','Resp. abertura','Resp. fechamento'],linhas:snap,
+        resumo:{'Itens contados':snap.length,'Com diferença':dif.length,'Fora da tolerância':fora.length},
+        destaques:fora.map(r=>`${r[3]}: diferença de ${r[10]>0?'+':''}${fq(r[10])} ${r[4]}${r[11]?' · motivo: '+r[11]:''}`)});
+      CTL_RASC={};await load(['alertas']);pintarSino();renderControle()}
   };
   // resumo do mês
   const m=ymOf(data), mes=CTL_MES, comDif=mes.filter(r=>Math.abs(r.diferenca)>tol), dias=uniq(mes.map(r=>r.data));
