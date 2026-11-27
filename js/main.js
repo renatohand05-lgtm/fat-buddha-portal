@@ -33,7 +33,7 @@ function aplicarLojas(){
   if(P.papel==='colaborador'){ccSub='rup';$$('#ccNav button').forEach(b=>b.classList.toggle('hidden',b.dataset.s!=='rup'))}
 }
 function mesesOpcoes(){
-  const hoje=ymOf(isoHoje()), datas=(S.db.vendas_diarias||[]).map(r=>r.data.slice(0,7));
+  const hoje=ymOf(isoHoje()), datas=(S.db.vendas_diarias||[]).map(r=>r.data.slice(0,7)).concat((S.db.vendas_hora_mes||[]).map(r=>r.mes));
   let ini=datas.length?datas.reduce((a,b)=>a<b?a:b):addMes(hoje,-11); if(ini>addMes(hoje,-11)) ini=addMes(hoje,-11);
   const out=[]; for(let m=addMes(hoje,1);m>=ini;m=addMes(m,-1)) out.push(m); return out;
 }
@@ -54,7 +54,9 @@ async function entrar(){
   const nome=pf.nome||user.email;
   $('#userBox').innerHTML=`<div class="av">${esc(nome.trim()[0]||'?').toUpperCase()}</div><div><b>${esc(nome)}</b><span>${PAPEL_TXT[pf.papel]}</span></div><button id="btnSair" title="Sair">Sair</button>`;
   $('#btnSair').onclick=async()=>{await sb.auth.signOut();location.hash='';location.reload()};
-  if(!(S.db.vendas_diarias||[]).some(r=>ymOf(r.data)===S.mes)){const ms=(S.db.vendas_diarias||[]).map(r=>ymOf(r.data)).filter(m=>m<=S.mes).sort();if(ms.length)S.mes=ms.at(-1)}
+  // abre no mês atual se ele já tem venda (dia a dia ou acumulado do caixa); senão, no último mês com venda
+  {const mv=(S.db.vendas_diarias||[]).map(r=>ymOf(r.data)).concat((S.db.vendas_hora_mes||[]).map(r=>r.mes));
+   if(!mv.includes(S.mes)){const ms=mv.filter(m=>m<=S.mes).sort();if(ms.length)S.mes=ms.at(-1)}}
   initPWA(); liveLigar(); $('#bell').onclick=()=>abrirAlertas(); pintarSino(); if(alertasVisiveis().some(a=>!a.resolvido&&!lidos().has(a.id)))$('#bell').classList.add('tem');
   initMes(); initOrc(); initConfig(); aplicarLojas();
   aplicarDemo();

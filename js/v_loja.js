@@ -43,11 +43,18 @@ function renderLoja(){
   $('#mlAtalhos').querySelectorAll('[data-at]').forEach(b=>b.onclick=at[+b.dataset.at][1]);
   // gráfico do mês
   const A=vendasPeriodo([id],iniMes(S.mes),fimMes(S.mes));
+  // só o acumulado do caixa: o gráfico mostra o faturamento por hora do mês (o dia a dia não veio no relatório)
+  const hMl=$('#cMl').closest('.card').querySelector('h3');
+  if(s.acum){hMl.innerHTML=`Faturamento por hora no mês <small>${esc(s.acum.fonte||'caixa')} · acumulado${s.acum.ate?' de 01 a '+fmtD(s.acum.ate).slice(0,5):''} · a venda dia a dia não veio no relatório</small>`;
+    const hs=Object.keys(s.acum.horas).map(Number).sort((a,b)=>a-b),mx=Math.max(...hs.map(h=>s.acum.horas[h]));
+    mk('cMl',{type:'bar',data:{labels:hs.map(h=>h+'h'),datasets:[{label:'Faturamento',data:hs.map(h=>s.acum.horas[h]),backgroundColor:hs.map(h=>s.acum.horas[h]===mx?'rgba(242,179,61,.95)':'rgba(229,48,63,.85)'),borderRadius:4}]},
+      options:{plugins:{tooltip:{callbacks:{label:c=>` ${brl(c.raw)} · ${nf0.format(s.acum.ped[hs[c.dataIndex]]||0)} pedidos · ${nf1.format(c.raw/s.acum.valor*100)}% do mês`}}},scales:{y:yR,x:xG}}});
+  } else { hMl.innerHTML='Venda do mês dia a dia <small>salão + delivery com a meta do dia</small>';
   if(s.temVenda||s.meta) mk('cMl',{type:'bar',data:{labels:A.datas.map(d=>d.slice(8,10)),datasets:[
     {type:'line',label:'Meta do dia',data:A.metaDia,borderColor:C.gold,borderWidth:2,borderDash:[5,4],pointRadius:0,tension:.3,order:0},
     {label:'Venda',data:A.dias.map(d=>d[0]+d[1]),backgroundColor:A.datas.map(d=>d===ref?'rgba(242,179,61,.95)':'rgba(229,48,63,.85)'),borderRadius:4,order:1}]},
     options:{interaction:{mode:'index',intersect:false},plugins:{tooltip:tipBrl},scales:{y:yR,x:Object.assign({ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:16}},xG)}}});
-  else noData('cMl','Sem vendas nem meta no mês.');
+  else noData('cMl','Sem vendas nem meta no mês.');}
   // semáforo
   $('#mlSemSub').textContent=mesLongo(S.mes);
   $('#mlSem').innerHTML=ML.map(m=>{const x=v[m.k],st=status(m,x);return `<div title="${esc(s.src[m.k]||'sem dado no mês')}"><span>${m.n}<br><span class="small muted">${m.txt}${x==null?' · sem dado no mês':''}</span></span><b><span class="sem s-${st}" style="min-width:0">${fmt(m.f,x)}</span></b></div>`}).join('');

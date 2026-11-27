@@ -93,10 +93,10 @@ function vendasPeriodo(ids,ini,fim){
   const hs=horas.map(h=>sum(hr.filter(r=>r.hora===h),r=>r.salao)), hd=horas.map(h=>sum(hr.filter(r=>r.hora===h),r=>r.delivery));
   const meta=metaDia.some(v=>v!=null)?sum(metaDia.filter(v=>v!=null)):null;
   // lojas sem venda dia a dia no mês: entra o acumulado por hora do mês (relatório do sistema de caixa), quando o período cobre o mês
-  const ac={fat:0,ped:0,sal:0,del:0,ps:0,pd:0,horas:{},lojas:[],ate:null,dias:0};
+  const ac={fat:0,ped:0,sal:0,del:0,ps:0,pd:0,sm:0,horas:{},lojas:[],ate:null,dias:0};
   uniq(datas.map(ymOf)).forEach(m=>{if(ini>iniMes(m))return;ids.forEach(id=>{const a=IDX.vhm.get(id+'|'+m);if(!a||diasDoMes(m).some(d=>IDX.vd.has(id+'|'+d)))return;
     if(a.ate&&fim<a.ate&&fim<fimMes(m))return;
-    const dv=(LBYID[id]||{}).canais==='delivery';ac.fat+=a.valor;ac.ped+=a.pessoas;if(dv){ac.del+=a.valor;ac.pd+=a.pessoas}else{ac.sal+=a.valor;ac.ps+=a.pessoas}
+    const dv=(LBYID[id]||{}).canais==='delivery';ac.fat+=a.valor;ac.ped+=a.pessoas;if(dv){ac.del+=a.valor;ac.pd+=a.pessoas}else{ac.sal+=a.valor;ac.ps+=a.pessoas;ac.sm+=a.valor}
     Object.entries(a.horas).forEach(([h,v])=>ac.horas[h]=(ac.horas[h]||0)+v);ac.lojas.push(id);if(a.ate&&(!ac.ate||a.ate>ac.ate))ac.ate=a.ate;ac.dias=Math.max(ac.dias,a.ate?+a.ate.slice(8,10):diasDoMes(m).length)})});
   let temHora=hr.length>0,hs2=hs,hd2=hd,horas2=horas,diasH2=diasH;
   if(!temHora&&ac.lojas.length){horas2=Object.keys(ac.horas).map(Number).sort((a,b)=>a-b);const dv=ac.del>=ac.sal;hs2=horas2.map(h=>dv?0:ac.horas[h]);hd2=horas2.map(h=>dv?ac.horas[h]:0);diasH2=ac.dias||1;temHora=true}
@@ -122,7 +122,9 @@ function renderVendas(){
   animateKpis($('#vKpis'));
 
   const labs=A.datas.map(d=>d.slice(8,10)+(N<=62?' '+wkOfIso(d):'/'+d.slice(5,7)));
-  if(fat||A.meta) mk('cDaily',{type:'bar',data:{labels:labs,datasets:[
+  const soCaixa=!!A.ac&&!tot.some(v=>v>0);
+  if(soCaixa) noData('cDaily',`O relatório do caixa traz o acumulado do mês por hora${A.ac.ate?' (01 a '+fmtD(A.ac.ate).slice(0,5)+')':''}, sem a venda dia a dia.`);
+  else if(fat||A.meta) mk('cDaily',{type:'bar',data:{labels:labs,datasets:[
     {type:'line',label:'Meta do dia',data:A.metaDia,borderColor:C.gold,borderWidth:2,borderDash:[5,4],pointRadius:0,tension:.3,order:0},
     {label:'Salão',data:A.dias.map(d=>d[0]),backgroundColor:'rgba(238,219,202,.75)',borderRadius:4,stack:'s',order:1},
     {label:'Delivery',data:A.dias.map(d=>d[1]),backgroundColor:'rgba(229,48,63,.85)',borderRadius:4,stack:'s',order:1}
@@ -138,15 +140,16 @@ function renderVendas(){
 
   let ac=0, am=0;
   if(fat||A.meta) mk('cAcum',{type:'line',data:{labels:labs,datasets:[
-    {label:'Realizado',data:tot.map((v,i)=>A.datas[i]<=isoHoje()||v?ac+=v:null),borderColor:C.red,backgroundColor:'rgba(229,48,63,.15)',fill:true,tension:.3,pointRadius:0,borderWidth:2.5},
+    {label:'Realizado',data:soCaixa?A.datas.map(d=>d===A.ac.ate?fat:null):tot.map((v,i)=>A.datas[i]<=isoHoje()||v?ac+=v:null),pointRadius:soCaixa?6:0,pointBackgroundColor:C.red,borderColor:C.red,backgroundColor:'rgba(229,48,63,.15)',fill:true,tension:.3,pointRadius:0,borderWidth:2.5},
     {label:'Meta acumulada',data:A.metaDia.map(v=>am+=(v||0)),borderColor:C.gold,borderDash:[6,5],pointRadius:0,borderWidth:2}
   ]},options:{interaction:{mode:'index',intersect:false},plugins:{tooltip:tipBrl},scales:{y:yR,x:Object.assign({ticks:{maxRotation:0,maxTicksLimit:8}},xG)}}});
   else noData('cAcum','Sem vendas nem meta no período.');
 
-  if(fat) mk('cCanal',{type:'doughnut',data:{labels:['Salão','Delivery'],datasets:[{data:[sal,del],backgroundColor:['rgba(238,219,202,.85)','rgba(229,48,63,.9)'],borderWidth:0,hoverOffset:8}]},
+  const sm=A.ac?A.ac.sm:0, salR=sal-sm;
+  if(fat) mk('cCanal',{type:'doughnut',data:{labels:sm?['Salão','Delivery','Sem divisão (caixa)']:['Salão','Delivery'],datasets:[{data:sm?[salR,del,sm]:[sal,del],backgroundColor:['rgba(238,219,202,.85)','rgba(229,48,63,.9)','rgba(150,140,132,.6)'],borderWidth:0,hoverOffset:8}]},
     options:{cutout:'68%',plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>' '+c.label+': '+brl(c.parsed)+' ('+nf1.format(c.parsed/fat*100)+'%)'}}}}});
   else noData('cCanal','Sem vendas no período.');
-  $('#canalInfo').innerHTML = `<div><span>Salão</span><b>${brl(sal)} · ${fat?nf1.format(sal/fat*100):'0'}%</b></div><div><span>Delivery</span><b>${brl(del)} · ${fat?nf1.format(del/fat*100):'0'}%</b></div>`;
+  $('#canalInfo').innerHTML = `<div><span>Salão</span><b>${brl(salR)} · ${fat?nf1.format(salR/fat*100):'0'}%</b></div><div><span>Delivery</span><b>${brl(del)} · ${fat?nf1.format(del/fat*100):'0'}%</b></div>${sm?`<div><span>Sem divisão (caixa)</span><b>${brl(sm)} · ${nf1.format(sm/fat*100)}%</b></div>`:''}`;
 
   $('#tCanal').innerHTML = `<tr><th>Loja</th><th class="num">Salão</th><th class="num">Delivery</th><th class="num">Total</th><th class="num">% delivery</th><th class="num">Ticket salão</th><th class="num">Ticket delivery</th></tr>`+
     OPER.map(l=>{const B=vendasPeriodo([l.id],ini,fim);const X=B.ac||{sal:0,del:0,ps:0,pd:0},sm=!!B.ac&&l.canais!=='delivery';const s={sal:sum(B.dias,d=>d[0])+X.sal,del:sum(B.dias,d=>d[1])+X.del,ps:sum(B.dias,d=>d[2])+X.ps,pd:sum(B.dias,d=>d[3])+X.pd};s.fat=s.sal+s.del;
