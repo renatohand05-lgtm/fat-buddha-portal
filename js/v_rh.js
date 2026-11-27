@@ -16,8 +16,8 @@ function renderRH(){
   $$('#rhNav button').forEach(b=>b.classList.toggle('on',b.dataset.s===rhSub));
   $$('.rhs').forEach(s=>s.classList.toggle('on',s.id==='rh-'+rhSub));
   if(rhSub==='folha'&&!P.veFolha)rhSub='quadro';
-  $('#rhLoja').style.display=rhSub==='folha'?'none':'';
-  ({quadro:rhQuadro,vagas:rhVagas,mov:rhMov,oco:rhOco,perf:rhPerf,nine:rhNine,suc:rhSuc,folha:rhFolha})[rhSub]();
+  $('#rhLoja').style.display=['folha','escalas'].includes(rhSub)?'none':'';
+  ({escalas:rhEscalas,quadro:rhQuadro,vagas:rhVagas,mov:rhMov,oco:rhOco,perf:rhPerf,nine:rhNine,suc:rhSuc,folha:rhFolha})[rhSub]();
 }
 const quadroPrev = (id,c) => {const q=(S.db.quadro_previsto||[]).find(x=>x.loja_id===id&&x.cargo===c);return q?q.previsto:0};
 const quadroAtivo = (id,c) => people().filter(p=>p.loja_id===id&&p.cargo===c).length;
@@ -179,7 +179,7 @@ function initRH(){
   // colaboradores
   $('#coCargo').innerHTML=CARGOS.map(c=>`<option>${c}</option>`).join(''); $('#coLoja').innerHTML=optLojas(lojasEditaveis())+(P.gestor?Object.entries(SETORES).map(([k,v])=>`<option value="m:${k}">${v}</option>`).join(''):''); $('#coAdm').value=isoHoje();
   $('#coLoja').onchange=()=>{$('#coCargo').disabled=$('#coLoja').value.startsWith('m:')};
-  initFolha(); initVagas();
+  initFolha(); initVagas(); initEscalas();
   $('#coFil').onchange=rhQuadro;
   $('#coSave').onclick=async()=>{const lv=$('#coLoja').value, m=lv.startsWith('m:'), cf=$('#coCf').value.trim()||null;
     const r={nome:$('#coNome').value.trim(),setor:m?lv.slice(2):'loja',loja_id:m?null:lv,cargo:m?cf:$('#coCargo').value,cargo_folha:cf,contrato:$('#coCt').value||null,admissao:$('#coAdm').value,desempenho:+$('#coDes').value,potencial:+$('#coPot').value};

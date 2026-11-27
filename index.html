@@ -460,7 +460,7 @@
     <section class="tab" id="tab-rh">
       <div class="card" style="display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px;padding:12px 14px">
         <div class="subnav" id="rhNav">
-          <button data-s="quadro" class="on">Quadro de pessoal</button><button data-s="vagas">Vagas</button><button data-s="mov">Turnover e absenteísmo</button><button data-s="oco">Ocorrências e advertências</button><button data-s="perf">Performance de gerentes</button><button data-s="nine">Nine box</button><button data-s="suc">Sucessão e carreira</button><button data-s="folha">Folha salarial</button>
+          <button data-s="quadro" class="on">Quadro de pessoal</button><button data-s="escalas">Escalas</button><button data-s="vagas">Vagas</button><button data-s="mov">Turnover e absenteísmo</button><button data-s="oco">Ocorrências e advertências</button><button data-s="perf">Performance de gerentes</button><button data-s="nine">Nine box</button><button data-s="suc">Sucessão e carreira</button><button data-s="folha">Folha salarial</button>
         </div>
         <select class="inp" id="rhLoja" style="max-width:240px"></select>
       </div>
@@ -491,6 +491,16 @@
         <div class="card mt"><h3>Vagas <small><select class="inp" id="vgFil" style="display:inline-block;width:auto;padding:5px 10px"><option value="andamento">Em andamento</option><option value="todas">Todas</option><option value="encerradas">Encerradas</option></select></small><span style="margin-left:auto"><button class="btn pri sm" id="btnNovaVaga2">Abrir vaga</button></span></h3>
           <p class="small muted">O gerente solicita; o supervisor regional ou a gestão aprova; depois a vaga vai para seleção e é encerrada ao registrar as contratações. Vaga parada há 2 dias sem aprovação ou com prazo vencido aparece no sino.</p>
           <div class="tbl-wrap"><table id="tVagas"></table></div></div>
+      </div>
+
+      <div class="rhs" id="rh-escalas">
+        <div class="card es-bar">
+          <label class="f">Unidade<select class="inp" id="esUni"></select></label>
+          <label class="f">Escala<select class="inp" id="esEsc"></select></label>
+          <div class="f"><span>Setor</span><div class="subnav es-set" id="esSet"><button data-s="todos" class="on">Todos</button><button data-s="Cozinha">Cozinha</button><button data-s="Expedição">Expedição</button><button data-s="Limpeza">Limpeza e estoque</button></div></div>
+          <span style="margin-left:auto;display:flex;gap:8px;align-self:end"><button class="btn" id="esNova">Nova escala</button><button class="btn pri" id="esEditar">Editar escala</button></span>
+        </div>
+        <div id="esCorpo" class="mt"></div>
       </div>
 
       <div class="rhs" id="rh-folha">
@@ -815,6 +825,7 @@
 <script src="js/v_dre.js"></script>
 <script src="js/v_google.js"></script>
 <script src="js/v_vistoria.js"></script>
+<script src="js/v_escalas.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

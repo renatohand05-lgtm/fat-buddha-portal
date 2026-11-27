@@ -583,3 +583,58 @@ b.neg,em.neg,.cmg-stat b.neg{color:#ff9aa2}b.pos,.cmg-stat b.pos{color:#7fe3b8}e
 .gg-db-leg .gg-db-p{position:static;margin:0;display:inline-block}
 .gg-db-leg i.dash{display:inline-block;width:0;height:12px;border-left:2px dashed rgba(255,236,220,.5)}
 @media (max-width:560px){.gg-db-head,.gg-db-r{grid-template-columns:90px 1fr 70px}.gg-db-d,.gg-db-head span:last-child{display:none}}
+
+/* ---------- RH · Escalas ---------- */
+.es-bar{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;padding:14px 16px}
+.es-bar .f{min-width:180px}
+.es-set button{padding:7px 12px}
+.es-dist th,.es-dist td{text-align:center}
+.es-dist td:first-child,.es-dist th:first-child{text-align:left;white-space:nowrap}
+.es-dist th.dom,.es-g th.dom{color:#f7cf7a}
+.es-dc{cursor:pointer;position:relative;background:rgba(229,48,63,var(--a));border-radius:8px;transition:transform .15s}
+.es-dc b{font-size:15px;font-variant-numeric:tabular-nums}
+.es-dc small{display:block;font-size:10px;color:#ffd2d6;font-weight:600}
+.es-dc.baixo{box-shadow:inset 0 0 0 2px #ff6b78}
+.es-dc.sel{box-shadow:inset 0 0 0 2px #f7eee6}
+.es-dc:hover{transform:scale(1.04)}
+.es-dist{border-collapse:separate;border-spacing:3px}
+.es-quem{margin-top:10px;font-size:13px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.es-pq{background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+.es-leg{display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 12px}
+.es-ch{display:inline-block;padding:3px 8px;border-radius:7px;font-size:11.5px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums;border:1px solid transparent}
+.es-ch i{font-style:normal;font-size:10px;background:rgba(0,0,0,.25);border-radius:4px;padding:0 4px;margin-left:2px}
+.es-ch.manha{background:rgba(242,179,61,.16);color:#f7cf7a;border-color:rgba(242,179,61,.3)}
+.es-ch.meio{background:rgba(63,182,168,.16);color:#8fe0d4;border-color:rgba(63,182,168,.3)}
+.es-ch.noite{background:rgba(91,141,239,.18);color:#aac4ff;border-color:rgba(91,141,239,.35)}
+.es-ch.dobra{background:rgba(176,124,240,.2);color:#d7bcff;border-color:rgba(176,124,240,.4)}
+.es-ch.folga{background:rgba(255,255,255,.05);color:var(--muted)}
+.es-ch.ferias{background:rgba(224,122,95,.18);color:#f3b39f}
+.es-ch.vazio{color:var(--dim);background:none}
+.es-ch.outro{background:rgba(255,255,255,.08)}
+.es-gw{max-height:70vh;overflow:auto}
+.es-g{border-collapse:separate;border-spacing:0}
+.es-g th{position:sticky;top:0;background:#211a18;z-index:2}
+.es-g td,.es-g th{padding:5px 4px;text-align:center}
+.es-g .es-nm{text-align:left;min-width:190px;position:sticky;left:0;background:#1d1715;z-index:1}
+.es-g th.es-nm{z-index:3;background:#211a18}
+.es-g tr.es-sg td{text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#f7cf7a;background:rgba(242,179,61,.06);padding:8px 10px;position:sticky;left:0}
+.es-g tr.fr td.es-nm b{color:var(--muted)}
+.es-g td.dom{background:rgba(242,179,61,.035)}
+.es-rh{font-size:9.5px;font-weight:700;letter-spacing:.4px;background:rgba(44,159,115,.18);color:#7fe3b8;border-radius:4px;padding:1px 5px;vertical-align:middle}
+.es-vn{color:#f7cf7a}
+.es-h44{color:#ffb4ba;font-weight:700}
+.es-g.ed .es-ci{width:128px;padding:5px 6px;font-size:12px}
+.es-g.ed .es-ci.mud{box-shadow:0 0 0 1px #f2b33d}
+.es-g.ed .es-in{width:100%;padding:5px 8px}
+.es-mini{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px;min-width:260px}.es-mini .inp{padding:4px 6px;font-size:11px}
+.es-rg{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+.es-rg:first-of-type{border-top:0}
+.es-rg-i{flex:0 0 24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:13px}
+.es-rg.ok .es-rg-i{background:rgba(44,159,115,.2);color:#7fe3b8}
+.es-rg.warn .es-rg-i{background:rgba(201,143,44,.22);color:#f7cf7a}
+.es-rg.bad .es-rg-i{background:rgba(217,58,72,.22);color:#ff9aa2}
+.es-minf{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.es-minf summary{cursor:pointer;font-size:13px;color:var(--muted)}
+.es-or td{white-space:normal;font-size:12.5px;vertical-align:top}
+.es-ul{margin:0 0 0 18px;display:flex;flex-direction:column;gap:6px;font-size:13px}
+@media print{.es-gw{max-height:none;overflow:visible}.es-bar,#rhNav{display:none!important}}
