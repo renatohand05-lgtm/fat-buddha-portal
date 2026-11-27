@@ -91,24 +91,33 @@ function vendasPeriodo(ids,ini,fim){
   const diasH=uniq(hr.map(r=>r.data)).length;
   const hs=horas.map(h=>sum(hr.filter(r=>r.hora===h),r=>r.salao)), hd=horas.map(h=>sum(hr.filter(r=>r.hora===h),r=>r.delivery));
   const meta=metaDia.some(v=>v!=null)?sum(metaDia.filter(v=>v!=null)):null;
-  return {datas,dias,metaDia,horas,hs,hd,diasH,meta,temHora:hr.length>0};
+  // lojas sem venda dia a dia no mês: entra o acumulado por hora do mês (relatório do sistema de caixa), quando o período cobre o mês
+  const ac={fat:0,ped:0,sal:0,del:0,ps:0,pd:0,horas:{},lojas:[],ate:null,dias:0};
+  uniq(datas.map(ymOf)).forEach(m=>{if(ini>iniMes(m))return;ids.forEach(id=>{const a=IDX.vhm.get(id+'|'+m);if(!a||diasDoMes(m).some(d=>IDX.vd.has(id+'|'+d)))return;
+    if(a.ate&&fim<a.ate&&fim<fimMes(m))return;
+    const dv=(LBYID[id]||{}).canais==='delivery';ac.fat+=a.valor;ac.ped+=a.pessoas;if(dv){ac.del+=a.valor;ac.pd+=a.pessoas}else{ac.sal+=a.valor;ac.ps+=a.pessoas}
+    Object.entries(a.horas).forEach(([h,v])=>ac.horas[h]=(ac.horas[h]||0)+v);ac.lojas.push(id);if(a.ate&&(!ac.ate||a.ate>ac.ate))ac.ate=a.ate;ac.dias=Math.max(ac.dias,a.ate?+a.ate.slice(8,10):diasDoMes(m).length)})});
+  let temHora=hr.length>0,hs2=hs,hd2=hd,horas2=horas,diasH2=diasH;
+  if(!temHora&&ac.lojas.length){horas2=Object.keys(ac.horas).map(Number).sort((a,b)=>a-b);const dv=ac.del>=ac.sal;hs2=horas2.map(h=>dv?0:ac.horas[h]);hd2=horas2.map(h=>dv?ac.horas[h]:0);diasH2=ac.dias||1;temHora=true}
+  return {datas,dias,metaDia,horas:horas2,hs:hs2,hd:hd2,diasH:diasH2,meta,temHora,ac:ac.lojas.length?ac:null};
 }
 function renderVendas(){
   const sel=$('#vLoja').value||'rede', ids = sel==='rede'?OPER.map(l=>l.id):[sel];
   let ini=$('#vIni').value||iniMes(S.mes), fim=$('#vFim').value||fimMes(S.mes); if(fim<ini)[ini,fim]=[fim,ini];
   garantirHora(ini,fim).then(novo=>{if(novo&&S.tab==='vendas')renderVendas()});
   const A=vendasPeriodo(ids,ini,fim), N=A.datas.length;
-  const sal=sum(A.dias,d=>d[0]), del=sum(A.dias,d=>d[1]), ps=sum(A.dias,d=>d[2]), pd=sum(A.dias,d=>d[3]), fat=sal+del;
+  const AC=A.ac||{sal:0,del:0,ps:0,pd:0};
+  const sal=sum(A.dias,d=>d[0])+AC.sal, del=sum(A.dias,d=>d[1])+AC.del, ps=sum(A.dias,d=>d[2])+AC.ps, pd=sum(A.dias,d=>d[3])+AC.pd, fat=sal+del;
   const tot=A.dias.map(d=>d[0]+d[1]); const best=tot.indexOf(Math.max(...tot));
   const hTot=A.hs.map((v,i)=>v+A.hd[i]); const pico=hTot.indexOf(Math.max(...hTot));
   const nDias=A.datas.filter((d,i)=>tot[i]>0).length;
   $('#vKpis').innerHTML =
     kpi('Faturamento',fat||null,'brlK',A.meta?`${nf1.format(fat/A.meta*100)}% da meta de ${brlK(A.meta)}`:'sem meta cadastrada no período',A.meta?fat/A.meta*100:null)+
-    kpi('Média por dia',nDias?fat/nDias:null,'brl',`${nDias} dia${nDias===1?'':'s'} com venda de ${N}`)+
+    kpi('Média por dia',(nDias+(A.ac?A.ac.dias:0))?fat/Math.max(nDias,A.ac?A.ac.dias:0):null,'brl',A.ac?`acumulado do caixa${A.ac.ate?' até '+fmtD(A.ac.ate).slice(0,5):''} · ${A.ac.lojas.map(lojaNome).join(', ')}`:`${nDias} dia${nDias===1?'':'s'} com venda de ${N}`)+
     kpi('Pedidos',(ps+pd)||null,'int',`${nf0.format(ps)} salão · ${nf0.format(pd)} delivery`)+
     kpi('Ticket médio',(ps+pd)?fat/(ps+pd):null,'ticket',ps?`salão R$ ${nf2.format(sal/ps)} · delivery ${pd?'R$ '+nf2.format(del/pd):'—'}`:(pd?'100% delivery':''))+
-    kpi('Melhor dia',fat?tot[best]:null,'brl',fat?new Date(A.datas[best]+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'}):'')+
-    kpi('Horário de pico',A.temHora?hTot[pico]/A.diasH:null,'brl',A.temHora?`${A.horas[pico]}h · média por dia`:'sem vendas por hora lançadas');
+    kpi('Melhor dia',tot[best]>0?tot[best]:null,'brl',tot[best]>0?new Date(A.datas[best]+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'}):'')+
+    kpi('Horário de pico',A.temHora?hTot[pico]/A.diasH:null,'brl',A.temHora?`${A.horas[pico]}h · média por dia${A.ac&&!(S.db.vendas_hora||[]).length?' (acumulado ÷ '+A.diasH+' dias)':''}`:'sem vendas por hora lançadas');
   animateKpis($('#vKpis'));
 
   const labs=A.datas.map(d=>d.slice(8,10)+(N<=62?' '+wkOfIso(d):'/'+d.slice(5,7)));

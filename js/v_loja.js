@@ -18,14 +18,16 @@ function renderLoja(){
   const s=lojaStats(id), dias=diasDoMes(S.mes), ate=dias.filter(d=>d<=ref);
   const vd=d=>{const r=IDX.vd.get(id+'|'+d);return r?(+r.salao)+(+r.delivery):0};
   const vDia=vd(ref), rDia=IDX.vd.get(id+'|'+ref), pDia=rDia?rDia.pedidos_salao+rDia.pedidos_delivery:0;
-  const mDia=metaDiaLoja(id,ref), acum=sum(ate,vd), mAcum=s.meta!=null?sum(ate,d=>metaDiaLoja(id,d)||0):null;
-  const proj=s.meta!=null&&mAcum?acum/mAcum*s.meta:(ate.length?acum/ate.length*dias.length:null);
+  // sem venda dia a dia: acumulado do mês vindo do caixa (até o dia do relatório)
+  const ateA=s.acum&&s.acum.ate?dias.filter(d=>d<=s.acum.ate):ate;
+  const mDia=metaDiaLoja(id,ref), acum=s.acum?s.fat:sum(ate,vd), mAcum=s.meta!=null?sum(s.acum?ateA:ate,d=>metaDiaLoja(id,d)||0):null;
+  const proj=s.meta!=null&&mAcum?acum/mAcum*s.meta:((s.acum?ateA:ate).length?acum/(s.acum?ateA:ate).length*dias.length:null);
   const ML=METAS(id), v=s.vals, comDado=ML.filter(m=>m.meta!=null&&v[m.k]!=null), okN=comDado.filter(m=>status(m,v[m.k])==='ok').length;
   const rk=rankingRede(), pos=rk.findIndex(r=>r.l.id===id)+1;
   $('#mlInfo').textContent=`${L.canais==='salao+delivery'?'Salão + delivery':'Delivery'} · referência ${new Date(ref+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'})}`;
   $('#mlKpis').innerHTML=
     kpi('Venda do dia',rDia?vDia:null,'brl',mDia?`meta do dia ${brl(mDia)} · ${rDia?nf0.format(vDia/mDia*100)+'%':'sem lançamento'}`:'sem meta do dia',mDia&&rDia?vDia/mDia*100:null)+
-    kpi('Acumulado no mês',s.temVenda?acum:null,'brlK',mAcum?`${nf1.format(acum/mAcum*100)}% da meta até o dia (${brlK(mAcum)})`:'meta do mês não cadastrada',mAcum?acum/mAcum*100:null)+
+    kpi('Acumulado no mês',s.temVenda?acum:null,'brlK',mAcum?`${nf1.format(acum/mAcum*100)}% da meta até ${s.acum&&s.acum.ate?fmtD(s.acum.ate).slice(0,5)+' · caixa':'o dia'} (${brlK(mAcum)})`:'meta do mês não cadastrada',mAcum?acum/mAcum*100:null)+
     kpi('Projeção do mês',s.temVenda?proj:null,'brlK',s.meta?`meta ${brlK(s.meta)} · ${nf1.format(proj/s.meta*100)}%`:'no ritmo atual',s.meta&&proj?proj/s.meta*100:null)+
     kpi('Pedidos do dia',rDia?pDia:null,'int',pDia?`ticket ${'R$ '+nf2.format(vDia/pDia)}`:'')+
     kpi('Indicadores na meta',comDado.length?okN:null,'int',`de ${comDado.length} com dado no mês`,comDado.length?okN/comDado.length*100:null)+

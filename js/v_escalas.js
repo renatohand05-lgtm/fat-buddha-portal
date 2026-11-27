@@ -431,11 +431,16 @@ function esPoliticaHtml(e){
 
 // ---------- proposta pelos picos de venda ----------
 const ES_T0=6*60, ES_T1=24*60, ES_SL=15;
-function esDemReal(u){const r=(S.db.vendas_hora||[]).filter(x=>x.loja_id===u&&!x.demo);if(new Set(r.map(x=>x.data)).size<14)return null;
-  const h=Array(24).fill(0);r.forEach(x=>h[x.hora]+=(+x.salao||0)+(+x.delivery||0));const mx=Math.max(...h);if(!mx)return null;
-  const v=[];for(let t=ES_T0;t<ES_T1;t+=ES_SL)v.push(h[Math.floor(t/60)]/mx);return v}
+function esDemReal(u){const r=(S.db.vendas_hora||[]).filter(x=>x.loja_id===u&&!x.demo);let h=null,txt='';
+  if(new Set(r.map(x=>x.data)).size>=14){h=Array(24).fill(0);r.forEach(x=>h[x.hora]+=(+x.salao||0)+(+x.delivery||0));txt='curva das vendas por hora registradas da loja'}
+  else{const ms=[...IDX.vhm.keys()].filter(k=>k.startsWith(u+'|')).map(k=>k.split('|')[1]).sort(),m=ms[ms.length-1];
+    if(m){const a=IDX.vhm.get(u+'|'+m);h=Array(24).fill(0);Object.entries(a.horas).forEach(([k,v])=>h[k]=v);txt=`curva real: faturamento por hora de ${mesLongo(m).toLowerCase()}${a.ate?' até '+fmtD(a.ate).slice(0,5):''} (${a.fonte||'caixa'})`}}
+  if(!h)return null;const mx=Math.max(...h);if(!mx)return null;
+  // valor da hora cheia, suavizado entre as horas vizinhas a cada 15 min
+  const v=[];for(let t=ES_T0;t<ES_T1;t+=ES_SL){const m=t+ES_SL/2,hh=Math.floor(m/60),f=(m-hh*60)/60,a=h[hh]||0,b=f<.5?(h[hh-1]||0):(h[hh+1]||0),w=Math.abs(f-.5);v.push(((1-w)*a+w*b)/mx)}
+  return {v,txt,h}}
 function esDemanda(u){
-  const real=esDemReal(u);if(real)return {v:real,fonte:'real'};
+  const real=esDemReal(u);if(real)return {v:real.v,fonte:'real',txt:real.txt,h:real.h};
   const P=ES_PICOS(),v=[];
   for(let t=ES_T0;t<ES_T1;t+=ES_SL){const m=t+ES_SL/2;let x=m<10*60+30||m>23*60+30?0:(m>=15*60&&m<18*60?.22:.16);
     P.forEach((p,i)=>{const pk=i?.95:1,r=45;let y=0;
@@ -461,6 +466,8 @@ function esPropostaHtml(e,ls,c){
   const abre=pes.findIndex(x=>x>0),fecha=pes.length-1-[...pes].reverse().findIndex(x=>x>0),pre=D.v.findIndex(v=>v>0);
   const pausaPico=turnos.filter(x=>x.t.segs.length>1&&P.some(p=>x.t.segs[0][1]<p.b&&x.t.segs[1][0]>p.a));
   const ins=[];
+  if(D.h){const tot=D.h.reduce((a,b)=>a+b,0),top=D.h.map((v,i)=>[i,v]).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]+'h'),pc=(a,b)=>Math.round(D.h.slice(a,b).reduce((x,y)=>x+y,0)/tot*100);
+    ins.push({k:'i',t:`Vendas reais: as horas mais fortes são ${top.join(', ')}. Almoço (11h–15h) = ${pc(11,15)}% do faturamento; jantar (18h–22h) = ${pc(18,22)}%.`})}
   P.forEach(p=>{const ix=D.v.map((_,i)=>i).filter(i=>{const m=ES_T0+i*ES_SL+ES_SL/2;return m>=p.a&&m<p.b});const mn=Math.min(...ix.map(i=>pes[i])),mx=Math.max(...ix.map(i=>pes[i]));
     ins.push({k:'i',t:`Pico do ${p.nome} (${hh(p.a)} às ${hh(p.b)}): ${mn===mx?mn:mn+' a '+mx} pessoas na operação${mn!==mx?`, ${ix.filter(i=>pes[i]===mn).length*15} min com ${mn}`:''}.`})});
   fal.forEach(([a,b])=>{const g=Math.max(...pes.slice(a,b).map((x,j)=>alvo[a+j]-x));ins.push({k:'b',t:`Das ${hm(a)} às ${hm(b)} a equipe fica abaixo da curva de demanda (falta${g>1?'m':''} até ${g} ${g>1?'pessoas':'pessoa'}): antecipe uma entrada ou chame o intermitente nesse horário.`})});
@@ -490,7 +497,7 @@ function esPropostaHtml(e,ls,c){
   </svg>`;
   const mdl=ES_MODELOS.map(m=>{const t=esTurno(m.h.split(' ou ')[0]),cb=P.map(p=>esCobre(t,p)),ic=v=>v==='sim'?'<span class="es-ok">✓</span>':v==='parcial'?'<span class="es-par">parcial</span>':'<span class="muted">—</span>';
     return `<tr><td><b>${esc(m.g)}</b></td><td class="num">${esc(m.h.replace(/-/g,'–'))}</td><td class="num">${m.h.includes(' ou ')?'3h30–4h':esHoras(t.min)}</td><td>${ic(cb[0])}</td><td>${ic(cb[1])}</td><td class="es-mot">${esc(m.p)}</td></tr>`}).join('');
-  return `<div class="card mt es-prop"><h3>Proposta pelos picos de venda <small>${esc(esDiaNome(c,e))} · ${D.fonte==='real'?'curva das vendas por hora registradas da loja':'curva montada pelos picos da operação: almoço 12h–14h30 e jantar 19h–21h30'}</small></h3>
+  return `<div class="card mt es-prop"><h3>Proposta pelos picos de venda <small>${esc(esDiaNome(c,e))} · ${D.fonte==='real'?esc(D.txt):'curva montada pelos picos da operação: almoço 12h–14h30 e jantar 19h–21h30'}</small></h3>
     <div class="es-pp-wrap"><div>${svg}<div class="es-pp-leg"><span><i class="dem"></i>Demanda (índice do pico)</span><span><i class="pes"></i>Pessoas trabalhando</span><span><i class="alvo"></i>Ideal pela demanda</span>${fal.length?'<span><i class="gap"></i>Abaixo da curva</span>':''}</div></div>
       <div class="es-ins">${ins.map(x=>`<div class="es-in-i ${x.k}"><i>${x.k==='ok'?'✓':x.k==='b'?'!':x.k==='o'?'↓':'•'}</i><span>${esc(x.t)}</span></div>`).join('')}
         <p class="small muted">Ideal = demanda de cada 15 minutos × a equipe que a loja coloca no pico. Cozinha, expedição e gestão; estoque e limpeza ficam fora da conta.</p></div></div>

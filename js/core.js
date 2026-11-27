@@ -78,7 +78,6 @@ Chart.defaults.color=C.tick; Chart.defaults.font.family=getComputedStyle(documen
 Chart.defaults.plugins.legend.labels.usePointStyle=true; Chart.defaults.plugins.legend.labels.boxWidth=8;
 Chart.defaults.plugins.tooltip.backgroundColor='rgba(30,23,21,.95)'; Chart.defaults.plugins.tooltip.borderColor='rgba(255,236,220,.15)'; Chart.defaults.plugins.tooltip.borderWidth=1; Chart.defaults.plugins.tooltip.padding=10;
 Chart.defaults.maintainAspectRatio=false;
-Chart.defaults.resizeDelay=150; // giro de tela e barra do navegador: redesenha uma vez só
 if(document.documentElement.classList.contains('movel')){Chart.defaults.animation.duration=380;Chart.defaults.plugins.tooltip.padding=12;Chart.defaults.font.size=12}
 /* nitidez: desenha os gráficos em 2x (ou mais) — fica cristalino em qualquer tela */
 Chart.defaults.devicePixelRatio=Math.max(2,window.devicePixelRatio||1);
@@ -147,7 +146,7 @@ const tipPct = {callbacks:{label:c=>' '+c.dataset.label+': '+nf1.format(c.parsed
 const S = { user:null, perfil:null, minhas:[], mes:ymOf(isoHoje()), db:{}, tab:'geral' };
 const TABLES = {
   lojas:{order:'ordem'}, config:{}, metas:{order:'vigente_desde'}, metas_vendas:{}, dre_premissas_loja:{},
-  vendas_diarias:{order:'data'}, vendas_hora:{order:'data',lazy:true}, indicadores_mensais:{}, cmv_contagens:{order:'semana'}, cmv_itens:{order:'semana'},
+  vendas_diarias:{order:'data'}, vendas_hora:{order:'data',lazy:true}, vendas_hora_mes:{order:'hora'}, indicadores_mensais:{}, cmv_contagens:{order:'semana'}, cmv_itens:{order:'semana'},
   estoque_cc:{order:'item'}, rupturas:{order:'data'}, dre_lancamentos:{}, orc_cenarios:{order:'created_at'}, expansao:{order:'ordem'},
   colaboradores:{order:'nome'}, colaboradores_folha:{}, quadro_previsto:{}, vagas:{order:'created_at'}, lideranca:{}, rh_movimentos:{order:'mes'}, ocorrencias:{order:'data'},
   avaliacoes_gerentes:{order:'periodo'}, visitas_qualidade:{order:'data'}, vistorias_operacao:{order:'data'}, delivery_checklists:{order:'data'}, planos_acao:{order:'created_at'},
@@ -232,6 +231,9 @@ function indexar(){
   OPER=LOJAS.filter(l=>l.status==='operando');
   LBYID=Object.fromEntries(LOJAS.map(l=>[l.id,l]));
   IDX.vd=new Map((S.db.vendas_diarias||[]).map(r=>[r.loja_id+'|'+r.data,r]));
+  // faturamento por hora acumulado do mês (relatório do sistema de caixa) para lojas sem a venda dia a dia
+  IDX.vhm=new Map();(S.db.vendas_hora_mes||[]).forEach(r=>{const k=r.loja_id+'|'+r.mes;let o=IDX.vhm.get(k);if(!o)IDX.vhm.set(k,o={valor:0,real:0,serv:0,pessoas:0,ate:r.ate,fonte:r.fonte,horas:{},ped:{}});
+    o.valor+= +r.valor;o.real+= +r.total_real;o.serv+= +r.servico;o.pessoas+= +r.pessoas;o.horas[r.hora]=(o.horas[r.hora]||0)+ +r.valor;o.ped[r.hora]=(o.ped[r.hora]||0)+ +r.pessoas;if(r.ate&&(!o.ate||r.ate>o.ate))o.ate=r.ate});
   IDX.mv=new Map((S.db.metas_vendas||[]).map(r=>[r.loja_id+'|'+r.mes,+r.valor]));
   IDX.im=new Map((S.db.indicadores_mensais||[]).map(r=>[r.loja_id+'|'+r.mes,r]));
   IDX.rh=new Map((S.db.rh_movimentos||[]).map(r=>[r.loja_id+'|'+r.mes,r]));
@@ -322,9 +324,12 @@ function lojaStats(id,mes=S.mes){
   const ds=diasDoMes(mes);
   const dias=ds.map(d=>{const r=IDX.vd.get(id+'|'+d);return r?[+r.salao,+r.delivery,+r.pedidos_salao,+r.pedidos_delivery]:[0,0,0,0]});
   const nReg=ds.filter(d=>IDX.vd.has(id+'|'+d)).length;
-  const sal=sum(dias,d=>d[0]), del=sum(dias,d=>d[1]), ps=sum(dias,d=>d[2]), pd=sum(dias,d=>d[3]);
+  let sal=sum(dias,d=>d[0]), del=sum(dias,d=>d[1]), ps=sum(dias,d=>d[2]), pd=sum(dias,d=>d[3]);
+  // sem venda dia a dia: usa o acumulado do mês por hora (ex.: relatório do Colibri)
+  const acum=nReg?null:IDX.vhm.get(id+'|'+mes)||null;
+  if(acum){const dv=(LOJAS.find(l=>l.id===id)||{}).canais==='delivery';if(dv){del=acum.valor;pd=acum.pessoas}else{sal=acum.valor;ps=acum.pessoas}}
   const fat=sal+del, meta=IDX.mv.get(id+'|'+mes)??null;
-  const temVenda=nReg>0;
+  const temVenda=nReg>0||!!acum;
   const ind={}, src={};
   // delivery e qualidade: média dos checklists de delivery do mês; na falta, lançamento manual do mês
   const chk=(S.db.delivery_checklists||[]).filter(c=>c.loja_id===id&&ymOf(c.data)===mes);
@@ -367,8 +372,8 @@ function lojaStats(id,mes=S.mes){
   const rh=IDX.rh.get(id+'|'+mes);
   if(rh){ind.turnover=turnOf(rh);ind.absent=absOf(rh);src.turnover=src.absent='lançamento mensal de RH'}
   const vals=Object.assign({fat:temVenda?fat:null,pctMeta:temVenda&&meta?fat/meta*100:null},ind);
-  src.fat=src.pctMeta=temVenda?`${nReg} dias de venda lançados`:'sem vendas lançadas';
-  const st={sal,del,ps,pd,fat,ped:ps+pd,ticket:(ps+pd)?fat/(ps+pd):null,meta,pctMeta:vals.pctMeta,dias,nReg,temVenda,vals,src,ind};
+  src.fat=src.pctMeta=acum?`${acum.fonte||'sistema de caixa'} · acumulado do mês${acum.ate?' até '+fmtD(acum.ate).slice(0,5):''}`:temVenda?`${nReg} dias de venda lançados`:'sem vendas lançadas';
+  const st={sal,del,ps,pd,fat,ped:ps+pd,ticket:(ps+pd)?fat/(ps+pd):null,meta,pctMeta:vals.pctMeta,dias,nReg,temVenda,vals,src,ind,acum};
   return CACHE[key]=st;
 }
 const ST = new Proxy({},{get:(_,id)=>lojaStats(id)});
