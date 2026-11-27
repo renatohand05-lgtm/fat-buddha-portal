@@ -31,7 +31,7 @@ function renderLoja(){
     kpi('Projeção do mês',s.temVenda?proj:null,'brlK',s.meta?`meta ${brlK(s.meta)} · ${nf1.format(proj/s.meta*100)}%`:'no ritmo atual',s.meta&&proj?proj/s.meta*100:null)+
     kpi('Pedidos do dia',rDia?pDia:null,'int',pDia?`ticket ${'R$ '+nf2.format(vDia/pDia)}`:'')+
     kpi('Indicadores na meta',comDado.length?okN:null,'int',`de ${comDado.length} com dado no mês`,comDado.length?okN/comDado.length*100:null)+
-    (rk.length>1?kpi('Posição no ranking',pos||null,'int',`de ${rk.length} lojas · ${mesTxt(S.mes)}`):kpi('Delivery no faturamento',s.fat?s.del/s.fat*100:null,'pct1',`${brlK(s.del)} no mês`,s.fat?s.del/s.fat*100:null));
+    (rk.length>1?kpi('Posição no ranking',pos||null,'int',`de ${rk.length} lojas · ${mesTxt(S.mes)}`):kpi('Delivery no faturamento',s.fat&&!s.semMix?s.del/s.fat*100:null,'pct1',`${brlK(s.del)} no mês`,s.fat?s.del/s.fat*100:null));
   animateKpis($('#mlKpis'));
   const at=[];
   if(P.editar(id)) at.push(['Lançar venda',()=>{go('vendas');setTimeout(()=>{$('#vdLoja').value=id;$('#vdData').value=isoHoje();$('#vForm').scrollIntoView({behavior:'smooth'})},300)}]);

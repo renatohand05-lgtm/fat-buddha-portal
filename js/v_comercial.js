@@ -29,6 +29,7 @@ function renderGeral(){
   renderOnboard();
   const all = OPER.map(l=>lojaStats(l.id));
   const fat=sum(all,s=>s.fat), meta=sum(all,s=>s.meta||0), ped=sum(all,s=>s.ped), del=sum(all,s=>s.del);
+  const mixOk=all.filter(s=>!s.semMix), fatMix=sum(mixOk,s=>s.fat), semMixN=OPER.filter(l=>lojaStats(l.id).semMix).map(l=>l.nome);
   const piso=pisoLoja(), comVenda=all.filter(s=>s.temVenda);
   const acima = comVenda.filter(s=>s.fat>=piso).length;
   const abaixoMeta = comVenda.filter(s=>s.meta&&s.fat<s.meta).length;
@@ -39,7 +40,7 @@ function renderGeral(){
     kpi('Vendas x meta',meta&&comVenda.length?fat/meta*100:null,'pct1',`${abaixoMeta} loja${abaixoMeta===1?'':'s'} abaixo da meta`, meta?fat/meta*100:null)+
     kpi('Pedidos',comVenda.length?ped:null,'int','salão + delivery')+
     kpi('Ticket médio',ped?fat/ped:null,'ticket','por pedido')+
-    kpi('Delivery no faturamento',fat?del/fat*100:null,'pct1',fat?`${brlK(del)} no mês`:'', fat?del/fat*100:null)+
+    kpi('Delivery no faturamento',fatMix?del/fatMix*100:null,'pct1',fatMix?`${brlK(del)} no mês${semMixN.length?` · sem ${semMixN.join(', ')} (caixa sem divisão)`:''}`:'', fatMix?del/fatMix*100:null)+
     kpi(`Lojas acima de ${brlK(piso)}`,comVenda.length?acima:null,'int',`de ${OPER.length} em operação${inaug.length?' · '+inaug.map(l=>l.nome+(l.inauguracao?' abre em '+l.inauguracao.replace(/^(\w{3})\w* de (\d{2})?(\d{2})$/,(m,a,b,c)=>a.toLowerCase()+'/'+c):'')).join(', '):''}`, OPER.length?acima/OPER.length*100:null);
   animateKpis($('#geralKpis'));
   $('#fatLojaSub').textContent=`linha: piso de ${brlK(piso)}/mês`;
@@ -114,8 +115,8 @@ function renderVendas(){
   $('#vKpis').innerHTML =
     kpi('Faturamento',fat||null,'brlK',A.meta?`${nf1.format(fat/A.meta*100)}% da meta de ${brlK(A.meta)}`:'sem meta cadastrada no período',A.meta?fat/A.meta*100:null)+
     kpi('Média por dia',(nDias+(A.ac?A.ac.dias:0))?fat/Math.max(nDias,A.ac?A.ac.dias:0):null,'brl',A.ac?`acumulado do caixa${A.ac.ate?' até '+fmtD(A.ac.ate).slice(0,5):''} · ${A.ac.lojas.map(lojaNome).join(', ')}`:`${nDias} dia${nDias===1?'':'s'} com venda de ${N}`)+
-    kpi('Pedidos',(ps+pd)||null,'int',`${nf0.format(ps)} salão · ${nf0.format(pd)} delivery`)+
-    kpi('Ticket médio',(ps+pd)?fat/(ps+pd):null,'ticket',ps?`salão R$ ${nf2.format(sal/ps)} · delivery ${pd?'R$ '+nf2.format(del/pd):'—'}`:(pd?'100% delivery':''))+
+    kpi('Pedidos',(ps+pd)||null,'int',A.ac&&A.ac.lojas.some(id=>(LBYID[id]||{}).canais!=='delivery')?'caixa sem divisão salão/delivery':`${nf0.format(ps)} salão · ${nf0.format(pd)} delivery`)+
+    kpi('Ticket médio',(ps+pd)?fat/(ps+pd):null,'ticket',A.ac&&A.ac.lojas.some(id=>(LBYID[id]||{}).canais!=='delivery')?'por pedido · caixa':ps?`salão R$ ${nf2.format(sal/ps)} · delivery ${pd?'R$ '+nf2.format(del/pd):'—'}`:(pd?'100% delivery':''))+
     kpi('Melhor dia',tot[best]>0?tot[best]:null,'brl',tot[best]>0?new Date(A.datas[best]+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'}):'')+
     kpi('Horário de pico',A.temHora?hTot[pico]/A.diasH:null,'brl',A.temHora?`${A.horas[pico]}h · média por dia${A.ac&&!(S.db.vendas_hora||[]).length?' (acumulado ÷ '+A.diasH+' dias)':''}`:'sem vendas por hora lançadas');
   animateKpis($('#vKpis'));
@@ -148,7 +149,8 @@ function renderVendas(){
   $('#canalInfo').innerHTML = `<div><span>Salão</span><b>${brl(sal)} · ${fat?nf1.format(sal/fat*100):'0'}%</b></div><div><span>Delivery</span><b>${brl(del)} · ${fat?nf1.format(del/fat*100):'0'}%</b></div>`;
 
   $('#tCanal').innerHTML = `<tr><th>Loja</th><th class="num">Salão</th><th class="num">Delivery</th><th class="num">Total</th><th class="num">% delivery</th><th class="num">Ticket salão</th><th class="num">Ticket delivery</th></tr>`+
-    OPER.map(l=>{const B=vendasPeriodo([l.id],ini,fim);const s={sal:sum(B.dias,d=>d[0]),del:sum(B.dias,d=>d[1]),ps:sum(B.dias,d=>d[2]),pd:sum(B.dias,d=>d[3])};s.fat=s.sal+s.del;
+    OPER.map(l=>{const B=vendasPeriodo([l.id],ini,fim);const X=B.ac||{sal:0,del:0,ps:0,pd:0},sm=!!B.ac&&l.canais!=='delivery';const s={sal:sum(B.dias,d=>d[0])+X.sal,del:sum(B.dias,d=>d[1])+X.del,ps:sum(B.dias,d=>d[2])+X.ps,pd:sum(B.dias,d=>d[3])+X.pd};s.fat=s.sal+s.del;
+      if(sm)return `<tr><td><b>${esc(l.nome)}</b></td><td colspan="2" class="muted">caixa sem divisão salão/delivery</td><td class="num"><b>${brl(s.fat)}</b></td><td class="num">—</td><td colspan="2" class="num">ticket R$ ${nf2.format(s.fat/(s.ps+s.pd||1))}</td></tr>`;
       return `<tr style="${ids.length===1&&ids[0]===l.id?'background:rgba(229,48,63,.12)':''}"><td><b>${esc(l.nome)}</b></td><td class="num">${brl(s.sal)}</td><td class="num">${brl(s.del)}</td><td class="num"><b>${brl(s.fat)}</b></td><td class="num">${s.fat?nf1.format(s.del/s.fat*100)+'%':'—'}</td><td class="num">${s.ps?"R$ "+nf2.format(s.sal/s.ps):"<span class=\"muted\">"+(l.canais==='delivery'?'só delivery':'—')+"</span>"}</td><td class="num">${s.pd?'R$ '+nf2.format(s.del/s.pd):'—'}</td></tr>`}).join('')+
     LOJAS.filter(l=>l.status==='inauguracao').map(l=>`<tr><td><b>${esc(l.nome)}</b></td><td colspan="6" class="muted">Inauguração em ${esc(l.inauguracao||'data a definir')}</td></tr>`).join('');
 

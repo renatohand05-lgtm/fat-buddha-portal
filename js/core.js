@@ -327,7 +327,9 @@ function lojaStats(id,mes=S.mes){
   let sal=sum(dias,d=>d[0]), del=sum(dias,d=>d[1]), ps=sum(dias,d=>d[2]), pd=sum(dias,d=>d[3]);
   // sem venda dia a dia: usa o acumulado do mês por hora (ex.: relatório do Colibri)
   const acum=nReg?null:IDX.vhm.get(id+'|'+mes)||null;
-  if(acum){const dv=(LOJAS.find(l=>l.id===id)||{}).canais==='delivery';if(dv){del=acum.valor;pd=acum.pessoas}else{sal=acum.valor;ps=acum.pessoas}}
+  // loja só de delivery: tudo é delivery; salão + delivery: o caixa não separa os canais (semMix)
+  const semMix=!!acum&&(LBYID[id]||{}).canais!=='delivery';
+  if(acum){if(!semMix){del=acum.valor;pd=acum.pessoas}else{sal=acum.valor;ps=acum.pessoas}}
   const fat=sal+del, meta=IDX.mv.get(id+'|'+mes)??null;
   const temVenda=nReg>0||!!acum;
   const ind={}, src={};
@@ -373,7 +375,7 @@ function lojaStats(id,mes=S.mes){
   if(rh){ind.turnover=turnOf(rh);ind.absent=absOf(rh);src.turnover=src.absent='lançamento mensal de RH'}
   const vals=Object.assign({fat:temVenda?fat:null,pctMeta:temVenda&&meta?fat/meta*100:null},ind);
   src.fat=src.pctMeta=acum?`${acum.fonte||'sistema de caixa'} · acumulado do mês${acum.ate?' até '+fmtD(acum.ate).slice(0,5):''}`:temVenda?`${nReg} dias de venda lançados`:'sem vendas lançadas';
-  const st={sal,del,ps,pd,fat,ped:ps+pd,ticket:(ps+pd)?fat/(ps+pd):null,meta,pctMeta:vals.pctMeta,dias,nReg,temVenda,vals,src,ind,acum};
+  const st={sal,del,ps,pd,fat,ped:ps+pd,ticket:(ps+pd)?fat/(ps+pd):null,meta,pctMeta:vals.pctMeta,dias,nReg,temVenda,vals,src,ind,acum,semMix};
   return CACHE[key]=st;
 }
 const ST = new Proxy({},{get:(_,id)=>lojaStats(id)});
@@ -410,7 +412,7 @@ function lojaDre(id,mes=S.mes){
   let folhaR=null; const man=IDX.im.get(id+'|'+mes); if(real.folha==null&&man&&man.folha_valor!=null){folhaR=+man.folha_valor;est.folha=false}
   // faturamento oficial do fechamento (lançado no DRE) substitui a soma das vendas; sem a divisão salão/delivery no fechamento, ela fica em branco
   const fo=IDX.dl.get(id+'|'+mes+'|fat'), fd=IDX.dl.get(id+'|'+mes+'|fat_del');
-  const fat=fo?+fo.valor:s.fat, fatDel=fo?(fd?+fd.valor:null):s.del;
+  const fat=fo?+fo.valor:s.fat, fatDel=fo?(fd?+fd.valor:null):(s.semMix?null:s.del);
   return dreCalc(Object.assign({},P0,{fat,fatDel,folha:P0.pessoal,cmvR,folhaR,real,est,oficial:!!fo}));
 }
 
