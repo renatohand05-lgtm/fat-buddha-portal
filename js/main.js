@@ -88,8 +88,11 @@ $('#modal').addEventListener('keydown',e=>{if(e.key==='Escape')fecharModal()});
 entrar();
 
 /* ================= fundo animado ================= */
+const MOVEL=document.documentElement.classList.contains('movel');
+// digitando: o fundo para de desenhar para o teclado e a tela ficarem 100% para quem está preenchendo
+const digitando=()=>{const a=document.activeElement;return !!a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT'||a.isContentEditable)};
 /* modo leve automático: se o computador não der conta, tira o desfoque dos cartões e mantém o fundo animado */
-(function(){let n=0;const t0=performance.now();function f(){n++;const dt=performance.now()-t0;if(dt<1500)requestAnimationFrame(f);else if(n/dt*1000<28)document.body.classList.add('lite')}setTimeout(()=>requestAnimationFrame(f),800)})();
+if(!MOVEL)(function(){let n=0;const t0=performance.now();function f(){n++;const dt=performance.now()-t0;if(dt<1500)requestAnimationFrame(f);else if(n/dt*1000<28)document.body.classList.add('lite')}setTimeout(()=>requestAnimationFrame(f),800)})();
 /* 1) brilhos grandes: desenhados em baixa resolução e ampliados (ficam suaves sem custo de blur) */
 (function(){
   const cv=$('#bgc'), x=cv.getContext('2d'), S=8; let W,H;
@@ -99,14 +102,15 @@ entrar();
            {c:'179,18,31',a:.5,r:.34,px:.05,py:.4,ax:.25,ay:.25,fx:.00012,fy:.00008,ph:4.4},
            {c:'229,48,63',a:.3,r:.26,px:.45,py:.2,ax:.35,ay:.15,fx:.00017,fy:.00012,ph:2.3}];
   function rs(){W=Math.ceil(cv.clientWidth/S);H=Math.ceil(cv.clientHeight/S);cv.width=W;cv.height=H}
-  function fr(t){x.clearRect(0,0,W,H);x.globalCompositeOperation='lighter';const m=Math.max(W,H);
+  function fr(t){if(!MOVEL&&digitando()){requestAnimationFrame(fr);return}x.clearRect(0,0,W,H);x.globalCompositeOperation='lighter';const m=Math.max(W,H);
     for(const b of B){const cx=(b.px+Math.sin(t*b.fx+b.ph)*b.ax)*W, cy=(b.py+Math.cos(t*b.fy+b.ph)*b.ay)*H, r=m*b.r*(1+.15*Math.sin(t*.0003+b.ph));
       const g=x.createRadialGradient(cx,cy,0,cx,cy,r);g.addColorStop(0,`rgba(${b.c},${b.a})`);g.addColorStop(1,`rgba(${b.c},0)`);x.fillStyle=g;x.fillRect(0,0,W,H)}
-    requestAnimationFrame(fr)}
-  addEventListener('resize',rs);rs();requestAnimationFrame(fr);
+    if(!MOVEL)requestAnimationFrame(fr)}
+  // no celular o brilho é desenhado uma vez (parado): mesmo visual, sem gastar bateria
+  let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{rs();if(MOVEL)fr(4000)},200)});rs();MOVEL?fr(4000):requestAnimationFrame(fr);
 })();
 /* 2) grãos de arroz, brasas e vapor subindo, com leve parallax do mouse */
-(function(){
+if(!MOVEL)(function(){
   const cv=$('#fx'), x=cv.getContext('2d'); let W,H,G=[],E=[],V=[],mx=0,my=0,tx=0,ty=0,t=0;
   const dpr=Math.min(2,window.devicePixelRatio||1), R=Math.random;
   const sprite=(rgb,size,stop)=>{const c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d'),h=size/2,gr=g.createRadialGradient(h,h,0,h,h,h);gr.addColorStop(0,`rgba(${rgb},1)`);gr.addColorStop(stop,`rgba(${rgb},.35)`);gr.addColorStop(1,`rgba(${rgb},0)`);g.fillStyle=gr;g.fillRect(0,0,size,size);return c};
@@ -118,7 +122,7 @@ entrar();
   function rs(){W=cv.clientWidth;H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0);
     G=Array.from({length:Math.round(W*H/14000)},()=>grain(true));E=Array.from({length:Math.round(W*H/40000)},()=>ember(true));V=Array.from({length:7},()=>vapor(true))}
   addEventListener('pointermove',e=>{tx=(e.clientX/W-.5);ty=(e.clientY/H-.5)});
-  function fr(){t++;mx+=(tx-mx)*.04;my+=(ty-my)*.04;x.clearRect(0,0,W,H);
+  function fr(){if(digitando()){requestAnimationFrame(fr);return}t++;mx+=(tx-mx)*.04;my+=(ty-my)*.04;x.clearRect(0,0,W,H);
     for(const v of V){v.y-=v.s;v.w+=.008;v.x+=Math.sin(v.w)*.4;if(v.y<-v.r)Object.assign(v,vapor(false));
       const life=Math.max(0,Math.min(1,1-v.y/H));x.globalAlpha=v.max*Math.sin(life*Math.PI)*1.6;x.drawImage(SP.vap,v.x-v.r,v.y-v.r,v.r*2,v.r*2)}
     x.globalAlpha=1;
@@ -131,5 +135,10 @@ entrar();
       const px=e.x-mx*60*e.z, py=e.y-my*40*e.z, s=e.r*10;x.globalAlpha=e.o*(.6+.4*Math.sin(t*.15+e.w*3));x.drawImage(e.sp,px-s/2,py-s/2,s,s)}
     x.globalAlpha=1;x.globalCompositeOperation='source-over';
     requestAnimationFrame(fr)}
-  addEventListener('resize',rs);rs();fr();
+  let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(rs,200)});rs();fr();
 })();
+/* celular: ao tocar num campo, ele fica visível acima do teclado (sem pular enquanto digita) */
+if(MOVEL){
+  document.addEventListener('focusin',e=>{const el=e.target;if(!el.matches||!el.matches('input:not([type=checkbox]):not([type=radio]),textarea,select'))return;
+    setTimeout(()=>{const vv=window.visualViewport,r=el.getBoundingClientRect(),h=vv?vv.height:innerHeight;if(r.top<70||r.bottom>h-16)el.scrollIntoView({block:'center',behavior:'smooth'})},320)});
+}

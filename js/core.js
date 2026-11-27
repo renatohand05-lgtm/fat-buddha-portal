@@ -78,6 +78,8 @@ Chart.defaults.color=C.tick; Chart.defaults.font.family=getComputedStyle(documen
 Chart.defaults.plugins.legend.labels.usePointStyle=true; Chart.defaults.plugins.legend.labels.boxWidth=8;
 Chart.defaults.plugins.tooltip.backgroundColor='rgba(30,23,21,.95)'; Chart.defaults.plugins.tooltip.borderColor='rgba(255,236,220,.15)'; Chart.defaults.plugins.tooltip.borderWidth=1; Chart.defaults.plugins.tooltip.padding=10;
 Chart.defaults.maintainAspectRatio=false;
+Chart.defaults.resizeDelay=150; // giro de tela e barra do navegador: redesenha uma vez só
+if(document.documentElement.classList.contains('movel')){Chart.defaults.animation.duration=380;Chart.defaults.plugins.tooltip.padding=12;Chart.defaults.font.size=12}
 /* nitidez: desenha os gráficos em 2x (ou mais) — fica cristalino em qualquer tela */
 Chart.defaults.devicePixelRatio=Math.max(2,window.devicePixelRatio||1);
 Chart.defaults.font.weight=500;

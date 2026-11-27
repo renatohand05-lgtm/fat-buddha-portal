@@ -120,7 +120,20 @@ const ehIOS=/iphone|ipad|ipod/i.test(navigator.userAgent), standalone=matchMedia
 addEventListener('beforeinstallprompt',e=>{e.preventDefault();promptInstalar=e;$('#btnInstalar').classList.remove('hidden')});
 addEventListener('appinstalled',()=>{$('#btnInstalar').classList.add('hidden');toast('Portal instalado neste aparelho.')});
 function initPWA(){
-  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if('serviceWorker' in navigator){
+    const tinha=!!navigator.serviceWorker.controller;
+    navigator.serviceWorker.register('sw.js').then(reg=>{
+      // procura versão nova ao voltar para o app e a cada 30 min
+      document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')reg.update().catch(()=>{})});
+      setInterval(()=>reg.update().catch(()=>{}),30*60*1000);
+    }).catch(()=>{});
+    // versão nova instalada: avisa e deixa a pessoa escolher a hora de atualizar (nada se perde no meio de um preenchimento)
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!tinha||$('#novaVersao'))return;
+      const d=document.createElement('div');d.id='novaVersao';d.className='nova-versao';d.innerHTML='<span>Nova versão do portal disponível</span><button class="btn sm pri">Atualizar</button><button class="btn sm" aria-label="Depois">Depois</button>';
+      document.body.appendChild(d);const [a,b]=d.querySelectorAll('button');
+      a.onclick=()=>{if(document.querySelector('.modal:not(.hidden)')&&!confirm('Há uma janela aberta. Atualizar agora pode perder o que não foi salvo. Atualizar?'))return;location.reload()};
+      b.onclick=()=>d.remove()});
+  }
   const b=$('#btnInstalar');
   if(!standalone&&ehIOS) b.classList.remove('hidden');
   b.onclick=async()=>{

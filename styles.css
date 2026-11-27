@@ -761,3 +761,56 @@ b.neg,em.neg,.cmg-stat b.neg{color:#ff9aa2}b.pos,.cmg-stat b.pos{color:#7fe3b8}e
 .es-vg.open{background:rgba(51,140,237,.2);color:#a9cdfa}.es-vg.warn{background:rgba(201,143,44,.22);color:#f7cf7a}.es-vg.ok{background:rgba(44,159,115,.22);color:#7fe3b8}.es-vg.none{background:rgba(255,255,255,.07);color:var(--muted)}
 .es-lk{font:inherit;font-size:13px;font-weight:650;color:#a9cdfa;background:none;border:0;padding:0;cursor:pointer}.es-lk:hover{text-decoration:underline}
 .tag.es5{background:rgba(229,48,63,.18);color:#ffb4ba;border-color:rgba(229,48,63,.35)}
+
+/* =====================================================================
+   Celular e app instalado: tipografia estável, digitação sem zoom,
+   área segura do iPhone e modo de alto desempenho (sem efeitos pesados)
+   ===================================================================== */
+/* o navegador do celular não aumenta nem diminui a letra sozinho (giro de tela, blocos largos) */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.movel body{-webkit-tap-highlight-color:transparent;overscroll-behavior-y:contain}
+.movel button,.movel .btn,.movel .seg button,.movel a,.movel label{touch-action:manipulation}
+/* campos com 16px no toque: o iPhone não dá zoom ao começar a digitar */
+@media (pointer:coarse){
+  input,select,textarea,.inp,select.inp,td .inp{font-size:16px!important}
+  .inp,select.inp{padding:11px 12px;min-height:44px}
+  td .inp{padding:8px 9px;min-height:40px}
+  textarea.inp{min-height:88px;line-height:1.4}
+  .seg button{padding:0 16px;font-size:13.5px;min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+  .btn{min-height:44px}.btn.sm{min-height:36px;padding:8px 12px;font-size:12.5px}
+  input[type=checkbox],input[type=radio]{width:20px;height:20px}
+}
+/* desempenho: sem animações de fundo, sem desfoque de vidro (pesado no celular) */
+.movel .floorwrap,.movel .sweep,.movel #fx{display:none!important}
+.movel .card,.movel .side,.movel .modal,.movel .modal .card,.movel .banner{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.movel .card{background:linear-gradient(180deg,rgba(40,30,28,.96),rgba(31,24,22,.96))}
+.movel .side{background:rgba(18,13,12,.97)}
+.movel .kpi .val{filter:none}
+/* tipografia de app: escala fixa e números alinhados */
+@media (max-width:900px){
+  body{font-size:14.5px;line-height:1.5}
+  .top h1{font-size:24px;letter-spacing:-.3px}
+  .card h3{font-size:15.5px}.card h3 small,.small{font-size:12.5px}
+  .kpi .lbl{font-size:12.5px}.kpi .val{font-size:24px}
+  table{font-size:13.5px}th{font-size:12.5px}
+  .card{padding:16px}
+}
+.movel td,.movel .kpi .val,.movel .num{font-variant-numeric:tabular-nums}
+/* tabelas e grades: rolagem lateral suave, sem arrastar a página junto */
+.movel .tbl-wrap,.movel .es-gw{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+/* área segura do iPhone (relógio, entalhe e barra inferior) no app instalado */
+@media (max-width:900px){
+  .side{padding-top:calc(10px + env(safe-area-inset-top));padding-left:calc(12px + env(safe-area-inset-left));padding-right:calc(12px + env(safe-area-inset-right))}
+  main{padding-bottom:calc(30px + env(safe-area-inset-bottom));padding-left:calc(16px + env(safe-area-inset-left));padding-right:calc(16px + env(safe-area-inset-right))}
+}
+.pwa .login{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+/* janelas (modais) viram painel de baixo no celular e acompanham o teclado */
+@media (max-width:640px){
+  .modal{align-items:end;justify-items:stretch;padding:0}
+  .modal .card{max-width:100%;border-radius:20px 20px 0 0;max-height:92vh;max-height:92dvh;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+}
+.modal .card{max-height:90dvh;overscroll-behavior:contain}
+#app.app{min-height:100vh;min-height:100dvh}
+@media (prefers-reduced-motion:reduce){.floor,.sweep{animation:none!important}}
+.nova-versao{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;gap:10px;padding:10px 12px 10px 16px;border-radius:14px;background:#2a1f1c;border:1px solid rgba(255,236,220,.18);box-shadow:0 12px 40px rgba(0,0,0,.45);font-size:13.5px;font-weight:600;max-width:calc(100% - 24px)}
+.nova-versao span{flex:1}
