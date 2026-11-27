@@ -113,13 +113,24 @@ function esRegras(e,ls,cols){
 }
 
 // ---------- tela ----------
+function esDiaPadrao(e,cols){
+  const h=isoHoje(),d=new Date(h+'T12:00'),wd=d.getDay();
+  if(wd>=1&&wd<=6)return ['seg','ter','qua','qui','sex','sab'][wd-1];
+  const doms=esDomingos(e.mes);if(e.mes===ymOf(h)){const i=doms.indexOf(d.getDate());if(i>=0&&cols.some(c=>c.k==='dom'+(i+1)))return 'dom'+(i+1)}
+  return 'dom1';
+}
+const ES_DIA_LONGO={seg:'Segunda-feira',ter:'Terça-feira',qua:'Quarta-feira',qui:'Quinta-feira',sex:'Sexta-feira',sab:'Sábado'};
+const esDiaNome=(c,e)=>c.dom?(()=>{const doms=esDomingos(e.mes),n=+c.k.slice(3);return doms[n-1]&&e.mes?`Domingo, ${String(doms[n-1]).padStart(2,'0')}/${e.mes.slice(5)}`:`Domingo ${n}`})():ES_DIA_LONGO[c.k];
+function esEhHoje(e,c){const h=isoHoje(),d=new Date(h+'T12:00'),wd=d.getDay();if(e.mes&&e.mes!==ymOf(h))return false;
+  if(!c.dom)return wd>=1&&wd<=6&&['seg','ter','qua','qui','sex','sab'][wd-1]===c.k;const doms=esDomingos(e.mes);return wd===0&&doms[+c.k.slice(3)-1]===d.getDate()}
+
 function rhEscalas(){
   const us=esUnidades(),sel=$('#esUni');
   if(!us.length){$('#esCorpo').innerHTML='<div class="card empty">Nenhuma escala cadastrada para as suas lojas.</div>';sel.innerHTML='';$('#esEsc').innerHTML='';return}
   if(!ES.uni||!us.some(u=>u.id===ES.uni)){const r=$('#rhLoja').value;ES.uni=us.some(u=>u.id===r)?r:us[0].id;ES.id=null}
   sel.innerHTML=us.map(u=>`<option value="${u.id}" ${u.id===ES.uni?'selected':''}>${esc(u.nome)}</option>`).join('');
   const es=esDaUnidade(ES.uni);
-  if(!ES.id||!es.some(e=>e.id===ES.id)){const p=esPadrao(ES.uni);ES.id=p?p.id:null;ES.edit=false;ES.sujo={}}
+  if(!ES.id||!es.some(e=>e.id===ES.id)){const p=esPadrao(ES.uni);ES.id=p?p.id:null;ES.edit=false;ES.sujo={};ES.dia=null}
   $('#esEsc').innerHTML=es.map(e=>`<option value="${e.id}" ${e.id===ES.id?'selected':''}>${esc(e.nome)} · ${ES_TIPO[e.tipo]}</option>`).join('')||'<option value="">Sem escala</option>';
   $$('#esSet button').forEach(b=>b.classList.toggle('on',b.dataset.s===ES.setor));
   const pe=esPodeEditar(ES.uni);
@@ -128,34 +139,96 @@ function rhEscalas(){
   const e=es.find(x=>x.id===ES.id);
   if(!e){$('#esCorpo').innerHTML=`<div class="card empty">Esta unidade ainda não tem escala.${pe?' Use "Nova escala" para criar.':''}</div>`;return}
   const todas=esLinhas(e.id), ls=todas.filter(esFiltra), cols=esCols(e,todas);
-  const regras=esRegras(e,todas,cols), dist=esDistrib(ls,cols);
+  if(ES.edit){
+    $('#esCorpo').innerHTML=`<div class="card"><h3>Editando · ${esc(e.nome)} <small>altere horários, folgas, setor, vínculo e cadastro do RH · os campos alterados ficam destacados</small>
+      <span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" id="esAddL">Adicionar pessoa</button><button class="btn sm" id="esPropE">Nome e situação</button><button class="btn sm pri" id="esSalvar">Salvar alterações</button></span></h3>
+      <p class="small muted" style="margin:-4px 0 12px">Formato do horário: entrada-pausa/volta-saída, ex.: <b>7-13/14-15:20</b>. Escreva <b>FOLGA</b> ou <b>FÉRIAS</b>; acrescente <b>(D)</b> na dobra.</p>
+      ${esGradeHtml(e,ls,cols)}</div>`;
+    esLigar(e,todas,cols);return}
+  if(!ES.dia||!cols.some(c=>c.k===ES.dia))ES.dia=esDiaPadrao(e,cols);
+  const regras=esRegras(e,todas,cols), dist=esDistrib(ls,cols), cDia=cols.find(c=>c.k===ES.dia);
   const clt=todas.filter(l=>l.vinculo==='CLT'),fr=todas.filter(l=>/Freelancer/.test(l.vinculo)),vg=todas.filter(l=>/Vaga|definir/.test(l.vinculo));
-  const ruins=regras.filter(r=>r.nivel==='bad').length,av=regras.filter(r=>r.nivel==='warn').length;
+  const ruins=regras.filter(r=>r.nivel==='bad'),av=regras.filter(r=>r.nivel==='warn'),okr=regras.filter(r=>r.nivel==='ok');
   const hMed=clt.length?sum(clt,l=>{const w=esSemanas(l,cols);return w.length?sum(w,s=>s.min)/w.length:0})/clt.length:0;
+  const pend=ruins.length+av.length, saude=ruins.length?'bad':av.length?'warn':'ok';
+  const uniNome=(esUnidades().find(u=>u.id===e.unidade)||{}).nome||e.unidade;
   $('#esCorpo').innerHTML=`
-    <div class="grid g5">
-      ${esKpi('Pessoas na escala',nf0.format(clt.length),`CLT · ${esc(e.nome)}`,'')}
-      ${esKpi('Freelancers',nf0.format(fr.length),`${fr.filter(l=>l.vinculo==='Freelancer fixo').length} fixos · ${fr.filter(l=>l.vinculo==='Freelancer V.A').length} V.A`,'')}
-      ${esKpi('Vagas e a definir',nf0.format(vg.length),vg.length?'posições sem pessoa definida':'escala completa',vg.length?'warn':'')}
-      ${esKpi('Carga média CLT',esHoras(hMed),'por semana',hMed>44*60?'bad':'')}
-      ${esKpi('Regras',ruins?`${ruins} fora`:av?`${av} atenção`:'Tudo ok',`${regras.filter(r=>r.nivel==='ok').length} de ${regras.length} em dia`,ruins?'bad':av?'warn':'ok')}
-    </div>
-    <div class="card mt"><h3>Distribuição por plantão <small>quantas pessoas estão trabalhando às 12h30 (almoço) e às 20h (jantar) · clique para ver quem</small></h3>
-      ${esDistHtml(dist,cols,e)}<div id="esQuem" class="es-quem"></div></div>
-    <div class="card mt"><h3>Escala · ${esc(e.nome)} <small>${ES_TIPO[e.tipo]}${e.mes?' · '+mesLongo(e.mes):''}${e.obs?' · '+esc(e.obs):''}</small>
-      <span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">${ES.edit?`<button class="btn sm" id="esAddL">Adicionar pessoa</button><button class="btn sm" id="esPropE">Nome e tipo da escala</button><button class="btn sm pri" id="esSalvar">Salvar alterações</button>`:'<button class="btn sm" id="esCsv">Exportar CSV</button><button class="btn sm" onclick="window.print()">Imprimir</button>'}</span></h3>
-      <div class="es-leg"><span class="es-ch manha">manhã</span><span class="es-ch meio">intermediário</span><span class="es-ch noite">noite</span><span class="es-ch dobra">dobra (D)</span><span class="es-ch folga">folga</span><span class="es-ch ferias">férias</span></div>
-      ${esGradeHtml(e,ls,cols)}</div>
-    <div class="grid g2 mt">
-      <div class="card"><h3>Regras da escala <small>da aba "Regras" da planilha</small></h3>${regras.map(r=>`<div class="es-rg ${r.nivel}"><span class="es-rg-i">${r.nivel==='ok'?'✓':r.nivel==='bad'?'✕':'!'}</span><div><b>${esc(r.regra)}</b><div class="small muted">${esc(r.det)}</div></div></div>`).join('')}
-        ${esMinHtml(e)}</div>
-      <div class="card"><h3>Orientações da escala padrão</h3>
-        <div class="small muted" style="margin-bottom:6px">Responsabilidades dos líderes (na ausência do líder, o cozinheiro III cobre)</div>
-        <div class="tbl-wrap"><table class="es-or"><tr><th>Tarefa</th><th>Frequência</th><th>Prazo</th><th>Como</th></tr>${ES_ORIENT.lideres.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[3])}</td></tr>`).join('')}</table></div>
-        <div class="small muted" style="margin:12px 0 6px">Para todos</div>
-        <ul class="es-ul">${ES_ORIENT.todos.map(r=>`<li>${esc(r[0])} <span class="muted">· ${esc(r[1])}</span></li>`).join('')}</ul></div>
-    </div>`;
+  <div class="card es-hero">
+    <div class="es-hero-l"><div class="cmg-eyebrow">Escala · ${esc(uniNome)}</div>
+      <div class="es-hero-t">${esc(e.nome)} <span class="es-tipo ${e.tipo}">${ES_TIPO[e.tipo]}</span></div>
+      <div class="es-hero-m"><span><b>${clt.length}</b> colaboradores</span><span><b>${fr.length}</b> freelancers</span>${vg.length?`<span class="es-warn-t"><b>${vg.length}</b> ${vg.length>1?'posições':'posição'} sem pessoa</span>`:''}<span>carga média <b>${esHoras(hMed)}</b>/semana</span></div></div>
+    <button class="es-saude ${saude}" id="esIrAt"><span class="es-saude-i">${saude==='ok'?'✓':'!'}</span><span><b>${pend?`${pend} ${pend>1?'pontos':'ponto'} de atenção`:'Escala em dia'}</b><small>${pend?`${ruins.length?ruins.length+' fora da regra':''}${ruins.length&&av.length?' · ':''}${av.length?av.length+' para revisar':''}`:`${okr.length} regras conferidas`}</small></span></button>
+  </div>
+
+  <div class="card mt"><h3>Como está a semana <small>toque num dia para ver quem trabalha</small></h3>
+    <div class="es-sem">${esSemanaHtml(e,cols,dist)}</div></div>
+
+  <div class="card mt es-tl-card"><h3>${esc(esDiaNome(cDia,e))}${esEhHoje(e,cDia)?' <span class="es-hoje">hoje</span>':''} <small>quem trabalha e em que horário</small>
+    <span class="es-leg2"><i class="manha"></i>manhã<i class="meio"></i>intermediário<i class="noite"></i>noite<i class="dobra"></i>dobra</span></h3>
+    ${esTimelineHtml(e,ls,cDia,dist,cols)}</div>
+
+  <div class="card mt"><h3>Escala completa <small>${esc(e.nome)}${e.mes&&mesLongo(e.mes)!==e.nome?' · '+mesLongo(e.mes):''} · entrada e saída de cada dia · clique num dia para ver a linha do tempo</small>
+    <span style="margin-left:auto;display:flex;gap:8px"><button class="btn sm" id="esCsv">Exportar CSV</button><button class="btn sm" onclick="window.print()">Imprimir</button></span></h3>
+    ${esGradeHtml(e,ls,cols)}</div>
+
+  <div class="grid g2 mt">
+    <div class="card" id="esAt"><h3>Pontos de atenção <small>regras da planilha conferidas automaticamente</small></h3>
+      ${pend?ruins.concat(av).map(esRegraHtml).join(''):'<div class="es-tudo-ok">✓ Nenhum ponto de atenção nesta escala.</div>'}
+      ${okr.length?`<details class="es-okd"><summary>${okr.length} ${okr.length>1?'regras em dia':'regra em dia'}</summary>${okr.map(esRegraHtml).join('')}</details>`:''}
+      ${esMinHtml(e)}</div>
+    <div class="card"><h3>Orientações da escala padrão</h3>
+      <div class="es-or2">${ES_ORIENT.lideres.map(r=>`<div class="es-or-i"><b>${esc(r[0])}</b><span>${esc([r[1],r[2],r[3]].filter(Boolean).join(' · '))}</span></div>`).join('')}</div>
+      <div class="small muted" style="margin:14px 0 6px">Na ausência do líder, o cozinheiro III cobre. Para todos:</div>
+      <ul class="es-ul">${ES_ORIENT.todos.map(r=>`<li>${esc(r[0])}</li>`).join('')}</ul></div>
+  </div>`;
   esLigar(e,todas,cols);
+  $$('#esCorpo [data-dia]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();ES.dia=b.dataset.dia;rhEscalas()});
+  $('#esIrAt').onclick=()=>$('#esAt').scrollIntoView({behavior:'smooth',block:'start'});
+}
+const esRegraHtml=r=>`<div class="es-rg ${r.nivel}"><span class="es-rg-i">${r.nivel==='ok'?'✓':r.nivel==='bad'?'✕':'!'}</span><div><b>${esc(r.regra)}</b><div class="small muted">${esc(r.det)}</div></div></div>`;
+
+// cartões da semana: seg..sáb + um cartão de domingo com a escolha do domingo do mês
+function esSemanaHtml(e,cols,dist){
+  const card=(c,extra)=>{const ix=cols.indexOf(c);let baixo=false;
+    const multi=[...new Set(dist.map(r=>r.s))].filter(s=>dist.filter(r=>r.s===s).length>1), apoio=[...new Set(dist.map(r=>r.s))].filter(s=>!multi.includes(s));
+    const apHtml=apoio.length?`<div class="es-dl"><span title="${esc(apoio.join(', '))}">${esc(multi.length?(apoio.length>1?'Apoio':apoio[0]):apoio.join(' e '))}</span><b>${sum(dist.filter(r=>apoio.includes(r.s)),r=>r.cel[ix].q.length)}</b></div>`:'';
+    const linhas=multi.map(s=>{const rs=dist.filter(r=>r.s===s);const v=rs.map(r=>{const n=r.cel[ix].q.length,mn=esMins(e.unidade,s),m=mn?(c.dom?mn['dom_'+r.p]:mn[r.p]):null;if(m!=null&&n<m)baixo=true;return {p:r.p,n,m,b:m!=null&&n<m}});
+      return `<div class="es-dl"><span>${esc(s)}</span>${v.map(x=>`<b class="${x.b?'b':''}" title="${x.p==='alm'?'almoço (12h30)':'jantar (20h)'}${x.m!=null?' · mínimo '+x.m:''}">${x.p==='alm'?'☀ ':'☾ '}${x.n}</b>`).join('')}</div>`}).join('')+apHtml;
+    const pessoas=new Set(dist.flatMap(r=>r.cel[ix].q.map(l=>l.id))).size;
+    return `<div class="es-dc2 ${ES.dia===c.k?'on':''} ${baixo?'baixo':''}" data-dia="${c.k}">
+      <div class="es-dc2-h"><span>${c.dom?'Domingo':c.l}</span>${esEhHoje(e,c)?'<em>hoje</em>':''}${baixo?'<i title="abaixo do mínimo">!</i>':''}</div>
+      <div class="es-dc2-n">${pessoas}<small>pessoas</small></div>${linhas}${extra||''}</div>`};
+  const sem=cols.filter(c=>!c.dom),doms=cols.filter(c=>c.dom);
+  const dSel=doms.find(c=>c.k===ES.dia)||doms[0];
+  return sem.map(c=>card(c)).join('')+(dSel?card(dSel,`<div class="es-doms">${doms.map(c=>`<button data-dia="${c.k}" class="${c.k===ES.dia?'on':''}">${c.l.replace('Dom ','')}</button>`).join('')}</div>`):'');
+}
+
+// linha do tempo do dia: 6h às 24h, uma barra por pessoa, faixas de almoço e jantar
+function esTimelineHtml(e,ls,c,dist,cols){
+  const T0=6*60,T1=24*60,X=m=>Math.max(0,Math.min(100,(m-T0)/(T1-T0)*100));
+  const ix=cols.indexOf(c);
+  const cob=[...new Set(dist.map(r=>r.s))].map(s=>{const mn=esMins(e.unidade,s);return `<div class="es-cob"><b>${esc(s)}</b>${dist.filter(r=>r.s===s).map(r=>{const n=r.cel[ix].q.length,m=mn?(c.dom?mn['dom_'+r.p]:mn[r.p]):null,ok=m==null||n>=m;
+    return `<span class="${ok?'ok':'b'}">${/^Dia/.test(r.lab)?'no dia':r.p==='alm'?'☀ almoço':'☾ jantar'} <b>${n}</b>${m!=null?` <small>/ mín ${m}</small>`:''}</span>`}).join('')}</div>`}).join('');
+  const trab=[],folga=[];
+  ls.forEach(l=>{const t=esTurno((l.dias||{})[c.k]);if(t.t==='trab')trab.push({l,t});else if(t.t!=='vazio')folga.push({l,t})});
+  const ticks=[6,8,10,12,14,16,18,20,22,24];
+  const agora=esEhHoje(e,c)?(()=>{const d=new Date(),m=d.getHours()*60+d.getMinutes();return m>=T0&&m<=T1?m:null})():null;
+  const bandas='';
+  const setores=ES_SETORES.filter(s=>trab.some(x=>x.l.setor===s));
+  const linha=({l,t})=>{const c_=esColab(l.colaborador_id),fun=l.funcao||(c_?(c_.cargo_folha||c_.cargo):'')||l.vinculo;
+    const tip=`${l.nome} · ${t.segs.map(g=>esHM(g[0])+'–'+esHM(g[1])).join(' e ')} · ${esHoras(t.min)} trabalhadas`;
+    const lab=`${esHC(t.ini)}–${esHC(t.fim)}`, gm=t.segs.reduce((a,g)=>g[1]-g[0]>a[1]-a[0]?g:a), larg=X(gm[1])-X(gm[0]);
+    return `<div class="es-tr ${esFree(l)?'fr':''}"><div class="es-tn"><b>${esc(l.nome)}</b><span>${esc(fun)}</span></div>
+      <div class="es-tt" title="${esc(tip)}">${bandas}
+        ${t.segs.length>1?`<i class="es-pausa" style="left:${X(t.segs[0][1])}%;width:${X(t.segs[1][0])-X(t.segs[0][1])}%"></i>`:''}
+        ${t.segs.map(g=>`<i class="es-tb ${t.cls}" style="left:${X(g[0])}%;width:${Math.max(.6,X(g[1])-X(g[0]))}%"></i>`).join('')}
+        <span class="es-bl ${larg<9?'fora':''}" style="${larg<9?`left:calc(${X(t.fim)}% + 6px)`:`left:${X(gm[0])}%;width:${larg}%`}">${lab}${t.dobra&&/\(D\)/i.test((l.dias||{})[c.k])?' · dobra':''}</span></div></div>`};
+  return `<div class="es-cobs">${cob}</div>
+  <div class="es-tl"><div class="es-bands"><div class="es-band alm" style="left:${X(11*60+30)}%;width:${X(14*60+30)-X(11*60+30)}%"></div><div class="es-band jan" style="left:${X(18*60+30)}%;width:${X(22*60)-X(18*60+30)}%"></div>${agora!=null?`<div class="es-now" style="left:${X(agora)}%"><span>agora</span></div>`:''}</div>
+    <div class="es-tr es-ax"><div class="es-tn"></div><div class="es-tt">${ticks.map(h=>`<span style="left:${X(h*60)}%">${h}h</span>`).join('')}<em class="alm" style="left:${(X(11*60+30)+X(14*60+30))/2}%">almoço</em><em class="jan" style="left:${(X(18*60+30)+X(22*60))/2}%">jantar</em></div></div>
+    ${setores.map(s=>`<div class="es-tsg">${esc(s)} <span>${trab.filter(x=>x.l.setor===s).length} trabalhando</span></div>`+trab.filter(x=>x.l.setor===s).sort((a,b)=>a.t.ini-b.t.ini||b.t.fim-a.t.fim).map(linha).join('')).join('')||'<div class="empty">Ninguém escalado neste dia.</div>'}
+  </div>
+  ${folga.length?`<div class="es-folgas"><span>De folga</span>${folga.map(({l,t})=>`<em class="${t.t}">${esc(l.nome)}${t.t==='ferias'?' · férias':''}</em>`).join('')}</div>`:''}`;
 }
 
 function esDistHtml(dist,cols,e){
@@ -176,13 +249,13 @@ function esGradeHtml(e,ls,cols){
   const setores=ES_SETORES.filter(s=>ls.some(l=>l.setor===s));
   const ed=ES.edit;
   return `${ed?`<datalist id="esTurnos">${['FOLGA','FÉRIAS'].concat(turnos.filter(t=>!/^F(OLGA|ÉRIAS)/i.test(t))).map(t=>`<option value="${esc(t)}">`).join('')}</datalist>`:''}
-  <div class="tbl-wrap es-gw"><table class="es-g ${ed?'ed':''}"><tr><th class="es-nm">Pessoa</th>${cols.map(c=>`<th class="${c.dom?'dom':''}">${c.l}</th>`).join('')}<th class="num" title="média das semanas do mês">h/sem</th>${ed?'<th></th>':''}</tr>
+  <div class="tbl-wrap es-gw"><table class="es-g ${ed?'ed':''}"><tr><th class="es-nm">Pessoa</th>${cols.map(c=>`<th class="${c.dom?'dom':''} ${!ed&&c.k===ES.dia?'sel':''}" ${ed?'':`data-dia="${c.k}"`}>${c.l}</th>`).join('')}<th class="num" title="média das semanas do mês">h/sem</th>${ed?'<th></th>':''}</tr>
   ${setores.map(s=>`<tr class="es-sg"><td colspan="${cols.length+2+(ed?1:0)}">${esc(s)} <span class="muted">· ${ls.filter(l=>l.setor===s).length}</span></td></tr>`+ls.filter(l=>l.setor===s).map(l=>{const c=esColab(l.colaborador_id),w=esSemanas(l,cols),hm=w.length?sum(w,x=>x.min)/w.length:0,mx=w.length?Math.max(...w.map(x=>x.min)):0,d=ES.sujo[l.id]||{},dias=Object.assign({},l.dias||{},d.dias||{});
     const fun=l.funcao||(c?(c.cargo_folha||c.cargo):'')||'';
     return `<tr class="${esFree(l)?'fr':''}">
       <td class="es-nm">${ed?`<input class="inp es-in" data-f="nome" data-l="${l.id}" value="${esc(d.nome??l.nome)}"><div class="es-mini"><select class="inp" data-f="setor" data-l="${l.id}">${ES_SETORES.map(o=>`<option ${(d.setor??l.setor)===o?'selected':''}>${o}</option>`).join('')}</select><select class="inp" data-f="vinculo" data-l="${l.id}">${ES_VINC.map(o=>`<option ${(d.vinculo??l.vinculo)===o?'selected':''}>${o}</option>`).join('')}</select><input class="inp" data-f="funcao" data-l="${l.id}" value="${esc(d.funcao??l.funcao??'')}" placeholder="${esc(fun||'Função')}"><select class="inp" data-f="colaborador_id" data-l="${l.id}" title="Cadastro no RH"><option value="">sem cadastro no RH</option>${esRhOpts(e.unidade,d.colaborador_id??l.colaborador_id)}</select></div>`
         :`<b>${esc(l.nome)}</b>${c?` <span class="es-rh" title="Cadastro no RH: ${esc(c.nome)}">RH</span>`:''}<div class="small muted">${esc(fun)}${l.vinculo!=='CLT'?`${fun?' · ':''}<span class="es-vn">${esc(l.vinculo)}</span>`:''}</div>`}</td>
-      ${cols.map(cc=>`<td class="${cc.dom?'dom':''}">${ed?`<input class="inp es-ci" list="esTurnos" data-d="${cc.k}" data-l="${l.id}" value="${esc(dias[cc.k]||'')}">`:esChip(dias[cc.k])}</td>`).join('')}
+      ${cols.map(cc=>`<td class="${cc.dom?'dom':''} ${!ed&&cc.k===ES.dia?'sel':''}">${ed?`<input class="inp es-ci" list="esTurnos" data-d="${cc.k}" data-l="${l.id}" value="${esc(dias[cc.k]||'')}">`:esChip(dias[cc.k])}</td>`).join('')}
       <td class="num ${mx>44*60+15&&l.vinculo==='CLT'?'es-h44':''}" title="${w.map(x=>`${x.c.l}: ${esHoras(x.min)}`).join(' · ')}">${hm?esHoras(hm):'—'}</td>
       ${ed?`<td><button class="btn sm" data-del="${l.id}" title="Remover da escala">×</button></td>`:''}</tr>`}).join('')).join('')}</table></div>`;
 }
