@@ -99,8 +99,11 @@ function vendasPeriodo(ids,ini,fim){
     const dv=(LBYID[id]||{}).canais==='delivery';ac.fat+=a.valor;ac.ped+=a.pessoas;if(dv){ac.del+=a.valor;ac.pd+=a.pessoas}else{ac.sal+=a.valor;ac.ps+=a.pessoas;ac.sm+=a.valor}
     Object.entries(a.horas).forEach(([h,v])=>ac.horas[h]=(ac.horas[h]||0)+v);ac.lojas.push(id);if(a.ate&&(!ac.ate||a.ate>ac.ate))ac.ate=a.ate;ac.dias=Math.max(ac.dias,a.ate?+a.ate.slice(8,10):diasDoMes(m).length)})});
   let temHora=hr.length>0,hs2=hs,hd2=hd,horas2=horas,diasH2=diasH;
-  if(!temHora&&ac.lojas.length){horas2=Object.keys(ac.horas).map(Number).sort((a,b)=>a-b);const dv=ac.del>=ac.sal;hs2=horas2.map(h=>dv?0:ac.horas[h]);hd2=horas2.map(h=>dv?ac.horas[h]:0);diasH2=ac.dias||1;temHora=true}
-  return {datas,dias,metaDia,horas:horas2,hs:hs2,hd:hd2,diasH:diasH2,meta,temHora,ac:ac.lojas.length?ac:null};
+  // sem venda por hora lançada: mostra exatamente o relatório do caixa (total de cada hora no período), sem estimar média
+  let horaCaixa=false;
+  if(!temHora&&ac.lojas.length){horas2=Object.keys(ac.horas).map(Number).sort((a,b)=>a-b);hs2=horas2.map(h=>ac.horas[h]-0);hd2=horas2.map(()=>0);
+    const dv=ac.del>=ac.sal&&!ac.sm;if(dv){hd2=hs2;hs2=horas2.map(()=>0)}diasH2=1;temHora=true;horaCaixa=true}
+  return {datas,dias,metaDia,horas:horas2,hs:hs2,hd:hd2,diasH:diasH2,meta,temHora,horaCaixa,ac:ac.lojas.length?ac:null};
 }
 function renderVendas(){
   const sel=$('#vLoja').value||'rede', ids = sel==='rede'?OPER.map(l=>l.id):[sel];
@@ -118,7 +121,7 @@ function renderVendas(){
     kpi('Pedidos',(ps+pd)||null,'int',A.ac&&A.ac.lojas.some(id=>(LBYID[id]||{}).canais!=='delivery')?'caixa sem divisão salão/delivery':`${nf0.format(ps)} salão · ${nf0.format(pd)} delivery`)+
     kpi('Ticket médio',(ps+pd)?fat/(ps+pd):null,'ticket',A.ac&&A.ac.lojas.some(id=>(LBYID[id]||{}).canais!=='delivery')?'por pedido · caixa':ps?`salão R$ ${nf2.format(sal/ps)} · delivery ${pd?'R$ '+nf2.format(del/pd):'—'}`:(pd?'100% delivery':''))+
     kpi('Melhor dia',tot[best]>0?tot[best]:null,'brl',tot[best]>0?new Date(A.datas[best]+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'}):'')+
-    kpi('Horário de pico',A.temHora?hTot[pico]/A.diasH:null,'brl',A.temHora?`${A.horas[pico]}h · média por dia${A.ac&&!(S.db.vendas_hora||[]).length?' (acumulado ÷ '+A.diasH+' dias)':''}`:'sem vendas por hora lançadas');
+    kpi('Horário de pico',A.temHora?hTot[pico]/A.diasH:null,'brl',A.temHora?(A.horaCaixa?`${A.horas[pico]}h · total no período (relatório do caixa${A.ac.ate?' até '+fmtD(A.ac.ate).slice(0,5):''})`:`${A.horas[pico]}h · média por dia`):'sem vendas por hora lançadas');
   animateKpis($('#vKpis'));
 
   const labs=A.datas.map(d=>d.slice(8,10)+(N<=62?' '+wkOfIso(d):'/'+d.slice(5,7)));
@@ -132,11 +135,16 @@ function renderVendas(){
     scales:{y:Object.assign({stacked:true},yR),x:Object.assign({stacked:true,ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:16}},xG)}}});
   else noData('cDaily','Sem vendas nem meta no período.');
 
-  if(A.temHora) mk('cHora',{type:'bar',data:{labels:A.horas.map(h=>h+'h'),datasets:[
+  const hH=$('#cHora').closest('.card').querySelector('h3');
+  hH.innerHTML=A.horaCaixa?`Venda hora a hora <small>total de cada hora · relatório do caixa${A.ac.ate?' até '+fmtD(A.ac.ate).slice(0,5):''}${A.ac.sm?' · salão e delivery juntos no Brooklin':''}</small>`:'Venda hora a hora <small>média por dia</small>';
+  if(A.horaCaixa){const tv=A.horas.map((h,i)=>A.hs[i]+A.hd[i]),mx=Math.max(...tv),tt=sum(tv);
+    mk('cHora',{type:'bar',data:{labels:A.horas.map(h=>h+'h'),datasets:[{label:'Faturamento',data:tv,backgroundColor:tv.map(v=>v===mx?'rgba(242,179,61,.95)':'rgba(229,48,63,.85)'),borderRadius:5}]},
+      options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${brl(c.raw)} · ${nf1.format(c.raw/tt*100)}% do período`}}},scales:{y:yR,x:xG}}})}
+  else if(A.temHora) mk('cHora',{type:'bar',data:{labels:A.horas.map(h=>h+'h'),datasets:[
     {label:'Salão',data:A.hs.map(v=>v/A.diasH),backgroundColor:'rgba(238,219,202,.75)',borderRadius:5,stack:'h'},
     {label:'Delivery',data:A.hd.map(v=>v/A.diasH),backgroundColor:'rgba(229,48,63,.85)',borderRadius:5,stack:'h'}
   ]},options:{interaction:{mode:'index',intersect:false},plugins:{tooltip:tipBrl},scales:{y:Object.assign({stacked:true},yR),x:Object.assign({stacked:true},xG)}}});
-  else noData('cHora','Importe as vendas por hora (CSV) para ver este gráfico.');
+  else noData('cHora','Sem venda por hora lançada neste período. Mande o relatório "Faturamento por hora e loja" do caixa para preencher.');
 
   let ac=0, am=0;
   if(fat||A.meta) mk('cAcum',{type:'line',data:{labels:labs,datasets:[
