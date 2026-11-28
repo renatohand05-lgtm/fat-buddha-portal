@@ -889,3 +889,5 @@ th.po-g.c1{--gc:#e5303f}th.po-g.c2{--gc:#f05a3c}th.po-g.c3{--gc:#f2b33d}th.po-g.
 table.po-dia td,table.po-dia th{padding:9px 8px}
 .po-tbl .po-fix{background:#251a18}.po-tbl thead .po-fix{background:#241a18}
 td .po-mini{margin-top:5px;min-width:110px}
+tr.po-rede-l td{background:rgba(229,48,63,.08);border-top:1px solid rgba(229,48,63,.3)}
+table.g-comp th,table.g-comp td{padding:8px 6px}table.g-comp td:first-child{padding-left:8px}

@@ -25,57 +25,90 @@ function renderOnboard(){
   el.querySelectorAll('[data-ob]').forEach(b=>b.onclick=()=>st[+b.dataset.ob].go());
   $('#obX').onclick=()=>{try{localStorage.setItem('fb_onboard_off','1')}catch(e){}el.classList.add('hidden')};
 }
+/* valor do mês da loja: fechado = realizado; em andamento = projeção pelo peso dos dias da semana */
+function gMes(id,m){
+  const s=lojaStats(id,m); if(!s.temVenda) return null;
+  const ate=s.ate||fimMes(m), parcial=ate<fimMes(m), dias=+ate.slice(8,10);
+  const pa=parcial?metaAteLoja(1,m,ate):1, proj=parcial&&pa?s.fat/pa:s.fat;
+  return {fat:s.fat,val:proj,parcial,ate,dias,media:dias?s.fat/dias:null,meta:s.meta,pct:s.pctMeta};
+}
 function renderGeral(){
   renderOnboard();
-  const all = OPER.map(l=>lojaStats(l.id));
-  const fat=sum(all,s=>s.fat), meta=sum(all,s=>s.meta||0), ped=sum(all,s=>s.ped), del=sum(all,s=>s.del);
-  const mixOk=all.filter(s=>!s.semMix), fatMix=sum(mixOk,s=>s.fat), semMixN=OPER.filter(l=>lojaStats(l.id).semMix).map(l=>l.nome);
-  const piso=pisoLoja(), comVenda=all.filter(s=>s.temVenda);
-  const acima = comVenda.filter(s=>s.fat>=piso).length;
-  const abaixoMeta = comVenda.filter(s=>s.meta&&s.fat<s.meta).length;
-  const al=alertasRede();
+  const M=S.mes, M1=addMes(M,-1), M2=addMes(M,-2), piso=pisoLoja();
+  const G=OPER.map(l=>({l,s:lojaStats(l.id,M),g:gMes(l.id,M),g1:gMes(l.id,M1),g2:gMes(l.id,M2)})), com=G.filter(x=>x.g);
   const inaug=LOJAS.filter(l=>l.status==='inauguracao');
-  $('#geralKpis').innerHTML =
-    kpi('Faturamento da rede',comVenda.length?fat:null,'brlK',meta?`meta ${brlK(meta)}`:'meta do mês não cadastrada', meta?fat/meta*100:null)+
-    kpi('Vendas x meta',meta&&comVenda.length?fat/meta*100:null,'pct1',`${abaixoMeta} loja${abaixoMeta===1?'':'s'} abaixo da meta`, meta?fat/meta*100:null)+
-    kpi('Pedidos',comVenda.length?ped:null,'int','salão + delivery')+
-    kpi('Ticket médio',ped?fat/ped:null,'ticket','por pedido')+
-    kpi('Delivery no faturamento',fatMix?del/fatMix*100:null,'pct1',fatMix?`${brlK(del)} no mês${semMixN.length?` · sem ${semMixN.join(', ')} (caixa sem divisão)`:''}`:'', fatMix?del/fatMix*100:null)+
-    kpi(`Lojas acima de ${brlK(piso)}`,comVenda.length?acima:null,'int',`de ${OPER.length} em operação${inaug.length?' · '+inaug.map(l=>l.nome+(l.inauguracao?' abre em '+l.inauguracao.replace(/^(\w{3})\w* de (\d{2})?(\d{2})$/,(m,a,b,c)=>a.toLowerCase()+'/'+c):'')).join(', '):''}`, OPER.length?acima/OPER.length*100:null);
+  // 1. vendas x meta até a data (mesma regra do Painel operacional e de Minha loja)
+  const R=sum(com,x=>x.s.fat), MA=sum(com,x=>x.s.metaAte||0), abaixo=com.filter(x=>x.s.pctMeta!=null&&x.s.pctMeta<100).length;
+  const ates=uniq(com.map(x=>x.g.ate)).sort(), ateTxt=ates.length?fmtD(ates.at(-1)).slice(0,5):'';
+  // 2. média por dia contra o mês anterior (compara períodos de tamanhos diferentes de forma justa)
+  const med=x=>x?x.media:null, mR=com.length?sum(com,x=>x.g.fat)/Math.max(...com.map(x=>x.g.dias)):null;
+  const c1=G.filter(x=>x.g1), mR1=c1.length?sum(c1,x=>x.g1.fat)/Math.max(...c1.map(x=>x.g1.dias)):null, vM=mR&&mR1?(mR/mR1-1)*100:null;
+  // 3. lojas que fecham o mês acima do piso
+  const acima=com.filter(x=>x.g.val>=piso).length, parcial=com.some(x=>x.g.parcial);
+  // 4. indicadores na meta
+  const rk=rankingRede(), okI=sum(rk,r=>r.ok), totI=sum(rk,r=>r.tot);
+  const kp=(lbl,val,f,sub,st,bar)=>kpi(lbl,val,f,sub,bar).replace('class="card kpi"',`class="card kpi${st?' kpi-'+st:''}"`);
+  const stP=p=>p==null?'':p>=100?'ok':p>=90?'warn':'bad';
+  $('#geralKpis').innerHTML=
+    kp('Vendas x meta até a data',MA&&com.length?R/MA*100:null,'pct1',MA?`${brlK(R)} de ${brlK(MA)} até ${ateTxt} · ${abaixo} loja${abaixo===1?'':'s'} abaixo`:'meta do mês não cadastrada',MA?stP(R/MA*100):'',MA?R/MA*100:null)+
+    kp('Média por dia',mR,'brlK',vM!=null?`${vM>=0?'+':'−'}${nf1.format(Math.abs(vM))}% contra ${mesTxt(M1).toLowerCase()} (${brlK(mR1)}/dia)`:'sem o mês anterior para comparar',vM==null?'':vM>=0?'ok':vM>=-5?'warn':'bad')+
+    kp(`Lojas acima de ${brlK(piso)}`,com.length?acima:null,'int',`de ${OPER.length} em operação${parcial?' · pela projeção do mês':''}${inaug.length?' · '+inaug.map(l=>l.nome+' em inauguração').join(', '):''}`,com.length?(acima===OPER.length?'ok':acima?'warn':'bad'):'')+
+    kp('Indicadores na meta',totI?okI/totI*100:null,'pct1',totI?`${okI} de ${totI} indicadores com dado nas ${OPER.length} lojas`:'sem indicadores com dado no mês',totI?(okI/totI>=.8?'ok':okI/totI>=.5?'warn':'bad'):'',totI?okI/totI*100:null);
   animateKpis($('#geralKpis'));
-  $('#fatLojaSub').textContent=`linha: piso de ${brlK(piso)}/mês`;
 
-  if(comVenda.length) mk('cFatLoja',{type:'bar',data:{labels:OPER.map(l=>l.nome),datasets:[
-    {type:'line',label:'Piso '+brlK(piso),data:OPER.map(()=>piso),borderColor:C.gold,borderDash:[6,5],borderWidth:2,pointRadius:0},
-    {label:'Faturamento',data:OPER.map(l=>ST[l.id].fat),backgroundColor:OPER.map(l=>ST[l.id].fat>=piso?'rgba(63,197,142,.85)':'rgba(229,48,63,.85)'),borderRadius:10,maxBarThickness:70},
-    {label:'Meta do mês',data:OPER.map(l=>ST[l.id].meta),backgroundColor:'rgba(238,219,202,.18)',borderRadius:10,maxBarThickness:70}
-  ]},options:{plugins:{tooltip:tipBrl},scales:{y:yR,x:xG}}});
-  else noData('cFatLoja','Nenhuma venda lançada em '+mesLongo(S.mes)+'.');
+  // faturamento por loja nos últimos 3 meses (mês em andamento pela projeção)
+  const lb=m=>{const p=G.some(x=>{const g=m===M?x.g:m===M1?x.g1:x.g2;return g&&g.parcial});return mesTxt(m)+(p?' (projeção)':'')};
+  const val=(x,k)=>x[k]?x[k].val:null;
+  if(G.some(x=>x.g||x.g1||x.g2)) mk('cGm3',{type:'bar',data:{labels:OPER.map(l=>l.nome),datasets:[
+    {label:lb(M2),data:G.map(x=>val(x,'g2')),backgroundColor:'#6e4c43',borderRadius:4,maxBarThickness:34},
+    {label:lb(M1),data:G.map(x=>val(x,'g1')),backgroundColor:'#a8574d',borderRadius:4,maxBarThickness:34},
+    {label:lb(M),data:G.map(x=>val(x,'g')),backgroundColor:'#e5303f',borderRadius:4,maxBarThickness:34},
+    {type:'line',label:'Piso '+brlK(piso),data:OPER.map(()=>piso),borderColor:C.gold,borderDash:[6,5],borderWidth:2,pointRadius:0}
+  ]},options:{interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>{if(c.parsed.y==null)return null;const x=G[c.dataIndex],g=[x.g2,x.g1,x.g][c.datasetIndex];return ' '+c.dataset.label+': '+brl(c.parsed.y)+(g&&g.parcial?` (realizado ${brlK(g.fat)} até ${fmtD(g.ate).slice(0,5)})`:'')}}}},scales:{y:yR,x:xG}}});
+  else noData('cGm3','Sem vendas nos últimos 3 meses.');
 
-  const ranked = rankingRede();
-  $('#rank').innerHTML = ranked.length?ranked.map((r,i)=>{const p=r.tot?r.ok/r.tot*100:0;const col=p>=80?C.green:p>=50?C.gold:C.red;
-    return `<div class="row"><div class="pos" style="${i===0&&r.tot?'background:'+C.gold+';color:#2a1d0a':''}">${i+1}</div><div><div class="nm">${esc(r.l.nome)} <span class="tag" style="margin-left:6px">${r.tot?(i<Math.ceil(ranked.length/2)?'TOP':'FLOP'):'sem dados'}</span></div><div class="meter"><i style="width:${p}%;background:${col}"></i></div></div><div class="small muted">${r.ok}/${r.tot}</div></div>`}).join('')
-    + `<p class="small muted" style="margin-top:6px">Ordem: quantidade de indicadores dentro da meta; desempate pelo % da meta de vendas. Só entram indicadores com dado no mês.</p>`:'<div class="empty">Nenhuma loja em operação.</div>';
+  // ranking
+  $('#rank').innerHTML = rk.length?rk.map((r,i)=>{const p=r.tot?r.ok/r.tot*100:0;const col=p>=80?C.green:p>=50?C.gold:C.red;
+    return `<div class="row"><div class="pos" style="${i===0&&r.tot?'background:'+C.gold+';color:#2a1d0a':''}">${i+1}</div><div><div class="nm">${esc(r.l.nome)} <span class="tag" style="margin-left:6px">${r.tot?(i<Math.ceil(rk.length/2)?'TOP':'FLOP'):'sem dados'}</span></div><div class="meter"><i style="width:${p}%;background:${col}"></i></div></div><div class="small muted">${r.ok}/${r.tot}${r.pct!=null?` · ${nf0.format(r.pct)}% meta`:''}</div></div>`}).join('')
+    + `<p class="small muted" style="margin-top:6px">Ordem: quantidade de indicadores dentro da meta; desempate pelo % da meta de vendas até a data. Só entram indicadores com dado no mês.</p>`:'<div class="empty">Nenhuma loja em operação.</div>';
 
-  $('#alCount').textContent = `${al.filter(a=>a.s==='bad').length} críticos · ${al.filter(a=>a.s==='warn').length} em atenção`;
-  $('#alerts').innerHTML = al.map(a=>`<div class="alert"><span class="dot" style="background:${a.s==='bad'?'var(--bad)':'var(--amber)'}"></span><div><b>${esc(a.l)} · ${a.m.n}</b> <span>${fmt(a.m.f,a.v)} — meta ${a.m.txt}</span></div></div>`).join('') || `<div class="empty">${OPER.some(l=>Object.keys(ST[l.id].ind).length||ST[l.id].temVenda)?'Todos os indicadores com dado estão na meta.':'Sem indicadores lançados no mês.'}</div>`;
+  // comparação mês a mês (média por dia de venda)
+  const cel=g=>g?`<b>${brlK(g.media)}</b><div class="small muted">${brlK(g.fat)}${g.parcial?' · '+fmtD(g.ate).slice(0,5):''}</div>`:'<span class="muted">—</span>';
+  const vr=(a,b)=>a&&b&&a.media&&b.media?(a.media/b.media-1)*100:null;
+  const vCel=v=>v==null?'—':`<span class="sem s-${v>=0?'ok':v>=-5?'warn':'bad'}">${v>=0?'+':'−'}${nf1.format(Math.abs(v))}%</span>`;
+  const rd=k=>{const c=G.filter(x=>x[k]);return c.length?{fat:sum(c,x=>x[k].fat),media:sum(c,x=>x[k].fat)/Math.max(...c.map(x=>x[k].dias)),parcial:c.some(x=>x[k].parcial),ate:c.map(x=>x[k].ate).sort().at(-1)}:null};
+  const RD={g2:rd('g2'),g1:rd('g1'),g:rd('g')};
+  $('#gComp').innerHTML=`<table class="g-comp"><thead><tr><th>Loja</th><th class="num">${mesTxt(M2)}</th><th class="num">${mesTxt(M1)}</th><th class="num">${mesTxt(M)}</th><th class="num">vs ${mesTxt(M1)}</th></tr></thead><tbody>
+    ${G.map(x=>`<tr><td><b>${esc(x.l.nome)}</b></td><td class="num">${cel(x.g2)}</td><td class="num">${cel(x.g1)}</td><td class="num">${cel(x.g)}</td><td class="num">${vCel(vr(x.g,x.g1))}</td></tr>`).join('')}
+    ${OPER.length>1?`<tr class="po-rede-l"><td><b>Rede</b></td><td class="num">${cel(RD.g2)}</td><td class="num">${cel(RD.g1)}</td><td class="num">${cel(RD.g)}</td><td class="num">${vCel(vr(RD.g,RD.g1))}</td></tr>`:''}</tbody></table>
+    <p class="small muted" style="margin-top:10px">Em negrito, a média por dia (faturamento ÷ dias até o último dado); embaixo, o total do mês. Assim o mês em andamento compara com os fechados.</p>`;
 
+  // crescimento e expansão (mês em andamento pela projeção)
   const p=cfg('projecao10')||{lojasBase:[],novasLojas:8,faturamentoMinimo:500000};
-  const base=sum(p.lojasBase||[],id=>LBYID[id]?lojaStats(id).fat:0), proj=base+p.novasLojas*p.faturamentoMinimo;
+  const vm=id=>{const g=LBYID[id]?gMes(id,M):null;return g?g.val:0};
+  const hoje=sum(OPER,l=>vm(l.id)), base=sum(p.lojasBase||[],vm), proj=base+p.novasLojas*p.faturamentoMinimo;
   $('#redeHojeLbl').textContent=`Rede hoje (${OPER.length} loja${OPER.length===1?'':'s'} em operação)`;
-  if(comVenda.length){countUp($('#redeHoje'),fat,brlK);countUp($('#redeProj'),proj,brlK);
-    $('#projTxt').textContent = `${(p.lojasBase||[]).map(id=>`${lojaNome(id)} (${brl(lojaStats(id).fat)})`).join(' + ')} + ${p.novasLojas} lojas acima de ${brlK(p.faturamentoMinimo)} (${brl(p.novasLojas*p.faturamentoMinimo)}) = ${brl(proj)} por mês${fat?` — ${nf1.format(proj/fat)}x o faturamento de hoje`:''}.`}
+  $('#redeHojeSub').textContent=parcial?`por mês · projeção de ${mesLongo(M).toLowerCase()}`:'por mês';
+  if(com.length){countUp($('#redeHoje'),hoje,brlK);countUp($('#redeProj'),proj,brlK);
+    $('#projTxt').textContent = `${(p.lojasBase||[]).map(id=>`${lojaNome(id)} (${brl(vm(id))})`).join(' + ')} + ${p.novasLojas} lojas acima de ${brlK(p.faturamentoMinimo)} (${brl(p.novasLojas*p.faturamentoMinimo)}) = ${brl(proj)} por mês${hoje?` — ${nf1.format(proj/hoje)}x o faturamento de hoje`:''}.`}
   else{$('#redeHoje').textContent='—';$('#redeProj').textContent='—';$('#projTxt').textContent='A projeção aparece quando houver vendas lançadas no mês.'}
   const ex=(S.db.expansao||[]);
   $('#timeline').innerHTML = (ex.length?`<div class="tl"><b>${esc(ex[0].abertura||fmtD(ex[0].data_prevista))}</b><span>Abertura da loja ${esc(ex[0].nome)}.</span></div>`:'')+
     `<div class="tl"><b>2027 a 2030</b><span>Média de 2 a 3 novas lojas por ano${ex.length>1?` · ${ex.length-1} no plano`:''}.</span></div><div class="tl"><b>Meta para 2030</b><span>No mínimo 10 lojas na rede.</span></div>`;
 
-  // evolução das vendas (6 meses)
-  const ms=Array.from({length:6},(_,i)=>addMes(S.mes,i-5));
-  const evol=OPER.map((l,i)=>({label:l.nome,data:ms.map(m=>{const s=lojaStats(l.id,m);return s.temVenda?s.fat:null}),borderColor:PAL[i%6],backgroundColor:PAL[i%6],tension:.3,pointRadius:3,borderWidth:2,spanGaps:true}));
-  if(evol.some(d=>d.data.some(v=>v!=null))) mk('cEvol',{type:'line',data:{labels:ms.map(mesTxt),datasets:evol.concat([{label:'Rede',data:ms.map(m=>{const v=sum(OPER,l=>lojaStats(l.id,m).fat);return v||null}),borderColor:'#ffffff',backgroundColor:'#ffffff',borderWidth:3,pointRadius:4,tension:.3}])},options:{plugins:{tooltip:tipBrl},scales:{y:yR,x:xG}}});
+  // evolução das vendas (6 meses; mês em andamento pela projeção, trecho tracejado)
+  const ms=Array.from({length:6},(_,i)=>addMes(M,i-5));
+  const pend=(arr)=>({borderDash:c=>c.p1DataIndex===ms.length-1&&arr[ms.length-1]?[5,4]:undefined});
+  const evol=OPER.map((l,i)=>{const gs=ms.map(m=>gMes(l.id,m));return {label:l.nome,data:gs.map(g=>g?g.val:null),borderColor:PAL[i%6],backgroundColor:PAL[i%6],tension:.3,pointRadius:3,borderWidth:2,spanGaps:true,segment:pend(gs.map(g=>g&&g.parcial))}});
+  const gR=ms.map(m=>{const v=sum(OPER,l=>{const g=gMes(l.id,m);return g?g.val:0});return v||null}), pR=ms.map(m=>OPER.some(l=>{const g=gMes(l.id,m);return g&&g.parcial}));
+  const metaR=ms.map(m=>{const v=sum(OPER,l=>IDX.mv.get(l.id+'|'+m)||0);return v||null});
+  if(evol.some(d=>d.data.some(v=>v!=null))) mk('cEvol',{type:'line',data:{labels:ms.map((m,i)=>mesTxt(m)+(pR[i]?'*':'')),datasets:evol.concat([
+    {label:'Rede',data:gR,borderColor:'#ffffff',backgroundColor:'#ffffff',borderWidth:3,pointRadius:4,tension:.3,segment:pend(pR)},
+    {label:'Meta da rede',data:metaR,borderColor:'#d28e05',borderDash:[6,5],borderWidth:2,pointRadius:0,tension:.3,spanGaps:true}])},
+    options:{plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>c.parsed.y==null?null:' '+c.dataset.label+': '+brl(c.parsed.y)+(pR[c.dataIndex]&&c.dataset.label!=='Meta da rede'?' (projeção)':'')}}},scales:{y:yR,x:xG}}});
   else noData('cEvol','Sem vendas nos últimos 6 meses.');
-  // indicadores críticos
+  // indicadores críticos (mesmo semáforo de Metas e indicadores)
+  const al=alertasRede();
   const ind=METAS_DEF.filter(d=>d.k!=='fat').map(d=>({d,n:al.filter(a=>a.m.k===d.k).length,b:al.filter(a=>a.m.k===d.k&&a.s==='bad').length})).filter(x=>x.n);
   if(ind.length) mk('cCrit',{type:'bar',data:{labels:ind.map(x=>x.d.n),datasets:[{label:'Críticos',data:ind.map(x=>x.b),backgroundColor:'rgba(229,48,63,.85)',borderRadius:6,stack:'c',maxBarThickness:28},{label:'Em atenção',data:ind.map(x=>x.n-x.b),backgroundColor:'rgba(242,179,61,.85)',borderRadius:6,stack:'c',maxBarThickness:28}]},
     options:{indexAxis:'y',scales:{x:{stacked:true,grid:{color:C.grid},border:{display:false},ticks:{precision:0}},y:{stacked:true,grid:{display:false},border:{display:false}}}}});

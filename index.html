@@ -77,17 +77,17 @@
     <section class="tab on" id="tab-geral">
       <div class="card hidden" id="onboard" style="margin-bottom:16px"></div>
       <div id="gLive"></div>
-      <div class="grid g6" id="geralKpis"></div>
+      <div class="grid g4" id="geralKpis"></div>
       <div class="grid g21 mt">
-        <div class="card"><h3>Faturamento por loja <small id="fatLojaSub">linha: piso de R$ 500 mil/mês</small></h3><div class="chart"><canvas id="cFatLoja"></canvas></div></div>
+        <div class="card"><h3>Faturamento por loja <small id="gm3Sub">últimos 3 meses · mês atual pela projeção</small></h3><div class="chart lg"><canvas id="cGm3"></canvas></div></div>
         <div class="card"><h3>Ranking TOP / FLOP <small>indicadores na meta</small></h3><div class="rank" id="rank"></div></div>
       </div>
       <div class="grid g2 mt">
-        <div class="card"><h3>Alertas de indicadores <small id="alCount"></small></h3><div class="alerts" id="alerts"></div></div>
+        <div class="card"><h3>Comparação mês a mês <small>média por dia de venda</small></h3><div class="tbl-wrap" id="gComp"></div></div>
         <div class="card">
           <h3>Crescimento e expansão</h3>
           <div class="grid g2" style="gap:12px">
-            <div class="tl"><span class="muted small" id="redeHojeLbl">Rede hoje</span><div class="big" id="redeHoje" style="color:var(--beige)"></div><span class="muted small">por mês</span></div>
+            <div class="tl"><span class="muted small" id="redeHojeLbl">Rede hoje</span><div class="big" id="redeHoje" style="color:var(--beige)"></div><span class="muted small" id="redeHojeSub">por mês</span></div>
             <div class="tl"><span class="muted small">Projeção com 10 lojas</span><div class="big" id="redeProj"></div><span class="muted small">por mês, no mínimo</span></div>
           </div>
           <p class="small muted" style="margin:12px 0" id="projTxt"></p>
@@ -95,7 +95,7 @@
         </div>
       </div>
       <div class="grid g2 mt">
-        <div class="card"><h3>Evolução das vendas <small>últimos 6 meses</small></h3><div class="chart"><canvas id="cEvol"></canvas></div></div>
+        <div class="card"><h3>Evolução das vendas <small>últimos 6 meses · mês atual pela projeção</small></h3><div class="chart"><canvas id="cEvol"></canvas></div></div>
         <div class="card"><h3>Indicadores críticos <small>lojas fora da meta por indicador</small></h3><div class="chart"><canvas id="cCrit"></canvas></div></div>
       </div>
     </section>

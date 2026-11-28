@@ -309,6 +309,8 @@ function status(m,v){
 const pesoDia = () => cfg('peso_dia_semana')||{seg:1,ter:1,qua:1,qui:1,sex:1,sab:1,dom:1};
 function diasDoMes(m){const n=diasNoMes(m);return Array.from({length:n},(_,i)=>m+'-'+String(i+1).padStart(2,'0'))}
 /* meta de um dia = meta do mês × peso do dia da semana ÷ soma dos pesos do mês (regra do painel original) */
+/* parte da meta do mês que cabe até um dia (inclusive), pelo peso de cada dia da semana */
+function metaAteLoja(meta,mes,ate){const pw=pesoDia(),k='sp|'+mes;if(CACHE[k]==null)CACHE[k]=sum(diasDoMes(mes),d=>pw[wkOfIso(d)]);return meta*sum(diasDoMes(mes).filter(d=>d<=ate),d=>pw[wkOfIso(d)])/CACHE[k]}
 function metaDiaLoja(loja,iso){
   const m=ymOf(iso), mm=IDX.mv.get(loja+'|'+m); if(mm==null) return null;
   const pw=pesoDia(), k='sp|'+m; if(CACHE[k]==null) CACHE[k]=sum(diasDoMes(m),d=>pw[wkOfIso(d)]);
@@ -373,9 +375,13 @@ function lojaStats(id,mes=S.mes){
   // pessoas
   const rh=IDX.rh.get(id+'|'+mes);
   if(rh){ind.turnover=turnOf(rh);ind.absent=absOf(rh);src.turnover=src.absent='lançamento mensal de RH'}
-  const vals=Object.assign({fat:temVenda?fat:null,pctMeta:temVenda&&meta?fat/meta*100:null},ind);
+  // vendas x meta: realizado ÷ meta até a data (meta do mês pelo peso de cada dia da semana, até o último dia com venda)
+  const ate=nReg?ds.filter(d=>IDX.vd.has(id+'|'+d)).at(-1):acum?(acum.ate&&ymOf(acum.ate)===mes?acum.ate:fimMes(mes)):null;
+  const metaAte=meta!=null&&ate?metaAteLoja(meta,mes,ate):null;
+  const vals=Object.assign({fat:temVenda?fat:null,pctMeta:temVenda&&metaAte?fat/metaAte*100:null},ind);
   src.fat=src.pctMeta=acum?`${acum.fonte||'sistema de caixa'} · acumulado do mês${acum.ate?' até '+fmtD(acum.ate).slice(0,5):''}`:temVenda?`${nReg} dias de venda lançados`:'sem vendas lançadas';
-  const st={sal,del,ps,pd,fat,ped:ps+pd,ticket:(ps+pd)?fat/(ps+pd):null,meta,pctMeta:vals.pctMeta,dias,nReg,temVenda,vals,src,ind,acum,semMix};
+  if(metaAte) src.pctMeta=`realizado ÷ meta até ${fmtD(ate).slice(0,5)} (${brlK(metaAte)}, peso do dia da semana)`;
+  const st={sal,del,ps,pd,fat,ped:ps+pd,ticket:(ps+pd)?fat/(ps+pd):null,meta,metaAte,ate,pctMeta:vals.pctMeta,dias,nReg,temVenda,vals,src,ind,acum,semMix};
   return CACHE[key]=st;
 }
 const ST = new Proxy({},{get:(_,id)=>lojaStats(id)});
