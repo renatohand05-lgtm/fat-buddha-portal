@@ -891,3 +891,20 @@ table.po-dia td,table.po-dia th{padding:9px 8px}
 td .po-mini{margin-top:5px;min-width:110px}
 tr.po-rede-l td{background:rgba(229,48,63,.08);border-top:1px solid rgba(229,48,63,.3)}
 table.g-comp th,table.g-comp td{padding:8px 6px}table.g-comp td:first-child{padding-left:8px}
+
+/* =========== menu por grupos: barra de sub-abas =========== */
+.grp-old{display:none!important}
+.grp-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.grp-bar.hidden{display:none}
+.grp-nav{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.grp-h{font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;font-weight:700;color:var(--dim);padding:0 6px 0 10px}
+.grp-h:not(:first-child){border-left:1px solid var(--line);margin-left:6px}
+.grp-loja{display:flex;align-items:center;gap:8px;padding:5px 6px 5px 14px;border-radius:12px;background:linear-gradient(180deg,rgba(255,246,238,.09),rgba(255,246,238,.04));border:1px solid var(--line)}
+.grp-loja span{font-size:11px;text-transform:uppercase;letter-spacing:.8px;font-weight:700;color:var(--beige)}
+.grp-loja select{width:auto;min-width:190px;padding:7px 10px;border-radius:9px;font-weight:650}
+@media (max-width:700px){
+  .grp-bar{flex-direction:column;align-items:stretch}
+  .grp-loja select{flex:1;min-width:0}
+  .grp-nav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .grp-nav::-webkit-scrollbar{display:none}.grp-nav button{flex:0 0 auto}
+}

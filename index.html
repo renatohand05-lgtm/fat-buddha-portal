@@ -46,24 +46,17 @@
   <aside class="side">
     <div class="brand"><img src="logo.png" alt="Fat Buddha"><div><b>Fat Buddha</b><span>Portal Operacional</span></div></div>
     <nav class="nav" id="nav">
-      <button data-tab="geral" class="on"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Visão geral</button>
-      <button data-tab="painel"><svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Painel operacional</button>
-      <button data-tab="loja"><svg viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M5 12v8h14v-8"/><path d="M10 20v-5h4v5"/></svg>Minha loja</button>
-      <button data-tab="vendas"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>Vendas</button>
-      <button data-tab="ifood"><svg viewBox="0 0 24 24"><path d="M4 7h16l-1.5 11a2 2 0 0 1-2 1.7h-9a2 2 0 0 1-2-1.7z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/><path d="M9 12h6"/></svg>iFood</button>
-      <button data-tab="metas"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>Metas e indicadores</button>
-      <button data-tab="cmv"><svg viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>CMV por loja</button>
-      <button data-tab="cc"><svg viewBox="0 0 24 24"><path d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21v-7h6v7"/></svg>Cozinha central</button>
-      <button data-tab="dre"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>DRE por loja</button>
-      <button data-tab="notas"><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>Notas fiscais</button>
-      <button data-tab="orc"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8"/><path d="M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 18h.01M12 18h4"/></svg>Orçamento de inaugurações</button>
-      <button data-tab="rh"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18.5 14.8c1.7.8 2.7 2.5 3 5.2"/></svg>Indicadores de RH</button>
-      <button data-tab="qualidade"><svg viewBox="0 0 24 24"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M9 14l2 2 4-4"/></svg>Checklist de qualidade</button>
-      <button data-tab="delivery"><svg viewBox="0 0 24 24"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M9 17h6l-3-8H8"/><path d="M14 6h3l3 6"/></svg>Checklist de delivery</button>
+      <button data-g="geral"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Visão geral</button>
+      <button data-g="painel"><svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Painel operacional</button>
+      <button data-g="vendas"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>Vendas e iFood</button>
+      <button data-g="estoque"><svg viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>Estoque e CMV</button>
+      <button data-g="financeiro"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>Financeiro</button>
+      <button data-g="rh"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18.5 14.8c1.7.8 2.7 2.5 3 5.2"/></svg>Indicadores de RH</button>
+      <button data-g="checklists"><svg viewBox="0 0 24 24"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M9 14l2 2 4-4"/></svg>Checklists</button>
       <div class="grp">Gestão</div>
-      <button data-tab="planos"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>Planos de ação</button>
-      <button data-tab="relatorios"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M14 2v6h6"/><path d="M8 17v-3M12 17v-6M16 17v-4"/></svg>Relatórios</button>
-      <button data-tab="config"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Configurações</button>
+      <button data-g="planos"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>Planos de ação</button>
+      <button data-g="relatorios"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M14 2v6h6"/><path d="M8 17v-3M12 17v-6M16 17v-4"/></svg>Relatórios</button>
+      <button data-g="config"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Configurações</button>
     </nav>
     <div class="foot" id="foot"></div>
     <div class="user" id="userBox"></div>
@@ -72,6 +65,7 @@
   <main>
     <div class="top"><div><h1 id="pTitle">Visão geral</h1><p id="pSub"></p></div><div class="top-r"><button class="pill-month bases-pill hidden" id="btnBases" title="Situação das bases de dados"></button><button class="pill-month hidden" id="btnInstalar" title="Instalar o portal neste aparelho">Instalar app</button><button class="bell" id="bell" title="Alertas"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span id="bellN" class="hidden"></span></button><select class="pill-month" id="pMonth" title="Mês de referência"></select></div></div>
     <div class="banner hidden" id="banner"></div>
+    <div class="grp-bar hidden" id="grpBar"></div>
 
     <!-- ============ VISÃO GERAL ============ -->
     <section class="tab on" id="tab-geral">
@@ -102,9 +96,6 @@
 
     <!-- ============ PAINEL OPERACIONAL ============ -->
     <section class="tab" id="tab-painel">
-      <div class="po-top">
-        <div class="subnav" id="poNav"><button data-s="res" class="on">Resultado por loja</button><button data-s="prod">Produtividade</button><button data-s="voz">Voz do cliente</button><button data-s="bases">Bases de dados</button></div>
-      </div>
       <div id="poFaixa"></div>
 
       <div class="po-sec on" id="po-res">
@@ -136,6 +127,8 @@
       </div>
 
       <div class="po-sec" id="po-voz">
+        <div class="subnav" id="vzNav" style="margin-bottom:14px"><button data-v="com" class="on">Avaliações e temas</button><button data-v="gg">Nota do Google por loja</button></div>
+        <div id="vz-com">
         <div class="card" style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px 16px;margin-bottom:16px">
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="subnav" id="vcPer"><button data-p="mes" class="on">Mês</button><button data-p="90">90 dias</button></div><span class="small muted" id="vcPerTxt"></span></div>
           <div class="actions only-edit" style="margin:0"><button class="btn sm" id="vcModelo">Modelo CSV</button><button class="btn sm pri" id="vcImport">Importar comentários do iFood</button></div>
@@ -155,6 +148,17 @@
           <div class="po-chips" id="vcTemas"></div>
           <div class="po-cms" id="vcLista"></div>
         </div>
+        </div>
+      <div class="hidden" id="qs-google">
+        <div class="card gg-bar"><div class="gg-status" id="ggStatus"></div><button class="btn pri" id="ggAtualizar">Atualizar agora</button></div>
+        <div class="card mt" id="ggHero"></div>
+        <div class="cmg-lojas mt" id="ggLojas"></div>
+        <div class="grid g2 mt"><div class="card"><h3>Evolução semana vs semana <small id="ggSemSub"></small></h3><div id="ggSem"></div></div><div class="card"><h3>Evolução mês vs mês <small id="ggMesSub"></small></h3><div id="ggMes"></div></div></div>
+        <div class="card mt"><h3>Últimas avaliações <small id="ggRvN"></small></h3>
+          <div class="gg-filtros"><span class="subnav gg-f" id="ggRvF"><button data-f="todas" class="on">Todas</button><button data-f="neg">1 a 3 estrelas</button><button data-f="pos">4 e 5 estrelas</button></span><select class="inp" id="ggRvLoja" style="max-width:220px"></select></div><div id="ggRevs"></div>
+          <p class="small muted" style="margin-top:10px">Avaliações e notas do Google Maps. Clique no texto para ler inteiro. Uma avaliação nova de 1 ou 2 estrelas gera alerta no sino.</p></div>
+        <details class="card mt dre-fold" id="ggCfg"><summary>Configuração · chave do Google, lojas vinculadas, meta e lançamento manual</summary><div id="ggCfgBody" style="margin-top:14px"></div></details>
+      </div>
       </div>
 
       <div class="po-sec" id="po-bases">
@@ -166,7 +170,7 @@
     <!-- ============ MINHA LOJA ============ -->
     <section class="tab" id="tab-loja">
       <div class="card" style="display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px;padding:14px 18px">
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><select class="inp" id="mlLoja" style="max-width:240px"></select><span class="small muted" id="mlInfo"></span></div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><select class="inp hidden" id="mlLoja" style="max-width:240px"></select><span class="small muted" id="mlInfo"></span></div>
         <label class="f" style="flex-direction:row;align-items:center;gap:8px">Dia de referência<input class="inp" type="date" id="mlDia" style="width:auto"></label>
       </div>
       <div id="mlLive"></div>
@@ -250,7 +254,7 @@
 
     <!-- ============ CMV POR LOJA ============ -->
     <section class="tab" id="tab-cmv">
-      <div style="margin-bottom:16px"><div class="subnav" id="cmNav"><button data-s="sem" class="on">CMV semanal</button><button data-s="ctl">Controle diário</button><button data-s="per">Perdas e desperdício</button><button data-s="prod">Produção do dia</button></div></div>
+      <div class="grp-old"><div class="subnav" id="cmNav"><button data-s="sem" class="on">CMV semanal</button><button data-s="ctl">Controle diário</button><button data-s="per">Perdas e desperdício</button><button data-s="prod">Produção do dia</button></div></div>
       <div class="ccs on" id="cm-sem">
       <div class="card cmg-hero" id="cmgHero"></div>
       <div class="cmg-lojas mt" id="cmgLojas"></div>
@@ -364,7 +368,7 @@
 
     <!-- ============ COZINHA CENTRAL ============ -->
     <section class="tab" id="tab-cc">
-      <div class="card" style="display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px;padding:12px 14px">
+      <div class="card grp-old" style="display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px;padding:12px 14px">
         <div class="subnav" id="ccNav"><button data-s="rup" class="on">Rupturas</button><button data-s="est">Estoque da cozinha central</button><button data-s="cont">Contagem de estoque</button></div>
         <span class="small muted">Registros salvos no banco do portal</span>
       </div>
@@ -663,8 +667,8 @@
 
     <!-- ============ CHECKLIST QUALIDADE ============ -->
     <section class="tab" id="tab-qualidade">
-      <div class="card" style="display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px;padding:12px 14px">
-        <div class="subnav" id="qNav"><button data-s="visita" class="on">Visita de qualidade</button><button data-s="oper">Vistoria de operações</button><button data-s="google">Notas do Google</button></div>
+      <div class="card grp-old" style="display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px;padding:12px 14px">
+        <div class="subnav" id="qNav"><button data-s="visita" class="on">Visita de qualidade</button><button data-s="oper">Vistoria de operações</button></div>
       </div>
       <div class="qs on" id="qs-visita">
       <div class="card">
@@ -726,16 +730,6 @@
         <div class="card mt"><h3>Histórico de vistorias <small><button class="btn sm" id="voCsv">Exportar CSV</button></small></h3><div class="vo-ults" id="voUlt"></div><div id="voHist"></div></div>
       </div>
 
-      <div class="qs" id="qs-google">
-        <div class="card gg-bar"><div class="gg-status" id="ggStatus"></div><button class="btn pri" id="ggAtualizar">Atualizar agora</button></div>
-        <div class="card mt" id="ggHero"></div>
-        <div class="cmg-lojas mt" id="ggLojas"></div>
-        <div class="grid g2 mt"><div class="card"><h3>Evolução semana vs semana <small id="ggSemSub"></small></h3><div id="ggSem"></div></div><div class="card"><h3>Evolução mês vs mês <small id="ggMesSub"></small></h3><div id="ggMes"></div></div></div>
-        <div class="card mt"><h3>Últimas avaliações <small id="ggRvN"></small></h3>
-          <div class="gg-filtros"><span class="subnav gg-f" id="ggRvF"><button data-f="todas" class="on">Todas</button><button data-f="neg">1 a 3 estrelas</button><button data-f="pos">4 e 5 estrelas</button></span><select class="inp" id="ggRvLoja" style="max-width:220px"></select></div><div id="ggRevs"></div>
-          <p class="small muted" style="margin-top:10px">Avaliações e notas do Google Maps. Clique no texto para ler inteiro. Uma avaliação nova de 1 ou 2 estrelas gera alerta no sino.</p></div>
-        <details class="card mt dre-fold" id="ggCfg"><summary>Configuração · chave do Google, lojas vinculadas, meta e lançamento manual</summary><div id="ggCfgBody" style="margin-top:14px"></div></details>
-      </div>
     </section>
 
     <!-- ============ CHECKLIST DELIVERY ============ -->

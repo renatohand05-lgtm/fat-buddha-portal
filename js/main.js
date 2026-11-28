@@ -1,5 +1,5 @@
 /* ================= navegação, login e inicialização ================= */
-const TITLES={painel:['Painel operacional','D-1, acumulado, projeção e meta por loja · produtividade · voz do cliente · bases'],ifood:['iFood','Vendas, tempo online, cancelamentos, nota e custos do iFood por loja'],notas:['Notas fiscais','Compras por fornecedor, classificação no DRE e compras do CMV'],geral:['Visão geral','Visão da diretoria: tendência da rede, comparação entre meses, expansão e indicadores'],loja:['Minha loja','Resultado do dia, do mês e pendências da loja'],vendas:['Vendas','Venda diária, hora a hora e por canal'],metas:['Metas e indicadores','Metas do plano de gestão e semáforo por loja'],qualidade:['Qualidade','Visita de qualidade, vistoria diária de operações e notas do Google'],delivery:['Checklist de indicadores de delivery','Acompanhamento diário ou semanal por loja'],dre:['DRE por loja','Resultado operacional de cada loja no mês'],orc:['Orçamento de inaugurações','DRE orçado de uma nova loja, maturação, cenários e rede com 10 lojas'],rh:['Indicadores de RH','Quadro, turnover, absenteísmo, ocorrências, performance, nine box e sucessão'],cmv:['CMV por loja','CMV semanal, controle diário de bebidas, sobremesas e proteínas, perdas e produção do dia'],cc:['Cozinha central','Rupturas das lojas e estoque da cozinha central'],
+const TITLES={painel:['Painel operacional','D-1, acumulado, projeção e meta por loja · produtividade · voz do cliente · bases'],ifood:['iFood','Vendas, tempo online, cancelamentos, nota e custos do iFood por loja'],notas:['Notas fiscais','Compras por fornecedor, classificação no DRE e compras do CMV'],geral:['Visão geral','Visão da diretoria: tendência da rede, comparação entre meses, expansão e indicadores'],loja:['Minha loja','Resultado da loja: dia, mês, projeção, pendências e alertas'],vendas:['Vendas','Venda diária, hora a hora e por canal'],metas:['Metas e indicadores','Metas do plano de gestão e semáforo por loja'],qualidade:['Qualidade','Visita de qualidade, vistoria diária de operações e notas do Google'],delivery:['Checklist de indicadores de delivery','Acompanhamento diário ou semanal por loja'],dre:['DRE por loja','Resultado operacional de cada loja no mês'],orc:['Orçamento de inaugurações','DRE orçado de uma nova loja, maturação, cenários e rede com 10 lojas'],rh:['Indicadores de RH','Quadro, turnover, absenteísmo, ocorrências, performance, nine box e sucessão'],cmv:['CMV por loja','CMV semanal, controle diário de bebidas, sobremesas e proteínas, perdas e produção do dia'],cc:['Cozinha central','Rupturas das lojas e estoque da cozinha central'],
   planos:['Planos de ação','Desvios dos checklists e indicadores, com responsável, prazo e verificação'],relatorios:['Relatórios','Relatórios gerenciais em PDF e CSV'],config:['Configurações','Lojas, metas, premissas, quadro, usuários e histórico']};
 const RENDER={painel:renderPainel,ifood:renderIfood,notas:renderNotas,geral:renderGeral,loja:renderLoja,vendas:renderVendas,metas:renderMetas,dre:renderDRE,orc:renderOrc,rh:renderRH,cmv:renderCmvTab,cc:renderCC,qualidade:renderQualidade,delivery:()=>{buildDel();renderDelHist()},planos:renderPlanos,relatorios:renderRelatorios,config:renderConfig};
 function abasPermitidas(){
@@ -10,13 +10,61 @@ function abasPermitidas(){
   if(P.gestor) t.push('config');
   return t;
 }
+/* ---------- menu por grupos: cada item do menu reúne telas que antes eram abas separadas ---------- */
+const naoColab=()=>P.papel!=='colaborador';
+const GRUPOS=[
+  {g:'geral',n:'Visão geral',it:[{t:'geral'}]},
+  {g:'painel',n:'Painel operacional',loja:true,it:[{l:'Resultado',t:'painel',s:'res'},{l:'Metas e indicadores',t:'metas'},{l:'Produtividade',t:'painel',s:'prod'},{l:'Voz do cliente',t:'painel',s:'voz'},{l:'Bases de dados',t:'painel',s:'bases'}]},
+  {g:'vendas',n:'Vendas e iFood',it:[{l:'Vendas',t:'vendas'},{l:'iFood',t:'ifood'}]},
+  {g:'estoque',n:'Estoque e CMV',it:[{h:'Loja'},{l:'CMV semanal',t:'cmv',s:'sem',ok:naoColab},{l:'Controle diário',t:'cmv',s:'ctl'},{l:'Perdas e desperdício',t:'cmv',s:'per'},{l:'Produção do dia',t:'cmv',s:'prod'},
+    {h:'Cozinha central'},{l:'Rupturas',t:'cc',s:'rup'},{l:'Estoque da cozinha central',t:'cc',s:'est',ok:naoColab},{l:'Contagem de estoque',t:'cc',s:'cont',ok:naoColab}]},
+  {g:'financeiro',n:'Financeiro',it:[{l:'DRE por loja',t:'dre'},{l:'Notas fiscais',t:'notas'},{l:'Orçamento de inaugurações',t:'orc'}]},
+  {g:'rh',n:'Indicadores de RH',it:[{t:'rh'}]},
+  {g:'checklists',n:'Checklists',it:[{l:'Visita de qualidade',t:'qualidade',s:'visita'},{l:'Vistoria de operações',t:'qualidade',s:'oper'},{l:'Checklist de delivery',t:'delivery'}]},
+  {g:'planos',n:'Planos de ação',it:[{t:'planos'}]},{g:'relatorios',n:'Relatórios',it:[{t:'relatorios'}]},{g:'config',n:'Configurações',it:[{t:'config'}]}
+];
+const grupoDe=t=>GRUPOS.find(G=>G.it.some(i=>i.t===t))||GRUPOS.find(G=>G.g==='painel'&&t==='loja');
+const subDe=t=>t==='painel'?PO.sub:t==='cmv'?cmSub:t==='cc'?ccSub:t==='qualidade'?qSub:null;
+function setSub(t,v){if(v==null)return;if(t==='painel')PO.sub=v;else if(t==='cmv')cmSub=v;else if(t==='cc')ccSub=v;else if(t==='qualidade')qSub=v}
+const itensDe=G=>{const ok=abasPermitidas();return G.it.filter(i=>i.h||(ok.includes(i.t)&&(!i.ok||i.ok())))};
+const ULT={};
+function irItem(i){
+  if(i.t==='painel'&&i.s==='res'&&PO.lojaSel&&PO.lojaSel!=='rede'){mlSel=PO.lojaSel;go('loja');return}
+  if(i.t==='painel'&&PO.lojaSel&&PO.lojaSel!=='rede'){PO.prLoja=PO.lojaSel;PO.vcLoja=PO.lojaSel}
+  setSub(i.t,i.s);go(i.t);
+}
+function goGrupo(g){const G=GRUPOS.find(x=>x.g===g), its=itensDe(G).filter(i=>!i.h);if(!its.length)return;
+  const u=ULT[g]; if(u&&abasPermitidas().includes(u.t)){if(u.t==='loja'){mlSel=u.ml||mlSel;go('loja');return}setSub(u.t,u.s);go(u.t);return}
+  irItem(its[0])}
+function grupoBarra(t){
+  const G=grupoDe(t), el=$('#grpBar'); if(!G){el.classList.add('hidden');return}
+  const its=itensDe(G), reais=its.filter(i=>!i.h);
+  ULT[G.g]={t,s:subDe(t),ml:t==='loja'?mlSel:null};
+  $$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.g===G.g));
+  if(reais.length<2&&!G.loja){el.classList.add('hidden');el.innerHTML='';return}
+  const ativo=i=>(i.t===t||(t==='loja'&&i.t==='painel'&&i.s==='res'))&&(!i.s||t==='loja'||subDe(t)===i.s);
+  let sel='';
+  if(G.loja){const ls=poLojas();if(!PO.lojaSel)PO.lojaSel=ls.length===1?ls[0].id:'rede';if(t==='loja')PO.lojaSel=mlSel;
+    sel=`<label class="grp-loja"><span>Visão</span><select class="inp" id="grpLoja">${ls.length>1?`<option value="rede">Rede · todas as lojas</option>`:''}${optLojas(ls,PO.lojaSel)}</select></label>`}
+  el.innerHTML=sel+`<div class="subnav grp-nav">${its.map((i,k)=>i.h?`<span class="grp-h">${esc(i.h)}</span>`:`<button data-k="${k}" class="${ativo(i)?'on':''}">${esc(i.l)}</button>`).join('')}</div>`;
+  el.classList.remove('hidden');
+  el.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>irItem(its[+b.dataset.k]));
+  const gl=$('#grpLoja'); if(gl){gl.value=PO.lojaSel;gl.onchange=()=>{PO.lojaSel=gl.value;const v=gl.value;
+    if(t==='loja'||(t==='painel'&&PO.sub==='res')){if(v==='rede'){PO.sub='res';go('painel')}else{mlSel=v;go('loja')}}
+    else if(t==='painel'){if(v!=='rede'){PO.prLoja=v;PO.vcLoja=v}else PO.vcLoja='';go('painel')}
+    else go(t)}}
+}
 function go(t){
   const ok=abasPermitidas(); if(!ok.includes(t)) t=ok[0];
+  // Painel operacional com uma loja escolhida: o resultado é a visão da loja (antiga Minha loja)
+  if(t==='painel'||t==='loja'){if(!PO.lojaSel){const ls=poLojas();PO.lojaSel=ls.length===1?ls[0].id:'rede'}
+    if(t==='painel'&&PO.sub==='res'&&PO.lojaSel!=='rede'&&ok.includes('loja')){mlSel=PO.lojaSel;t='loja'}}
   S.tab=t;
-  $$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
   $$('.tab').forEach(s=>s.classList.toggle('on',s.id==='tab-'+t));
-  $('#pTitle').textContent=TITLES[t][0]; $('#pSub').textContent=TITLES[t][1];
+  const G=grupoDe(t);
+  $('#pTitle').textContent=G&&G.it.length>1?G.n:TITLES[t][0]; $('#pSub').textContent=TITLES[t][1];
   try{RENDER[t]()}catch(e){console.error(e);toast('Erro ao montar a tela: '+e.message)}
+  try{grupoBarra(t)}catch(e){console.error(e)}
   try{poBasesPill()}catch(e){}
   if(t==='geral'||t==='loja') liveAtualizar();
   try{history.replaceState(null,'','#'+t)}catch(e){}
@@ -28,7 +76,7 @@ function aplicarLojas(){
   // visibilidade por permissão
   const tem=(sel,cond)=>$$(sel).forEach(e=>e.classList.toggle('hidden',!cond));
   tem('.only-edit',lojasEditaveis().length>0); tem('.only-op',lojasOperaveis().length>0); tem('.only-gestor',P.gestor); tem('.only-cc',P.editaCC);
-  const nb=abasPermitidas(); $$('#nav button').forEach(b=>b.classList.toggle('hidden',!nb.includes(b.dataset.tab)));
+  const nb=abasPermitidas(); $$('#nav button').forEach(b=>{const G=GRUPOS.find(x=>x.g===b.dataset.g);b.classList.toggle('hidden',!G||!itensDe(G).some(i=>!i.h))});
   $('#nav .grp').classList.toggle('hidden',!nb.some(t=>['planos','relatorios','config'].includes(t)));
   $$('#rhNav button').forEach(b=>b.classList.toggle('hidden',b.dataset.s==='oco'&&!LOJAS.some(l=>P.veOco(l.id))));
   if(P.papel==='colaborador'){ccSub='rup';$$('#ccNav button').forEach(b=>b.classList.toggle('hidden',b.dataset.s!=='rup'))}
@@ -86,7 +134,7 @@ sb.auth.onAuthStateChange(async(ev)=>{
   if(ev==='PASSWORD_RECOVERY'){const s=await pedir('Criar nova senha','Nova senha',{tipo:'password',ajuda:'Mínimo de 8 caracteres.'});if(s&&s.length>=8){const {error}=await sb.auth.updateUser({password:s});toast(error?error.message:'Senha alterada.')}else if(s!=null)toast('A senha precisa ter pelo menos 8 caracteres.')}
   if(ev==='SIGNED_OUT'){$('#app').classList.add('hidden');mostrarLogin()}
 });
-$$('#nav button').forEach(b=>b.onclick=()=>go(b.dataset.tab));
+$$('#nav button').forEach(b=>b.onclick=()=>goGrupo(b.dataset.g));
 $('#modal').addEventListener('keydown',e=>{if(e.key==='Escape')fecharModal()});
 entrar();
 

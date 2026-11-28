@@ -28,7 +28,7 @@ const ggQuando=r=>r.relativo||(r.publicado_em?fmtD(r.publicado_em.slice(0,10)):'
 function renderQualidade(){
   $$('#qNav button').forEach(b=>b.classList.toggle('on',b.dataset.s===qSub));
   $$('#tab-qualidade .qs').forEach(s=>s.classList.toggle('on',s.id==='qs-'+qSub));
-  if(qSub==='google'){renderGoogle();return}
+  if(qSub==='google'){qSub='visita';PO.sub='voz';PO.vz='gg';setTimeout(()=>go('painel'));return}
   if(qSub==='oper'){renderRetornoOper();renderOperHist();return}
   buildQual();renderQualHist();
 }
@@ -151,7 +151,7 @@ async function ggChamar(body,msg){
 async function ggStatus(){
   if(!P.papel)return;
   const {data}=await sb.functions.invoke('google-notas',{body:{acao:'status'}});
-  if(data){GG_ST=data;if(S.tab==='qualidade'&&qSub==='google')renderGoogle()}
+  if(data){GG_ST=data;if(S.tab==='painel'&&PO.sub==='voz'&&PO.vz==='gg')renderGoogle()}
 }
 
 function ggConfig(ls){

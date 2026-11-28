@@ -95,7 +95,7 @@ function ligarAlertas(root){root.querySelectorAll('[data-al]').forEach(el=>el.on
   else if(a.aba==='cc'){ccSub=a.tipo==='contagem'?'cont':'rup';go('cc')}
   else if(a.aba==='cmv'&&(a.chave||'').startsWith('ctl|')){const [,l,d]=a.chave.split('|');cmSub='ctl';CTL_RASC={};go('cmv');$('#ctlLoja').value=l;$('#ctlData').value=d;renderControle()}
   else if(a.aba==='cmv'){cmSub='sem';go('cmv')}
-  else if(a.tipo==='google'){qSub='google';go('qualidade')}
+  else if(a.tipo==='google'){PO.sub='voz';PO.vz='gg';go('painel')}
   else if(a.aba==='rh'){rhSub=P.veFolha?'folha':'quadro';go('rh')} else if(a.aba) go(a.aba)})}
 function pintarSino(){
   const b=$('#bell'); if(P.papel==='colaborador'){b.classList.add('hidden');return}

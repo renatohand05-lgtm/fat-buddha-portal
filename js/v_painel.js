@@ -5,7 +5,7 @@
    ===================================================================== */
 FMTS.dec1=v=>nf1.format(v);
 const poYR={grid:{color:C.grid},border:{display:false},ticks:{callback:v=>Math.abs(v)>=1000?brlK(v):'R$ '+nf0.format(v)}};
-let PO={sub:'res',loja:'rede',prLoja:null,vcPer:'mes',vcFonte:'todas',vcLoja:'',vcTema:'',vcNeg:true};
+let PO={sub:'res',vz:'com',lojaSel:null,loja:'rede',prLoja:null,vcPer:'mes',vcFonte:'todas',vcLoja:'',vcTema:'',vcNeg:true};
 
 const poLojas=()=>OPER.filter(l=>P.veTudo||S.minhas.includes(l.id));
 const poFaixas=hs=>{const g=[];hs.forEach(h=>{const u=g.at(-1);if(u&&h===u[1]+1)u[1]=h;else g.push([h,h])});const f=h=>String(h%24).padStart(2,'0')+'h';return g.map(([a,b])=>a===b?f(a):f(a)+'–'+f(b)).join(', ')};
@@ -146,9 +146,8 @@ function poFaixaHtml(){
 
 /* ================= render ================= */
 function renderPainel(){
-  $$('#poNav button').forEach(b=>b.classList.toggle('on',b.dataset.s===PO.sub));
   $('#poFaixa').innerHTML=poFaixaHtml();
-  $$('#poFaixa [data-pobase]').forEach(b=>b.onclick=()=>{PO.sub='bases';renderPainel()});
+  $$('#poFaixa [data-pobase]').forEach(b=>b.onclick=()=>{PO.sub='bases';go('painel')});
   $$('#tab-painel .po-sec').forEach(s=>s.classList.toggle('on',s.id==='po-'+PO.sub));
   try{({res:poResultado,prod:poProdutividade,voz:poVoz,bases:poBasesTela})[PO.sub]()}catch(e){console.error(e);toast('Erro ao montar o painel: '+e.message)}
 }
@@ -332,6 +331,9 @@ function poComentarios(){
   return CACHE.vc=all.sort((a,b)=>b.data.localeCompare(a.data));
 }
 function poVoz(){
+  $$('#vzNav button').forEach(b=>b.classList.toggle('on',b.dataset.v===PO.vz));
+  $('#vz-com').classList.toggle('hidden',PO.vz!=='com'); $('#qs-google').classList.toggle('hidden',PO.vz!=='gg');
+  if(PO.vz==='gg'){renderGoogle();return}
   const mes=S.mes, ls=poLojas(), ids=ls.map(l=>l.id);
   const ini=PO.vcPer==='mes'?iniMes(mes):addDia(isoHoje(),-90), fim=PO.vcPer==='mes'?fimMes(mes):isoHoje();
   $('#vcPerTxt').textContent=PO.vcPer==='mes'?mesLongo(mes):'últimos 90 dias';
@@ -424,6 +426,6 @@ function poBasesTela(){
 }
 
 function initPainel(){
-  $$('#poNav button').forEach(b=>b.onclick=()=>{PO.sub=b.dataset.s;renderPainel()});
+  $$('#vzNav button').forEach(b=>b.onclick=()=>{PO.vz=b.dataset.v;poVoz()});
   const bb=$('#btnBases'); if(bb) bb.onclick=()=>{PO.sub='bases';go('painel')};
 }
