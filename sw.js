@@ -1,8 +1,8 @@
 /* Fat Buddha · service worker: guarda a estrutura do portal; dados sempre vêm do servidor */
 // IMPORTANTE: troque o V a cada publicação; a estrutura do portal é servida desta cópia
-const V = 'fb-v33';
+const V = 'fb-v34';
 const BASE = ['/', '/styles.css', '/logo.png', '/fonts/inter-latin.woff2', '/manifest.webmanifest', '/vendor/chart.umd.js', '/vendor/supabase.js',
-  '/js/core.js', '/js/v_comercial.js', '/js/v_financeiro.js', '/js/v_operacoes.js', '/js/v_rh.js', '/js/v_checklists.js', '/js/v_gestao.js', '/js/v_integracao.js', '/js/v_loja.js', '/js/v_conexoes.js', '/js/v_cmvop.js', '/js/v_cmvgrupo.js', '/js/v_dre.js', '/js/v_google.js', '/js/v_vistoria.js', '/js/v_escalas.js', '/js/main.js'];
+  '/js/core.js', '/js/v_comercial.js', '/js/v_financeiro.js', '/js/v_operacoes.js', '/js/v_rh.js', '/js/v_checklists.js', '/js/v_gestao.js', '/js/v_integracao.js', '/js/v_loja.js', '/js/v_conexoes.js', '/js/v_cmvop.js', '/js/v_cmvgrupo.js', '/js/v_dre.js', '/js/v_google.js', '/js/v_vistoria.js', '/js/v_escalas.js', '/js/v_painel.js', '/js/main.js'];
 // a Vercel redireciona /index.html para / (cleanUrls): resposta com redirecionamento não pode ser entregue para abrir a
 // página (Safari e Chrome recusam), então toda cópia é guardada "limpa", sem o histórico de redirecionamento
 const limpa = r => r.redirected ? r.blob().then(b => new Response(b, { status: r.status, statusText: r.statusText, headers: r.headers })) : Promise.resolve(r);

@@ -1,11 +1,11 @@
 /* ================= navegação, login e inicialização ================= */
-const TITLES={ifood:['iFood','Vendas, tempo online, cancelamentos, nota e custos do iFood por loja'],notas:['Notas fiscais','Compras por fornecedor, classificação no DRE e compras do CMV'],geral:['Visão geral','Resultado da rede, ranking das lojas e alertas'],loja:['Minha loja','Resultado do dia, do mês e pendências da loja'],vendas:['Vendas','Venda diária, hora a hora e por canal'],metas:['Metas e indicadores','Metas do plano de gestão e semáforo por loja'],qualidade:['Qualidade','Visita de qualidade, vistoria diária de operações e notas do Google'],delivery:['Checklist de indicadores de delivery','Acompanhamento diário ou semanal por loja'],dre:['DRE por loja','Resultado operacional de cada loja no mês'],orc:['Orçamento de inaugurações','DRE orçado de uma nova loja, maturação, cenários e rede com 10 lojas'],rh:['Indicadores de RH','Quadro, turnover, absenteísmo, ocorrências, performance, nine box e sucessão'],cmv:['CMV por loja','CMV semanal, controle diário de bebidas, sobremesas e proteínas, perdas e produção do dia'],cc:['Cozinha central','Rupturas das lojas e estoque da cozinha central'],
+const TITLES={painel:['Painel operacional','D-1, acumulado, projeção e meta por loja · produtividade · voz do cliente · bases'],ifood:['iFood','Vendas, tempo online, cancelamentos, nota e custos do iFood por loja'],notas:['Notas fiscais','Compras por fornecedor, classificação no DRE e compras do CMV'],geral:['Visão geral','Resultado da rede, ranking das lojas e alertas'],loja:['Minha loja','Resultado do dia, do mês e pendências da loja'],vendas:['Vendas','Venda diária, hora a hora e por canal'],metas:['Metas e indicadores','Metas do plano de gestão e semáforo por loja'],qualidade:['Qualidade','Visita de qualidade, vistoria diária de operações e notas do Google'],delivery:['Checklist de indicadores de delivery','Acompanhamento diário ou semanal por loja'],dre:['DRE por loja','Resultado operacional de cada loja no mês'],orc:['Orçamento de inaugurações','DRE orçado de uma nova loja, maturação, cenários e rede com 10 lojas'],rh:['Indicadores de RH','Quadro, turnover, absenteísmo, ocorrências, performance, nine box e sucessão'],cmv:['CMV por loja','CMV semanal, controle diário de bebidas, sobremesas e proteínas, perdas e produção do dia'],cc:['Cozinha central','Rupturas das lojas e estoque da cozinha central'],
   planos:['Planos de ação','Desvios dos checklists e indicadores, com responsável, prazo e verificação'],relatorios:['Relatórios','Relatórios gerenciais em PDF e CSV'],config:['Configurações','Lojas, metas, premissas, quadro, usuários e histórico']};
-const RENDER={ifood:renderIfood,notas:renderNotas,geral:renderGeral,loja:renderLoja,vendas:renderVendas,metas:renderMetas,dre:renderDRE,orc:renderOrc,rh:renderRH,cmv:renderCmvTab,cc:renderCC,qualidade:renderQualidade,delivery:()=>{buildDel();renderDelHist()},planos:renderPlanos,relatorios:renderRelatorios,config:renderConfig};
+const RENDER={painel:renderPainel,ifood:renderIfood,notas:renderNotas,geral:renderGeral,loja:renderLoja,vendas:renderVendas,metas:renderMetas,dre:renderDRE,orc:renderOrc,rh:renderRH,cmv:renderCmvTab,cc:renderCC,qualidade:renderQualidade,delivery:()=>{buildDel();renderDelHist()},planos:renderPlanos,relatorios:renderRelatorios,config:renderConfig};
 function abasPermitidas(){
   const p=P.papel;
   if(p==='colaborador') return ['cmv','cc','delivery'];
-  const t=['geral','loja','vendas','ifood','metas','cmv','cc','dre','notas','rh','qualidade','delivery','planos','relatorios'];
+  const t=['geral','painel','loja','vendas','ifood','metas','cmv','cc','dre','notas','rh','qualidade','delivery','planos','relatorios'];
   if(P.veTudo) t.splice(t.indexOf('notas')+1,0,'orc');
   if(P.gestor) t.push('config');
   return t;
@@ -17,12 +17,13 @@ function go(t){
   $$('.tab').forEach(s=>s.classList.toggle('on',s.id==='tab-'+t));
   $('#pTitle').textContent=TITLES[t][0]; $('#pSub').textContent=TITLES[t][1];
   try{RENDER[t]()}catch(e){console.error(e);toast('Erro ao montar a tela: '+e.message)}
+  try{poBasesPill()}catch(e){}
   if(t==='geral'||t==='loja') liveAtualizar();
   try{history.replaceState(null,'','#'+t)}catch(e){}
   window.scrollTo({top:0});
 }
 function aplicarLojas(){
-  initVendas(); initMetas(); initCMV(); initDRE(); initCC(); initIfood(); initNotas(); initCont(); initCmvOp(); initRH(); initMov(); initOco(); initPlanos(); initChecklists(); initGoogle(); initOper();
+  initVendas(); initMetas(); initCMV(); initDRE(); initCC(); initIfood(); initNotas(); initCont(); initCmvOp(); initRH(); initMov(); initOco(); initPlanos(); initChecklists(); initGoogle(); initOper(); initPainel();
   $('#foot').innerHTML=`Fat Buddha | Rice &amp; Deli<br>${OPER.length} loja${OPER.length===1?'':'s'} em operação${LOJAS.filter(l=>l.status==='inauguracao').map(l=>' · '+esc(l.nome)+(l.inauguracao?' em '+esc(l.inauguracao):'')).join('')}`;
   // visibilidade por permissão
   const tem=(sel,cond)=>$$(sel).forEach(e=>e.classList.toggle('hidden',!cond));

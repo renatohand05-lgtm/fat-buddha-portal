@@ -47,6 +47,7 @@
     <div class="brand"><img src="logo.png" alt="Fat Buddha"><div><b>Fat Buddha</b><span>Portal Operacional</span></div></div>
     <nav class="nav" id="nav">
       <button data-tab="geral" class="on"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Visão geral</button>
+      <button data-tab="painel"><svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Painel operacional</button>
       <button data-tab="loja"><svg viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M5 12v8h14v-8"/><path d="M10 20v-5h4v5"/></svg>Minha loja</button>
       <button data-tab="vendas"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>Vendas</button>
       <button data-tab="ifood"><svg viewBox="0 0 24 24"><path d="M4 7h16l-1.5 11a2 2 0 0 1-2 1.7h-9a2 2 0 0 1-2-1.7z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/><path d="M9 12h6"/></svg>iFood</button>
@@ -69,7 +70,7 @@
   </aside>
 
   <main>
-    <div class="top"><div><h1 id="pTitle">Visão geral</h1><p id="pSub"></p></div><div class="top-r"><button class="pill-month hidden" id="btnInstalar" title="Instalar o portal neste aparelho">Instalar app</button><button class="bell" id="bell" title="Alertas"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span id="bellN" class="hidden"></span></button><select class="pill-month" id="pMonth" title="Mês de referência"></select></div></div>
+    <div class="top"><div><h1 id="pTitle">Visão geral</h1><p id="pSub"></p></div><div class="top-r"><button class="pill-month bases-pill hidden" id="btnBases" title="Situação das bases de dados"></button><button class="pill-month hidden" id="btnInstalar" title="Instalar o portal neste aparelho">Instalar app</button><button class="bell" id="bell" title="Alertas"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span id="bellN" class="hidden"></span></button><select class="pill-month" id="pMonth" title="Mês de referência"></select></div></div>
     <div class="banner hidden" id="banner"></div>
 
     <!-- ============ VISÃO GERAL ============ -->
@@ -96,6 +97,69 @@
       <div class="grid g2 mt">
         <div class="card"><h3>Evolução das vendas <small>últimos 6 meses</small></h3><div class="chart"><canvas id="cEvol"></canvas></div></div>
         <div class="card"><h3>Indicadores críticos <small>lojas fora da meta por indicador</small></h3><div class="chart"><canvas id="cCrit"></canvas></div></div>
+      </div>
+    </section>
+
+    <!-- ============ PAINEL OPERACIONAL ============ -->
+    <section class="tab" id="tab-painel">
+      <div class="po-top">
+        <div class="subnav" id="poNav"><button data-s="res" class="on">Resultado por loja</button><button data-s="prod">Produtividade</button><button data-s="voz">Voz do cliente</button><button data-s="bases">Bases de dados</button></div>
+      </div>
+      <div id="poFaixa"></div>
+
+      <div class="po-sec on" id="po-res">
+        <div class="grid g6" id="poKpis"></div>
+        <div class="grid g21 mt">
+          <div class="card"><h3>Meta acumulada × realizado <span style="display:flex;gap:8px;align-items:center"><small id="poCurvaSub"></small><select class="inp sm" id="poLoja" style="width:auto"></select></span></h3><div class="chart lg"><canvas id="cPoCurva"></canvas></div></div>
+          <div class="card"><h3>Meta do dia <small>por loja</small></h3><div class="tbl-wrap" id="poDia"></div></div>
+        </div>
+        <div class="card mt"><h3>Painel por loja <small id="poTabInfo"></small></h3><div class="tbl-wrap po-scroll" id="poTabela"></div>
+          <p class="small muted" style="margin-top:10px">Meta até a data e projeção usam o peso de cada dia da semana. Semáforo: verde na meta, amarelo até 10% abaixo, vermelho abaixo disso. Clique na loja para abrir Minha loja.</p></div>
+        <div class="grid g2 mt">
+          <div class="card"><h3>Ranking · % da meta até a data</h3><div id="poRank"></div></div>
+          <div class="card"><h3>Pontos de atenção <small>gerados pelos dados do mês</small></h3><div class="alerts" id="poAtencao"></div></div>
+        </div>
+      </div>
+
+      <div class="po-sec" id="po-prod">
+        <div class="grid g4" id="prKpis"></div>
+        <div class="card mt"><h3>Produtividade por loja <small>faturamento ÷ horas da escala no período com venda</small></h3><div class="tbl-wrap" id="prTabela"></div></div>
+        <div class="card mt" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 16px"><b>Análise por hora</b><select class="inp" id="prLoja" style="width:auto;min-width:180px"></select><span class="small muted" id="prSub"></span></div>
+        <div class="grid g2 mt">
+          <div class="card"><h3>Venda média por hora <small>por dia, no período</small></h3><div class="chart"><canvas id="cPrVenda"></canvas></div></div>
+          <div class="card"><h3>Venda por pessoa na hora <small>R$ por pessoa escalada</small></h3><div class="chart"><canvas id="cPrPessoa"></canvas></div></div>
+        </div>
+        <div class="grid g21 mt">
+          <div class="card"><h3>Hora a hora</h3><div class="tbl-wrap po-horas" id="prHoras"></div></div>
+          <div class="card"><h3>Leitura da escala</h3><div class="alerts" id="prInsight"></div></div>
+        </div>
+      </div>
+
+      <div class="po-sec" id="po-voz">
+        <div class="card" style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px 16px;margin-bottom:16px">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="subnav" id="vcPer"><button data-p="mes" class="on">Mês</button><button data-p="90">90 dias</button></div><span class="small muted" id="vcPerTxt"></span></div>
+          <div class="actions only-edit" style="margin:0"><button class="btn sm" id="vcModelo">Modelo CSV</button><button class="btn sm pri" id="vcImport">Importar comentários do iFood</button></div>
+        </div>
+        <div class="grid g4" id="vcKpis"></div>
+        <div class="grid g2 mt">
+          <div class="card"><h3>Temas das avaliações negativas <small>clique para filtrar</small></h3><div class="chart"><canvas id="cVcTemas"></canvas></div></div>
+          <div class="card"><h3>Por loja</h3><div class="tbl-wrap" id="vcLojas"></div></div>
+        </div>
+        <div class="card mt">
+          <h3>Comentários <small id="vcN"></small></h3>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+            <select class="inp" id="vcLoja" style="width:auto"></select>
+            <select class="inp" id="vcFonte" style="width:auto"><option value="todas">Google e iFood</option><option value="Google">Só Google</option><option value="iFood">Só iFood</option></select>
+            <label class="po-sw"><input type="checkbox" id="vcNeg"> só negativas (até 3★)</label>
+          </div>
+          <div class="po-chips" id="vcTemas"></div>
+          <div class="po-cms" id="vcLista"></div>
+        </div>
+      </div>
+
+      <div class="po-sec" id="po-bases">
+        <div class="grid g4" id="bsKpis"></div>
+        <div class="card mt"><h3>Situação das bases <small>o que alimenta cada indicador do portal</small></h3><div class="tbl-wrap" id="bsTabela"></div></div>
       </div>
     </section>
 
@@ -830,6 +894,7 @@
 <script src="js/v_google.js"></script>
 <script src="js/v_vistoria.js"></script>
 <script src="js/v_escalas.js"></script>
+<script src="js/v_painel.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>
